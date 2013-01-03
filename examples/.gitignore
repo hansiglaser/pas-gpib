@@ -1,6 +1,8 @@
 backup/
 lib/
 *.res
+*.o
+*.compiled
 fpgacurrentmeasurement
 testagilent34410a
 testkeithley2010
