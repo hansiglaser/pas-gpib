@@ -1,0 +1,10 @@
+backup/
+lib/
+*.res
+fpgacurrentmeasurement
+testagilent34410a
+testkeithley2010
+testkeithley2600
+testlecroywavejet3xx
+testrohdeschwarzfse
+testusbtmc

@@ -1,0 +1,357 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="9"/>
+    <General>
+      <Flags>
+        <MainUnitHasCreateFormStatements Value="False"/>
+        <MainUnitHasTitleStatement Value="False"/>
+      </Flags>
+      <MainUnit Value="0"/>
+      <ResourceType Value="res"/>
+      <UseXPManifest Value="True"/>
+      <ActiveWindowIndexAtStart Value="0"/>
+    </General>
+    <i18n>
+      <EnableI18N LFM="False"/>
+    </i18n>
+    <VersionInfo>
+      <StringTable ProductVersion=""/>
+    </VersionInfo>
+    <BuildModes Count="1" Active="Default">
+      <Item1 Name="Default" Default="True"/>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
+      <ExcludeFileFilter Value="*.(bak|ppu|o|so);*~;backup"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+        <LaunchingApplication PathPlusParams="/usr/bin/rxvt-unicode -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+      </local>
+    </RunParams>
+    <Units Count="15">
+      <Unit0>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="TestLeCroyWaveJet3xx"/>
+        <EditorIndex Value="0"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="29"/>
+        <CursorPos X="10" Y="38"/>
+        <UsageCount Value="671"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <UnitName Value="LeCroyWaveJet"/>
+        <EditorIndex Value="10"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="391"/>
+        <CursorPos X="56" Y="434"/>
+        <UsageCount Value="335"/>
+        <Bookmarks Count="1">
+          <Item0 X="1" Y="415" ID="1"/>
+        </Bookmarks>
+        <Loaded Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="../README"/>
+        <EditorIndex Value="9"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="32" Y="18"/>
+        <UsageCount Value="335"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="None"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="../instruments/keithley/keithley2600.pas"/>
+        <UnitName Value="Keithley2600"/>
+        <EditorIndex Value="14"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="280"/>
+        <CursorPos X="1" Y="136"/>
+        <UsageCount Value="334"/>
+        <Loaded Value="True"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="../base/pasgpibutils.pas"/>
+        <UnitName Value="PasGpibUtils"/>
+        <EditorIndex Value="13"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="79"/>
+        <CursorPos X="1" Y="123"/>
+        <UsageCount Value="334"/>
+        <Loaded Value="True"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="testkeithley2600.pas"/>
+        <UnitName Value="TestKeithley2600"/>
+        <EditorIndex Value="8"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="17"/>
+        <CursorPos X="33" Y="79"/>
+        <UsageCount Value="333"/>
+        <Loaded Value="True"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="../usb/usbtmc.pas"/>
+        <UnitName Value="UsbTmc"/>
+        <EditorIndex Value="3"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="578"/>
+        <CursorPos X="1" Y="605"/>
+        <UsageCount Value="78"/>
+        <Loaded Value="True"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="../pas-libusb/src/libusb.pas"/>
+        <UnitName Value="LibUsb"/>
+        <EditorIndex Value="5"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="778"/>
+        <CursorPos X="3" Y="286"/>
+        <UsageCount Value="77"/>
+        <Loaded Value="True"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="../devcom/devcomusbtmc.pas"/>
+        <UnitName Value="DevComUSBTMC"/>
+        <EditorIndex Value="6"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="51" Y="32"/>
+        <UsageCount Value="78"/>
+        <Loaded Value="True"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="../devcom/devcomusblecroy.pas"/>
+        <UnitName Value="DevComUSBLeCroy"/>
+        <EditorIndex Value="7"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
+        <UsageCount Value="78"/>
+        <Loaded Value="True"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="../pas-libusb/src/libusboop.pas"/>
+        <UnitName Value="LibUsbOop"/>
+        <EditorIndex Value="2"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1485"/>
+        <CursorPos X="22" Y="1518"/>
+        <UsageCount Value="77"/>
+        <Loaded Value="True"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="../usb/usblecroy.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="USBLeCroy"/>
+        <EditorIndex Value="4"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="67"/>
+        <CursorPos X="1" Y="86"/>
+        <UsageCount Value="156"/>
+        <Loaded Value="True"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="../instruments/remoteinstrument.pas"/>
+        <UnitName Value="RemoteInstrument"/>
+        <EditorIndex Value="12"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="4"/>
+        <CursorPos X="1" Y="53"/>
+        <UsageCount Value="77"/>
+        <Loaded Value="True"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="../devcom/devcom.pas"/>
+        <UnitName Value="DevCom"/>
+        <EditorIndex Value="11"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="15" Y="24"/>
+        <UsageCount Value="76"/>
+        <Loaded Value="True"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="../devcom/devcomtcplecroy.pas"/>
+        <UnitName Value="DevComTCPLeCroy"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="52" Y="24"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit14>
+    </Units>
+    <JumpHistory Count="30" HistoryIndex="29">
+      <Position1>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="131" Column="3" TopLine="104"/>
+      </Position1>
+      <Position2>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="285" Column="1" TopLine="256"/>
+      </Position2>
+      <Position3>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="153" Column="12" TopLine="116"/>
+      </Position3>
+      <Position4>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="66" Column="2" TopLine="31"/>
+      </Position4>
+      <Position5>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position5>
+      <Position6>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="23" Column="15" TopLine="1"/>
+      </Position6>
+      <Position7>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="31" Column="38" TopLine="1"/>
+      </Position7>
+      <Position8>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="67" Column="46" TopLine="23"/>
+      </Position8>
+      <Position9>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="133" Column="135" TopLine="89"/>
+      </Position9>
+      <Position10>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="154" Column="38" TopLine="110"/>
+      </Position10>
+      <Position11>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="164" Column="57" TopLine="120"/>
+      </Position11>
+      <Position12>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="167" Column="70" TopLine="123"/>
+      </Position12>
+      <Position13>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="168" Column="23" TopLine="124"/>
+      </Position13>
+      <Position14>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="267" Column="22" TopLine="223"/>
+      </Position14>
+      <Position15>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="279" Column="1" TopLine="257"/>
+      </Position15>
+      <Position16>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="291" Column="10" TopLine="257"/>
+      </Position16>
+      <Position17>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="321" Column="34" TopLine="277"/>
+      </Position17>
+      <Position18>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="29" Column="16" TopLine="11"/>
+      </Position18>
+      <Position19>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="162" Column="35" TopLine="143"/>
+      </Position19>
+      <Position20>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="179" Column="20" TopLine="143"/>
+      </Position20>
+      <Position21>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="30" Column="21" TopLine="1"/>
+      </Position21>
+      <Position22>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="185" Column="1" TopLine="152"/>
+      </Position22>
+      <Position23>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="184" Column="39" TopLine="158"/>
+      </Position23>
+      <Position24>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="110" Column="33" TopLine="83"/>
+      </Position24>
+      <Position25>
+        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
+        <Caret Line="388" Column="1" TopLine="363"/>
+      </Position25>
+      <Position26>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="30" Column="6" TopLine="1"/>
+      </Position26>
+      <Position27>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="84" Column="3" TopLine="58"/>
+      </Position27>
+      <Position28>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="193" Column="1" TopLine="156"/>
+      </Position28>
+      <Position29>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="83" Column="3" TopLine="57"/>
+      </Position29>
+      <Position30>
+        <Filename Value="testlecroywavejet3xx.pas"/>
+        <Caret Line="38" Column="10" TopLine="29"/>
+      </Position30>
+    </JumpHistory>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="9"/>
+    <Target>
+      <Filename Value="testlecroywavejet3xx"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="../base;../devcom;../usb;../pas-libusb/src;../gpib;../instruments;../instruments/keithley;../instruments/lecroy;../instruments/rohdeschwarz;../instruments/agilent"/>
+      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+    <Other>
+      <CompilerMessages>
+        <UseMsgFile Value="True"/>
+      </CompilerMessages>
+      <CompilerPath Value="$(CompPath)"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <BreakPoints Count="1">
+      <Item1>
+        <Source Value="oogpib.pas"/>
+        <Line Value="168"/>
+      </Item1>
+    </BreakPoints>
+    <Watches Count="2">
+      <Item1>
+        <Expression Value="M1"/>
+      </Item1>
+      <Item2>
+        <Expression Value="V1"/>
+      </Item2>
+    </Watches>
+    <Exceptions Count="2">
+      <Item1>
+        <Name Value="ECodetoolError"/>
+      </Item1>
+      <Item2>
+        <Name Value="EFOpenError"/>
+      </Item2>
+    </Exceptions>
+  </Debugging>
+</CONFIG>
