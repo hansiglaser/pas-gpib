@@ -18,6 +18,7 @@ Design Principle
 ================
 
 This package is organized into two major parts
+
  - instruments
  - device communicators
 
@@ -39,6 +40,7 @@ Device Communicators
 ====================
 
 Currently, there are five device communicator classes
+
  - ``TUSBTMCCommunicator``
  - ``TUSBLeCroyCommunicator``
  - ``TRS232Communicator``
@@ -82,6 +84,7 @@ Instruments
 ===========
 
 Currently, rudimentary support for three devices is available
+
  - ``TLeCroyWaveJet`` for LeCroy WaveJet scopes
  - ``TKeithley2010`` for Keithley 2010 multimeters
  - ``TRohdeSchwarzFSEB`` for Rohde&Schwarz FSEB spectrum analyzers
