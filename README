@@ -126,11 +126,16 @@ The USB-TMC implementation uses libusb(x) 1.0 (see http://www.libusb.org/
 and http://libusbx.sourceforge.net/ and the Pascal OOP wrapper at
 https://github.com/hansiglaser/pas-libusb/tree/libusb-1.0
 
-To compile, get pas-libusb as follows::
+This is referenced using `Git Submodules
+<http://git-scm.com/book/en/Git-Tools-Submodules>`_. After cloning this
+project, you have to add the submodules too.
 
-  git clone https://github.com/hansiglaser/pas-libusb.git
-  cd pas-libusb
-  checkout libusb-1.0
+::
+
+  git clone https://github.com/hansiglaser/pas-gpib.git
+  cd pas-gpib
+  git submodule init
+  git submodule update
 
 
 TODO
