@@ -137,6 +137,35 @@ project, you have to add the submodules too.
   git submodule init
   git submodule update
 
+The submodule was added using the command (Important: https:// URL, not
+git:// URL, because github doesn't support "push" to git:// URLs!)
+
+::
+
+  git submodule add -b libusb-1.0 https://github.com/hansiglaser/pas-libusb.git pas-libusb  
+  git commit
+
+To change a submodule within this main project and then commit and push to
+GitHub, a few things must be `considered
+<http://longweekendmobile.com/2010/11/05/making-changes-in-a-git-submodule-made-simple/>`_.
+A submodule by default is a 'Detached Head' this means it isn't on a branch.
+
+::
+
+  cd pas-libusb/
+  git branch libusb-1.0      # switch to a branch
+  # make changes
+  git add ...                # stage changes
+  git commit                 # commit
+  git push                   # and push to GitHub
+  cd ../..
+  git submodule              # shows that submodules are at a newer state
+                             # than referenced by the main project
+  git add host/pas-libusb    # tell git to use the most current revision of
+                             # this submodule
+  git commit                 # commit
+  git push                   # and push to GitHub
+
 
 TODO
 ====
