@@ -11,6 +11,7 @@ Uses
 Type
   TModel          = (mdUnknown,md2602A);
   TDigits         = (dg4_5,dg5_5,dg6_5);
+  TMeasureFunc    = (mfDCAmps,mfDCVolts,mfOhms,mfWatts);
   TFilterType     = (ftMovingAvg,ftRepeatAvg,ftMedian);
   TAutoZero       = (azOff,azOnce,azAuto);
   TSenseMode      = (smLocal,smRemote);
@@ -20,6 +21,7 @@ Type
 Const
   CModelChannels  : Array[TModel]          of Integer = ({unknown:} 0, {2602A:} 2);
   CDigits         : Array[TDigits]         of String = ('DIGITS_4_5','DIGITS_5_5','DIGITS_6_5');
+  CMeasureFunc    : Array[TMeasureFunc]    of String = ('MEASURE_DCAMPS','MEASURE_DCVOLTS','MEASURE_OHMS','MEASURE_WATTS');
   CFilterType     : Array[TFilterType]     of String = ('FILTER_MOVING_AVG','FILTER_REPEAT_AVG','FILTER_MEDIAN');
   CAutoZero       : Array[TAutoZero]       of String = ('AUTOZERO_OFF','AUTOZERO_ONCE','AUTOZERO_AUTO');
   CSenseMode      : Array[TSenseMode]      of String = ('SENSE_LOCAL','SENSE_REMOTE');
@@ -95,6 +97,7 @@ Type
   public
     // measure functions
     Procedure SetDisplayDigits(ADigits:TDigits);
+    Procedure SetDisplayFunction(AMeasureFunc:TMeasureFunc);
     Procedure SetFilterType(AFilterType:TFilterType);
     Procedure SetFilterCount(AFilterCount:Integer);
     Procedure EnableMeasureFilter(AEnable:Boolean);
@@ -335,6 +338,16 @@ End;
 Procedure TKeithley2600Channel.SetDisplayDigits(ADigits : TDigits);
 Begin
   FDeviceCommunicator.Send('display.'+FName+'.digits = display.'+CDigits[ADigits]);
+End;
+
+(**
+ * Select measurement display function
+ *
+ * [RM] p. 6-6, 11-3, 19-50
+ *)
+Procedure TKeithley2600Channel.SetDisplayFunction(AMeasureFunc : TMeasureFunc);
+Begin
+  FDeviceCommunicator.Send('display.'+FName+'.measure.func= display.'+CMeasureFunc[AMeasureFunc]);
 End;
 
 (**
