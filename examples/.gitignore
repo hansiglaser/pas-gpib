@@ -3,6 +3,7 @@ lib/
 *.res
 *.o
 *.compiled
+*.lps
 fpgacurrentmeasurement
 testagilent34410a
 testkeithley2010
