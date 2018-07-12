@@ -63,6 +63,9 @@ classes are implemented in units in ``usb/``.
 .. [USB488] Universal Serial Bus Test and Measurement Class, Subclass USB488
    Specification (USBTMC-USB488), Revision 1.0, April 14, 2003
 
+.. [Truevolt] Keysight Truevolt Series Digital Multimeters Operating and
+   Service Guide, Part Number: 34460-90901, Edition 5, (August 18, 2017)
+
 The ``TUSBLeCroyCommunicator`` provides communication with LeCroy scopes which
 do not adhere to the USB-TMC specification. These include the WaveAce and
 WaveJet devices. It uses a `` TUSBLeCroy``, which implements a driver for the
