@@ -26,6 +26,8 @@ Function SigPending(SigNo:Integer) : Boolean;
 Function SelectRead(AHandle:Integer;ATimeout:Integer { in us }) : Integer;
 Procedure WriteData(Filename:String;Data:TDynByteArray);
 
+Procedure Dump(Const Buf;Size:LongInt);
+
 Implementation
 Uses BaseUnix, StrUtils;
 
@@ -127,6 +129,33 @@ Begin
   BlockWrite(F,Data[0],Length(Data));
   Close(F);
 end;
+
+Procedure Dump(Const Buf;Size:LongInt);
+Var I : Integer;
+    B : Byte;
+    S : String[16];
+Begin
+  S := '                ';
+  For I := 0 to Size-1 do
+    Begin
+      if I and $F = 0 then Write(IntToHex(I,4),': ');
+      B := PByte(PtrUInt(@Buf)+I)^;
+      Write(IntToHex(B,2),' ');
+      if B in [$20..$7E,$80-$FF] then
+        S[(I and $F)+1] := Chr(B)
+      else
+        S[(I and $F)+1] := '.';
+      if I and $F = $F then
+        Begin
+          WriteLn('  ',S);
+          S := '                ';
+        End;
+    End;
+  if I and $F <> $F then
+    Begin
+      WriteLn(StringOfChar(' ',3*(15-(I and $F))),'  ',S);
+    End;
+End;
 
 End.
 
