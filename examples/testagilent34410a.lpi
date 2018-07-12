@@ -1,19 +1,18 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="9"/>
+    <Version Value="10"/>
     <General>
       <Flags>
         <LRSInOutputDirectory Value="False"/>
       </Flags>
+      <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
       <Title Value="testagilent34410a"/>
-      <ActiveWindowIndexAtStart Value="0"/>
     </General>
     <VersionInfo>
       <Language Value=""/>
       <CharSet Value=""/>
-      <StringTable ProductVersion=""/>
     </VersionInfo>
     <BuildModes Count="1">
       <Item1 Name="default" Default="True"/>
@@ -30,381 +29,36 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <Units Count="24">
+    <Units Count="4">
       <Unit0>
         <Filename Value="testagilent34410a.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="TestAgilent34410A"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="0"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="142"/>
-        <CursorPos X="10" Y="122"/>
-        <UsageCount Value="635"/>
-        <Loaded Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="usbtmc.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UsbTmc"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="190"/>
-        <CursorPos X="3" Y="188"/>
-        <UsageCount Value="635"/>
-        <Bookmarks Count="2">
-          <Item0 X="3" Y="650" ID="1"/>
-          <Item1 X="14" Y="196" ID="2"/>
-        </Bookmarks>
       </Unit1>
       <Unit2>
-        <Filename Value="../usb/usbtmc.pas"/>
-        <UnitName Value="UsbTmc"/>
-        <EditorIndex Value="10"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="67" Y="255"/>
-        <UsageCount Value="310"/>
-        <Loaded Value="True"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="../devcom/devcomusbtmc.pas"/>
-        <UnitName Value="DevComUSBTMC"/>
-        <EditorIndex Value="9"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="22"/>
-        <CursorPos X="1" Y="38"/>
-        <UsageCount Value="310"/>
-        <Loaded Value="True"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="../devcom/devcomtcplecroy.pas"/>
-        <UnitName Value="DevComTCPLeCroy"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="24" Y="21"/>
-        <UsageCount Value="261"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="../devcom/devcom.pas"/>
-        <UnitName Value="DevCom"/>
-        <EditorIndex Value="6"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="15" Y="28"/>
-        <UsageCount Value="261"/>
-        <Loaded Value="True"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="../devcom/devcomrs232.pas"/>
-        <UnitName Value="DevComRS232"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="23" Y="22"/>
-        <UsageCount Value="261"/>
-      </Unit6>
-      <Unit7>
-        <Filename Value="../devcom/devcomtcp.pas"/>
-        <UnitName Value="DevComTCP"/>
-        <EditorIndex Value="1"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="53"/>
-        <CursorPos X="3" Y="65"/>
-        <UsageCount Value="261"/>
-        <Loaded Value="True"/>
-      </Unit7>
-      <Unit8>
-        <Filename Value="../devcom/devcomgpib.pas"/>
-        <UnitName Value="DevComGPIB"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="15"/>
-        <CursorPos X="15" Y="22"/>
-        <UsageCount Value="261"/>
-      </Unit8>
-      <Unit9>
-        <Filename Value="/usr/share/fpcsrc/2.6.0/rtl/unix/serial.pp"/>
-        <UnitName Value="Serial"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="3" Y="17"/>
-        <UsageCount Value="261"/>
-      </Unit9>
-      <Unit10>
-        <Filename Value="../gpib/oogpib.pas"/>
-        <UnitName Value="OoGPIB"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="52" Y="159"/>
-        <UsageCount Value="261"/>
-      </Unit10>
-      <Unit11>
-        <Filename Value="../pas-libusb/src/libusb.pas"/>
-        <UnitName Value="LibUsb"/>
-        <EditorIndex Value="13"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="529"/>
-        <CursorPos X="110" Y="564"/>
-        <UsageCount Value="232"/>
-        <Loaded Value="True"/>
-      </Unit11>
-      <Unit12>
-        <Filename Value="../pas-libusb/src/libusboop.pas"/>
-        <UnitName Value="LibUsbOop"/>
-        <EditorIndex Value="12"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="801"/>
-        <CursorPos X="3" Y="824"/>
-        <UsageCount Value="232"/>
-        <Loaded Value="True"/>
-      </Unit12>
-      <Unit13>
-        <Filename Value="../pas-libusb/src/libusbutil.pas"/>
-        <UnitName Value="LibUsbUtil"/>
-        <EditorIndex Value="11"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="92"/>
-        <CursorPos X="86" Y="143"/>
-        <UsageCount Value="231"/>
-        <Loaded Value="True"/>
-      </Unit13>
-      <Unit14>
         <Filename Value="../instruments/agilent/agilent34410a.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Agilent34410A"/>
-        <EditorIndex Value="5"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="291"/>
-        <CursorPos X="67" Y="317"/>
-        <UsageCount Value="456"/>
-        <Bookmarks Count="1">
-          <Item0 X="44" Y="317" ID="1"/>
-        </Bookmarks>
-        <Loaded Value="True"/>
-      </Unit14>
-      <Unit15>
-        <Filename Value="../instruments/keithley/keithley2010.pas"/>
-        <UnitName Value="Keithley2010"/>
-        <EditorIndex Value="3"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="29"/>
-        <CursorPos X="31" Y="50"/>
-        <UsageCount Value="228"/>
-        <Loaded Value="True"/>
-      </Unit15>
-      <Unit16>
-        <Filename Value="../base/pasgpibutils.pas"/>
-        <UnitName Value="PasGpibUtils"/>
-        <EditorIndex Value="7"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="79"/>
-        <CursorPos X="1" Y="117"/>
-        <UsageCount Value="35"/>
-        <Loaded Value="True"/>
-      </Unit16>
-      <Unit17>
-        <Filename Value="../README"/>
-        <EditorIndex Value="2"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="60"/>
-        <CursorPos X="10" Y="60"/>
-        <UsageCount Value="225"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="None"/>
-      </Unit17>
-      <Unit18>
+      </Unit2>
+      <Unit3>
         <Filename Value="../instruments/keithley/keithley2600.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Keithley2600"/>
-        <EditorIndex Value="4"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="242"/>
-        <CursorPos X="31" Y="293"/>
-        <UsageCount Value="450"/>
-        <Loaded Value="True"/>
-      </Unit18>
-      <Unit19>
-        <Filename Value="../instruments/remoteinstrument.pas"/>
-        <UnitName Value="RemoteInstrument"/>
-        <EditorIndex Value="8"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="4"/>
-        <CursorPos X="1" Y="52"/>
-        <UsageCount Value="35"/>
-        <Loaded Value="True"/>
-      </Unit19>
-      <Unit20>
-        <Filename Value="/usr/share/fpcsrc/2.6.0/packages/fcl-net/src/ssockets.pp"/>
-        <UnitName Value="ssockets"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="24" Y="35"/>
-        <UsageCount Value="10"/>
-      </Unit20>
-      <Unit21>
-        <Filename Value="/usr/share/fpcsrc/2.6.0/rtl/objpas/classes/classesh.inc"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="772"/>
-        <CursorPos X="3" Y="770"/>
-        <UsageCount Value="10"/>
-      </Unit21>
-      <Unit22>
-        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
-        <UnitName Value="LeCroyWaveJet"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="396"/>
-        <CursorPos X="23" Y="437"/>
-        <UsageCount Value="11"/>
-      </Unit22>
-      <Unit23>
-        <Filename Value="testlecroywavejet3xx.pas"/>
-        <UnitName Value="TestLeCroyWaveJet3xx"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="99"/>
-        <CursorPos X="40" Y="113"/>
-        <UsageCount Value="10"/>
-      </Unit23>
+      </Unit3>
     </Units>
-    <JumpHistory Count="27" HistoryIndex="26">
-      <Position1>
-        <Filename Value="../devcom/devcomtcp.pas"/>
-        <Caret Line="65" Column="13" TopLine="50"/>
-      </Position1>
-      <Position2>
-        <Filename Value="../devcom/devcomtcp.pas"/>
-        <Caret Line="72" Column="1" TopLine="50"/>
-      </Position2>
-      <Position3>
-        <Filename Value="../base/pasgpibutils.pas"/>
-        <Caret Line="117" Column="1" TopLine="79"/>
-      </Position3>
-      <Position4>
-        <Filename Value="testagilent34410a.pas"/>
-        <Caret Line="100" Column="1" TopLine="71"/>
-      </Position4>
-      <Position5>
-        <Filename Value="testagilent34410a.pas"/>
-        <Caret Line="102" Column="1" TopLine="71"/>
-      </Position5>
-      <Position6>
-        <Filename Value="testagilent34410a.pas"/>
-        <Caret Line="104" Column="1" TopLine="71"/>
-      </Position6>
-      <Position7>
-        <Filename Value="../devcom/devcomtcp.pas"/>
-        <Caret Line="78" Column="1" TopLine="50"/>
-      </Position7>
-      <Position8>
-        <Filename Value="../instruments/agilent/agilent34410a.pas"/>
-        <Caret Line="164" Column="39" TopLine="138"/>
-      </Position8>
-      <Position9>
-        <Filename Value="../devcom/devcomtcp.pas"/>
-        <Caret Line="91" Column="10" TopLine="50"/>
-      </Position9>
-      <Position10>
-        <Filename Value="../instruments/agilent/agilent34410a.pas"/>
-        <Caret Line="164" Column="39" TopLine="138"/>
-      </Position10>
-      <Position11>
-        <Filename Value="../instruments/agilent/agilent34410a.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position11>
-      <Position12>
-        <Filename Value="../devcom/devcomtcp.pas"/>
-        <Caret Line="89" Column="34" TopLine="51"/>
-      </Position12>
-      <Position13>
-        <Filename Value="../devcom/devcomtcp.pas"/>
-        <Caret Line="65" Column="27" TopLine="39"/>
-      </Position13>
-      <Position14>
-        <Filename Value="testagilent34410a.pas"/>
-        <Caret Line="106" Column="14" TopLine="71"/>
-      </Position14>
-      <Position15>
-        <Filename Value="../instruments/agilent/agilent34410a.pas"/>
-        <Caret Line="208" Column="89" TopLine="166"/>
-      </Position15>
-      <Position16>
-        <Filename Value="../instruments/agilent/agilent34410a.pas"/>
-        <Caret Line="206" Column="36" TopLine="180"/>
-      </Position16>
-      <Position17>
-        <Filename Value="../instruments/agilent/agilent34410a.pas"/>
-        <Caret Line="199" Column="87" TopLine="181"/>
-      </Position17>
-      <Position18>
-        <Filename Value="../instruments/agilent/agilent34410a.pas"/>
-        <Caret Line="62" Column="1" TopLine="23"/>
-      </Position18>
-      <Position19>
-        <Filename Value="../instruments/agilent/agilent34410a.pas"/>
-        <Caret Line="213" Column="2" TopLine="222"/>
-      </Position19>
-      <Position20>
-        <Filename Value="testagilent34410a.pas"/>
-        <Caret Line="149" Column="24" TopLine="113"/>
-      </Position20>
-      <Position21>
-        <Filename Value="testagilent34410a.pas"/>
-        <Caret Line="35" Column="20" TopLine="1"/>
-      </Position21>
-      <Position22>
-        <Filename Value="../instruments/agilent/agilent34410a.pas"/>
-        <Caret Line="295" Column="10" TopLine="281"/>
-      </Position22>
-      <Position23>
-        <Filename Value="testagilent34410a.pas"/>
-        <Caret Line="171" Column="52" TopLine="128"/>
-      </Position23>
-      <Position24>
-        <Filename Value="testagilent34410a.pas"/>
-        <Caret Line="87" Column="21" TopLine="57"/>
-      </Position24>
-      <Position25>
-        <Filename Value="testagilent34410a.pas"/>
-        <Caret Line="171" Column="27" TopLine="138"/>
-      </Position25>
-      <Position26>
-        <Filename Value="testagilent34410a.pas"/>
-        <Caret Line="36" Column="3" TopLine="1"/>
-      </Position26>
-      <Position27>
-        <Filename Value="../instruments/agilent/agilent34410a.pas"/>
-        <Caret Line="317" Column="75" TopLine="286"/>
-      </Position27>
-    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="9"/>
+    <Version Value="11"/>
     <SearchPaths>
       <OtherUnitFiles Value="../base;../devcom;../usb;../pas-libusb/src;../gpib;../instruments;../instruments/keithley;../instruments/lecroy;../instruments/rohdeschwarz;../instruments/agilent"/>
     </SearchPaths>
-    <Other>
-      <CompilerMessages>
-        <UseMsgFile Value="True"/>
-      </CompilerMessages>
-      <CompilerPath Value="$(CompPath)"/>
-    </Other>
   </CompilerOptions>
   <Debugging>
-    <BreakPoints Count="2">
-      <Item1>
-        <Source Value="oogpib.pas"/>
-        <Line Value="168"/>
-      </Item1>
-      <Item2>
-        <Source Value="testagilent34410a.pas"/>
-        <Line Value="122"/>
-      </Item2>
-    </BreakPoints>
-    <Watches Count="2">
-      <Item1>
-        <Expression Value="M1"/>
-      </Item1>
-      <Item2>
-        <Expression Value="V1"/>
-      </Item2>
-    </Watches>
     <Exceptions Count="2">
       <Item1>
         <Name Value="ECodetoolError"/>
