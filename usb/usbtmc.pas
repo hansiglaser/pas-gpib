@@ -5,7 +5,7 @@ Unit UsbTmc;
 Interface
 
 Uses
-  Classes, SysUtils, LibUsb, LibUsbOop, LibUsbUtil;
+  Classes, SysUtils, LibUsb, LibUsbOop, LibUsbUtil{, PasGpibUtils};
 
 Type
   TUSBTMCIntfInfo = record
@@ -24,12 +24,32 @@ Type
   TUSBTMCIntfInfos = Array of TUSBTMCIntfInfo;
   TUSBTMCSubClass = (tcsNone,tcsUSB488);
   TUSBTMCDevDepMsgOut = packed record
+    // descriptions for the first 4 fields from [USBTMC10] Tab. 1 p. 5
+    // Specifies the USBTMC message and the type of the USBTMC message.
     MsgID        : Byte;
+    // A transfer identifier. The Host must set bTag different than the bTag
+    // used in the previous Bulk-OUT Header. The Host should increment the bTag
+    // by 1 each time it sends a new Bulk-OUT Header. The Host must set bTag
+    // such that 1<=bTag<=255.
     Tag          : Byte;
+    // The inverse (one's complement) of the bTag. For example, the bTagInverse
+    // of 0x5B is 0xA4.
     TagInverse   : Byte;
+    // Reserved. Must be 0x00.
     Reserved1    : Byte;
+    // description for the residual fields from [USBTMC10] Tab. 3 p. 7
+    // Total number of USBTMC message data bytes to be sent in this USB
+    // transfer. This does not include the number of bytes in this Bulk-OUT
+    // Header or alignment bytes. Sent least significant byte first, most
+    // significant byte last. TransferSize must be > 0x00000000.
     TransferSize : Cardinal;
+    // D7...D1: Reserved. All bits must be 0.
+    // D0: EOM. 1 - The last USBTMC message data byte in the transfer is the
+    //              last byte of the USBTMC message.
+    //          0 - The last USBTMC message data byte in the transfer is not
+    //              the last byte of the USBTMC message.
     Attributes   : Byte;
+    // Reserved. Must be 0x000000.
     Reserved2    : Array[0..2] of Byte;
     Data         : Array[0..0] of Byte;
   End;
@@ -38,9 +58,26 @@ Type
     Tag          : Byte;
     TagInverse   : Byte;
     Reserved1    : Byte;
+    // description for the residual fields from [USBTMC10] Tab. 4 p. 9
+    // Maximum number of USBTMC message data bytes to be sent in response to
+    // the command. This does not include the number of bytes in this Bulk-IN
+    // Header or alignment bytes. Sent least significant byte first, most
+    // significant byte last. TransferSize must be > 0x00000000.
     TransferSize : Cardinal;
+    // D7...D2: Reserved. All bits must be 0.
+    // D1: TermCharEnabled.
+    //     1 - The Bulk-IN transfer must terminate on the specified TermChar.
+    //         The Host may only set this bit if the USBTMC interface indicates
+    //         it supports TermChar in the GET_CAPABILITIES response packet.
+    //     0 - The device must ignore TermChar.
+    // D0: Must be 0.
     Attributes   : Byte;
+    // If bmTransferAttributes.D1 = 1, TermChar is an 8-bit value representing
+    // a termination character. If supported, the device must terminate the
+    // Bulk-IN transfer after this character is sent.
+    // If bmTransferAttributes.D1 = 0, the device must ignore this field.
     TermChar     : Char;
+    // Reserved. Must be 0x000000.
     Reserved2    : Array[0..1] of Byte;
   End;
   TUSBTMCDevDepMsgIn = packed record
@@ -48,8 +85,27 @@ Type
     Tag          : Byte;
     TagInverse   : Byte;
     Reserved1    : Byte;
+    // description for the residual fields from [USBTMC10] Tab. 9 p. 14
+    // Total number of message data bytes to be sent in this USB transfer.
+    // This does not include the number of bytes in this header or alignment
+    // bytes. Sent least significant byte first, most significant byte last.
+    // TransferSize must be > 0x00000000.
     TransferSize : Cardinal;
+    // D7...D2: Reserved. All bits must be 0.
+    // D1: 1 - All of the following are true:
+    //          * The USBTMC interface supports TermChar
+    //          * The bmTransferAttributes.TermCharEnabled bit was set in the
+    //            REQUEST_DEV_DEP_MSG_IN.
+    //          * The last USBTMC message data byte in this transfer matches
+    //            the TermChar in the REQUEST_DEV_DEP_MSG_IN.
+    //     0 - One or more of the above conditions is not met.
+    // D0: EOM.
+    //     1 - The last USBTMC message data byte in the transfer is the last
+    //         byte of the USBTMC message.
+    //     0 - The last USBTMC message data byte in the transfer is not the
+    //         last byte of the USBTMC message
     Attributes   : Byte;
+    // Reserved. Must be 0x000000.
     Reserved2    : Array[0..2] of Byte;
     Data         : Array[0..0] of Byte;
   End;
@@ -58,7 +114,13 @@ Type
     Tag          : Byte;
     TagInverse   : Byte;
     Reserved1    : Byte;
+    // description for the residual fields from [USBTMC10] Tab. 5 p. 9
+    // Total number of USBTMC message data bytes to be sent in this USB
+    // transfer. This does not include the number of bytes in this Bulk-OUT
+    // Header or alignment bytes. Sent least significant byte first, most
+    // significant byte last. TransferSize must be > 0x00000000.
     TransferSize : Cardinal;
+    // Reserved. Must be 0x0000000.
     Reserved2    : Array[0..3] of Byte;
     Data         : Array[0..0] of Byte;
   End;
@@ -67,7 +129,13 @@ Type
     Tag          : Byte;
     TagInverse   : Byte;
     Reserved1    : Byte;
+    // description for the residual fields from [USBTMC10] Tab. 6 p. 10
+    // Maximum number of USBTMC message data bytes to be sent in response to
+    // the command. This does not include the number of bytes in this Bulk-IN
+    // Header or alignment bytes. Sent least significant byte first, most
+    // significant byte last. TransferSize must be > 0x00000000.
     TransferSize : Cardinal;
+    // Reserved. Must be 0x00000000.
     Reserved2    : Array[0..3] of Byte;
   End;
   TUSBTMCVendorMsgIn = record
@@ -75,9 +143,39 @@ Type
     Tag          : Byte;
     TagInverse   : Byte;
     Reserved1    : Byte;
+    // description for the residual fields from [USBTMC10] Tab. 10 p. 14
+    // Total number of message data bytes to be sent in this USB transfer.
+    // This does not include the number of bytes in this header or alignment
+    // bytes. Sent least significant byte first, most significant byte last.
+    // TransferSize must be > 0x00000000.
     TransferSize : Cardinal;
+    // Reserved. Must be 0x00000000.
     Reserved2    : Array[0..3] of Byte;
     Data         : Array[0..0] of Byte;
+  End;
+  TUSBTMCUSB488Trigger = packed record
+    MsgID        : Byte;
+    Tag          : Byte;
+    TagInverse   : Byte;
+    Reserved     : Array[0..7] of Byte;
+  End;
+  (**
+   * Interrupt-IN DATA payload format
+   *
+   * [USBTMC10] Tab. 13 p. 16
+   *)
+  TUSBTMCIntrIn = record
+    bNotify1 : Byte;
+    bNotify2 : Array[0..0] of Byte;
+  End;
+  (**
+   * USB488 Interrupt-IN packet sent due to READ_STATUS_BYTE request
+   *
+   * [USB488] Tab. 7 p. 9
+   *)
+  TUSBTMCUSB488ReadStatusByteIntrIn = record
+    bNotify1 : Byte;
+    bNotify2 : Byte;
   End;
   TUSBTMCInitiateAbortBulkOut = record
     Status : Byte;
@@ -123,6 +221,23 @@ Type
     Usb488DevCap  : Byte;
     Reserved3  : Array[0..7] of Byte;
   End;
+  TUSBTMCUSB488ReadStatusByte = packed record
+    Status     : Byte;
+    Tag        : Byte;
+    StatusByte : Byte;
+  End;
+
+Const
+  { IEEE 488, see e.g., https://en.wikipedia.org/wiki/IEEE-488 }
+  { IEEE 488.1 Status Byte, [Truevolt] p. 266 }
+  IEEE488_StatusByte_ErrorQueue         = $04; // One or more errors have been stored in the Error Queue.
+  IEEE488_StatusByte_QuestData          = $08; // One or more bits are set in the Questionable Data Register.
+  IEEE488_StatusByte_MessageAvailable   = $10; // Data is available in the instrument's output buffer.
+  IEEE488_StatusByte_StandardEvent      = $20; // One or more bits are set in the Standard Event Register.
+  IEEE488_StatusByte_MasterSummary      = $40; // One or more bits are set in the Status Byte Register and may generate a Request for Service (RQS).
+  IEEE488_StatusByte_StandardOperation  = $80; // One or more bits are set in the Standard Operation Register.
+
+Type
 
   { TUSBTMCBase }
 
@@ -161,7 +276,9 @@ Type
     Function InitiateAbortBulkIn     (Var Tag:Byte)                                : Byte;
     Function CheckAbortBulkInStatus  (Var Bits:Byte;Var BytesTx:Cardinal)          : Byte;
     Function InitiateClear                                                         : Byte;
+    // Returns the status of the previously sent INITIATE_CLEAR request.
     Function CheckClearStatus        (Var Bits:Byte)                               : Byte;
+    // Returns attributes and capabilities of the USBTMC interface.
     Function GetCapabilities                                                       : Byte;
     property UsbTmcBcdVersion  : Word    read FCapabilities.BCDVersion;
     property CapIndicatorPulse : Boolean read GetCapIndicatorPulse;
@@ -169,6 +286,9 @@ Type
     property CapListenOnly     : Boolean read GetCapListenOnly;
     property CapTermChar       : Boolean read GetCapTermChar;
     property Timeout           : Integer read FTimeout write FTimeout;
+    // A mechanism to turn on an activity indicator for identification purposes.
+    // The device indicates whether or not it supports this request in the
+    // GET_CAPABILITIES response packet.
     Function IndicatorPulse                                                        : Byte;
     { class methods }
     class Function FindUSBTMCInterfaces(Dev:Plibusb_device;Var Infos:TUSBTMCIntfInfos) : Boolean;
@@ -193,6 +313,7 @@ Type
     Procedure Trigger;
     Procedure Send(St:String);
     Function Recv(MaxLen:Cardinal) : String;
+    Function ReadStatusByte : Byte;
     property Usb488BcdVersion  : Word    read GetUsb488BcdVersion; // TUSBTMCUSB488GetCapabilities(FCapabilities).BCDUSB488;
     property CapUSB4882     : Boolean read GetCapUSB4882;
     property CapRenControl  : Boolean read GetCapRenControl;
@@ -206,10 +327,34 @@ Type
 Implementation
 
 Const
+  // MsgIDs defined in [USBTMC10] Tab. 2 p. 6
+  // 0: Reserved
+  // 1 OUT DEV_DEP_MSG_OUT:        The USBTMC message is a USBTMC device
+  //                               dependent command message.
+  // 1 IN:                         There is no defined response for this USBTMC
+  //                               command message.
   UsbTmcMsgID_DevDepMsgOut              = 1;
+  // 2 OUT REQUEST_DEV_DEP_MSG_IN: The USBTMC message is a USBTMC command
+  //                               message that requests the device to send a
+  //                               USBTMC response message on the Bulk-IN
+  //                               endpoint.
+  // 2 IN DEV_DEP_MSG_IN:          The USBTMC message is a USBTMC response
+  //                               message to the REQUEST_DEV_DEP_MSG_IN.
   UsbTmcMsgID_DevDepMsgIn               = 2;
+  // 126 OUT VENDOR_SPECIFIC_OUT:  The USBTMC message is a USBTMC vendor
+  //                               specific command message.
+  // 126 IN:                       There is no defined response for this USBTMC
+  //                               command message.
   UsbTmcMsgID_VendorMsgOut              = 126;
+  // 127 OUT REQUEST_VENDOR_SPECIFIC_IN: The USBTMC message is a USBTMC command
+  //                                     message that requests the device to
+  //                                     send a vendor specific USBTMC response
+  //                                     message on the Bulk-IN endpoint.
+  // 127 IN VENDOR_SPECIFIC_IN:          The USBTMC message is a USBTMC response
+  //                                     message to the
+  //                                     REQUEST_VENDOR_SPECIFIC_IN.
   UsbTmcMsgID_VendorMsgIn               = 127;
+
   UsbTmcRequest_InitiateAbortBulkOut    = 1;
   UsbTmcRequest_CheckAbortBulkOutStatus = 2;
   UsbTmcRequest_InitiateAbortBulkIn     = 3;
@@ -326,6 +471,7 @@ Procedure TUSBTMCBase.DevDepMsgOut(Size:Cardinal;Attributes:Byte;Const Data);
 Var Packet : ^TUSBTMCDevDepMsgOut;
     Len    : LongInt;
     Result : LongInt;
+    I      : Integer;
 Begin
   Len := SizeOf(TUSBTMCDevDepMsgOut)-1 + (Size + 3) and $FFFFFFFC;
   Packet := GetMem(Len);
@@ -340,18 +486,26 @@ Begin
 //  WriteLn('DevDepMsgOut');
 //  Dump(Packet^,Len);
 
-  Result := FEPOut.Send(Packet^,Len,FTimeout);
-  if Result = 0 then
-    Begin
-      WriteLn('Warning: Bulk-OUT endpoint ',FEPOut.Addr,' is halted, retrying.');
-      FEPOut.ClearHalt;
-      // retry
-      Result := FEPOut.Send(Packet^,Len,FTimeout);
-    End;
-
-  FreeMem(Packet);
-  if Result <> Len then
-    raise Exception.CreateFmt('DevDepMsgOut: Len = %d should be %d, %s',[Result,Len,FContext.ErrorName(Result)]);
+  try
+    For I := 0 to 2 do
+      Begin
+        Result := FEPOut.Send(Packet^,Len,FTimeout);
+        if Result < 0 then
+          raise Exception.Create('DevDepMsgOut: USB Error: '+FContext.ErrorName(Result))
+        else if Result = 0 then
+          Begin
+            WriteLn('Warning: Bulk-OUT endpoint ',FEPOut.Addr,' is halted, retrying.');
+            FEPOut.ClearHalt;
+            // retry
+            Continue;
+          End
+        else if Result <> Len then
+          raise Exception.CreateFmt('DevDepMsgOut: Sent %d bytes, but wanted to send %d',[Result,Len]);
+        Break;  // done sending
+      End;
+  Finally
+    FreeMem(Packet);
+  End;
 End;
 
 (**
@@ -393,6 +547,13 @@ Begin
   Packet := GetMem(Len);
   try
     Result := FEPIn.Recv(Packet^,Len,FTimeout);
+    if Result < 0 then
+      raise Exception.Create('DevDepMsgIn: USB Error: '+FContext.ErrorName(Result))
+    else if Result < SizeOf(TUSBTMCDevDepMsgIn) then
+      raise Exception.CreateFmt('DevDepMsgIn: Received only %d bytes, but expected at least %d',[Result,SizeOf(TUSBTMCDevDepMsgIn)]);
+    Len := SizeOf(TUSBTMCDevDepMsgIn)-1 + (Packet^.TransferSize + 3) and $FFFFFFFC;
+//    WriteLn('DevDepMsgIn');
+//    Dump(Packet^,Len);
     if Packet^.MsgID <> UsbTmcMsgID_DevDepMsgIn then
       raise Exception.CreateFmt('Invalid MsgID (%d)',[Packet^.MsgID]);
     if Packet^.Tag <> not Packet^.TagInverse then
@@ -401,10 +562,6 @@ Begin
       raise Exception.CreateFmt('Tag (%d) doesn''t match last tag (%d)',[Packet^.Tag,FLastTag]);
     if Packet^.TransferSize > Size then
       raise Exception.CreateFmt('TransferSize (%d) > Size (%d)',[Packet^.TransferSize,Size]);
-
-//  WriteLn('DevDepMsgIn');
-//  Len := SizeOf(TUSBTMCDevDepMsgIn)-1 + (Packet^.TransferSize + 3) and $FFFFFFFC;
-//  Dump(Packet^,Len);
 
     Size       := Packet^.TransferSize;
     Attributes := Packet^.Attributes;
@@ -456,6 +613,12 @@ Begin
   Packet := GetMem(Len);
   try
     Result := FEPIn.Recv(Packet^,Len,FTimeout);
+    if Result < 0 then
+      raise Exception.Create('VendorMsgIn: USB Error: '+FContext.ErrorName(Result))
+    else if Result < SizeOf(TUSBTMCDevDepMsgIn) then
+      raise Exception.CreateFmt('VendorMsgIn: Received only %d bytes, but expected at least %d',[Result,SizeOf(TUSBTMCDevDepMsgIn)]);
+    Len := SizeOf(TUSBTMCDevDepMsgIn)-1 + (Packet^.TransferSize + 3) and $FFFFFFFC;
+//    Dump(Packet^,Len);
     if Packet^.MsgID <> UsbTmcMsgID_VendorMsgIn then
       raise Exception.CreateFmt('Invalid MsgID (%d)',[Packet^.MsgID]);
     if Packet^.Tag <> not Packet^.TagInverse then
@@ -471,6 +634,14 @@ Begin
   End;
 End;
 
+(**
+ * Aborts a Bulk-OUT transfer.
+ *
+ * If the Host must abort a Bulk-OUT transfer before the transfer completes,
+ * the Host must send an INITIATE_ABORT_BULK_OUT request.
+ *
+ * [USBTMC10] Sec. 3.2.2.1 p. 10, and Tab. 15 p. 18f
+ *)
 Function TUSBTMCBase.InitiateAbortBulkOut(Var Tag:Byte) : Byte;
 Var Reply : TUSBTMCInitiateAbortBulkOut;
     Len   : LongInt;
@@ -491,6 +662,11 @@ Begin
   Tag := Reply.Tag;
 End;
 
+(**
+ * Returns the status of the previously sent INITIATE_ABORT_BULK_OUT request.
+ *
+ * [USBTMC10] Tab. 15 p. 18f
+ *)
 Function TUSBTMCBase.CheckAbortBulkOutStatus(Var BytesRx:Cardinal) : Byte;
 Var Reply : TUSBTMCCheckAbortBulkOutStatus;
     Len   : LongInt;
@@ -511,6 +687,15 @@ Begin
   BytesRx := Reply.BytesRx;
 End;
 
+(**
+ * Aborts a Bulk-IN transfer.
+ *
+ * If the USBTMC client software must abort a Bulk-IN transfer before the
+ * transfer completes, the USBTMC client software must send an
+ * INITIATE_ABORT_BULK_IN request.
+ *
+ * [USBTMC10] Sec. 3.3.2.1 p. 15, and Tab. 15 p. 18f
+ *)
 Function TUSBTMCBase.InitiateAbortBulkIn(Var Tag:Byte) : Byte;
 Var Reply : TUSBTMCInitiateAbortBulkIn;
     Len   : LongInt;
@@ -531,6 +716,11 @@ Begin
   Tag := Reply.Tag;
 End;
 
+(**
+ * Returns the status of the previously sent INITIATE_ABORT_BULK_IN request.
+ *
+ * [USBTMC10] Tab. 15 p. 18f
+ *)
 Function TUSBTMCBase.CheckAbortBulkInStatus(Var Bits:Byte;Var BytesTx:Cardinal) : Byte;
 Var Reply : TUSBTMCCheckAbortBulkInStatus;
     Len   : LongInt;
@@ -552,6 +742,15 @@ Begin
   BytesTx := Reply.BytesTx;
 End;
 
+(**
+ * Clears all previously sent pending and unprocessed Bulk-OUT USBTMC message
+ * content and clears all pending Bulk-IN transfers from the USBTMC interface.
+ *
+ * If the Host must abort a USBTMC message before the USBTMC message completes,
+ * the Host must send an INITIATE_CLEAR request.
+ *
+ * [USBTMC10] Sec. 3.2.2.2 p. 10, Sec. 3.3.2.2 p. 15, and Tab. 15 p. 18f
+ *)
 Function TUSBTMCBase.InitiateClear : Byte;
 Var Status : Byte;
     Len    : LongInt;
@@ -785,14 +984,7 @@ Begin
 End;
 
 Procedure TUSBTMCUSB488.Trigger;
-Type
-  TUSBTMCTrigger = packed record
-    MsgID        : Byte;
-    Tag          : Byte;
-    TagInverse   : Byte;
-    Reserved     : Array[0..7] of Byte;
-  End;
-Var Packet : TUSBTMCTrigger;
+Var Packet : TUSBTMCUSB488Trigger;
     Len    : LongInt;
     Result : LongInt;
 Begin
@@ -805,11 +997,26 @@ Begin
     raise Exception.CreateFmt('Trigger: Len = %d should be %d, %s',[Result,Len,FContext.ErrorName(Result)]);
 End;
 
+(**
+ * Send a device dependent command message to the device
+ *
+ * [USB488] Sec. 3.2.2, p. 5f
+ *)
 Procedure TUSBTMCUSB488.Send(St:String);
 Begin
-  DevDepMsgOut(Length(St),UsbTmcTransferAttribute_EOM,St[1])
+  DevDepMsgOut(Length(St),UsbTmcTransferAttribute_EOM,St[1]);
 End;
 
+(**
+ * Query and receive a device dependent message from the device
+ *
+ * [USB488] Sec. 3.3.1, p. 7f
+ * [USB488] Sec. 3.3 p. 6:
+ *   "If the Host sends a USBTMC MsgID = REQUEST_DEV_DEP_MSG_IN, the device
+ *   may then send a MsgID = DEV_DEP_MSG_IN response message on the Bulk-IN
+ *   endpoint."
+ * IOW, a response is optional!
+*)
 Function TUSBTMCUSB488.Recv(MaxLen:Cardinal) : String;
 Var Attr : Byte;
 Begin
@@ -817,6 +1024,58 @@ Begin
   RequestDevDepMsgIn(MaxLen,0,#0);
   DevDepMsgIn(MaxLen,Attr,Result[1]);
   SetLength(Result,MaxLen);
+End;
+
+(**
+ * The READ_STATUS_BYTE request provides the ability for a Host to read the
+ * IEEE 488 Status Byte on the device.
+ *
+ * [USB488] Sec. 4.3.1 p. 12ff
+ *
+ * The result is a bitfield, see IEEE488_StatusByte_*
+ *)
+Function TUSBTMCUSB488.ReadStatusByte : Byte;
+Var Reply : TUSBTMCUSB488ReadStatusByte;
+    Len   : LongInt;
+    Tag   : Byte;
+    IntReply : TUSBTMCUSB488ReadStatusByteIntrIn;
+Begin
+  Tag := Random(125)+2;   // 2 <= bTag <=127
+  Len := Control.ControlMsg(
+    { bmRequestType } LIBUSB_ENDPOINT_IN or LIBUSB_REQUEST_TYPE_CLASS or LIBUSB_RECIPIENT_INTERFACE,
+    { bRequest      } UsbTmc488Request_ReadStatusByte,
+    { wValue        } Tag,
+    { wIndex        } FInterface.IntfNum,
+    { Buf           } Reply,
+    { wLength       } SizeOf(Reply),
+    { Timeout       } FTimeout);
+
+  if Len < 0 then
+    raise Exception.Create('ReadStatusByte: USB Error: '+FContext.ErrorName(Len))
+  else if Len <> SizeOf(Reply) then
+    raise Exception.CreateFmt('ReadStatusByte: Len = %d should be %d',[Len,SizeOf(Reply)]);
+  if Reply.Status <> UsbTmcStatus_Success then
+    raise Exception.CreateFmt('ReadStatusByte; reply status = %d',[Reply.Status]);
+  if Reply.Tag <> Tag then
+    raise Exception.CreateFmt('ReadStatusByte: Received tag = %d differs from sent tag = %d',[Reply.Tag,Tag]);
+
+  if not assigned(FEPInt) then
+    Begin
+      // [USB488] Sec. 4.3.1.1 p. 13: Response without an Interrupt-IN endpoint
+      Result := Reply.StatusByte;
+      Exit;
+    End;
+
+  // [USB488] Sec. 4.3.1.2 p. 13: Response with an Interrupt-IN endpoint
+  Len := FEPInt.Recv(IntReply,SizeOf(IntReply),FTimeout);
+  if Len < 0 then
+    raise Exception.Create('ReadStatusByte: USB Error: '+FContext.ErrorName(Len))
+  else if Len <> SizeOf(IntReply) then
+    raise Exception.CreateFmt('ReadStatusByte: Len = %d should be %d',[Len,SizeOf(IntReply)]);
+  if IntReply.bNotify1 <> ($80 or Tag) then
+    raise Exception.CreateFmt('ReadStatusByte: Received tag = %d differs from sent tag or $80 = %d',[Reply.Tag,Tag or $80]);
+
+  Result := IntReply.bNotify2;
 End;
 
 { getters and setters }
