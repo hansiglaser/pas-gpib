@@ -29,7 +29,7 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <Units Count="4">
+    <Units Count="5">
       <Unit0>
         <Filename Value="testagilent34410a.pas"/>
         <IsPartOfProject Value="True"/>
@@ -50,6 +50,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="Keithley2600"/>
       </Unit3>
+      <Unit4>
+        <Filename Value="../instruments/agilent/keysighte3631xa.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="KeysightE3631xA"/>
+      </Unit4>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

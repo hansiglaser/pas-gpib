@@ -66,6 +66,9 @@ classes are implemented in units in ``usb/``.
 .. [Truevolt] Keysight Truevolt Series Digital Multimeters Operating and
    Service Guide, Part Number: 34460-90901, Edition 5, (August 18, 2017)
 
+.. [E36300Prg] Keysight E36300 Series Programmable DC Power Supplies
+   Programming Guide, Manual Part Number E36311-90008, Edition 5, May 2018
+
 The ``TUSBLeCroyCommunicator`` provides communication with LeCroy scopes which
 do not adhere to the USB-TMC specification. These include the WaveAce and
 WaveJet devices. It uses a `` TUSBLeCroy``, which implements a driver for the
@@ -91,7 +94,8 @@ Currently, rudimentary support for three devices is available
  - ``TLeCroyWaveJet`` for LeCroy WaveJet scopes
  - ``TKeithley2010`` for Keithley 2010 multimeters
  - ``TRohdeSchwarzFSEB`` for Rohde&Schwarz FSEB spectrum analyzers
- - ``TAgilent34410A`` for Agilent 34410A digital multimeters
+ - ``TAgilent34410A`` for Agilent 34410A and Keysight 34461A digital multimeters
+ - ``TKeysightE3631xA`` for Keysight E36300A programmable DC power supplies
  - ``TKeithley2600`` for Keithley 2602A SourceMeter SMU Instruments
 
 
@@ -102,6 +106,8 @@ Verified
    performs "``*IDN?``".
  - ``testagilent34410a`` correctly communicates via USB-TMC as well as TCP with
    the device and performs a test measurement.
+ - ``testkeysighte3631xa`` correctly communicates via USB-TMC as well as TCP with
+   the device and performs tests.
  - ``testlecroywavejet3xx`` correctly communicates via TCP as well as USB with
    the device, performs settings and saves a screenshot. 
  - ``testkeithley2600`` correctly communicates via TCP with the device and
