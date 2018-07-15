@@ -58,7 +58,7 @@ Type
     Procedure Reset;
     Procedure SetBeeper(Enable:Boolean);
     Function  GetNextError : String;
-    Procedure GetNextError(Out Code:Integer;Out Text : String);
+    Procedure GetNextError(Out Code:Integer;Out Msg : String);
     Function  GetInputTerminalsSetting : TInputTerminalsSetting;
     Procedure SetSenseFunction(Quantity:TQuantity);
     Procedure SetNPLC(IntegrationTime:Double);
@@ -176,7 +176,7 @@ Begin
   Result := FDeviceCommunicator.Query('SYSTEM:ERROR?');
 End;
 
-Procedure TAgilent34410A.GetNextError(Out Code : Integer; Out Text : String);
+Procedure TAgilent34410A.GetNextError(Out Code : Integer; Out Msg : String);
 Var St : String;
     I  : Integer;
 Begin
@@ -185,13 +185,13 @@ Begin
   if I = 0 then
     Begin
       Code := StrToInt(St);
-      Text := '';
+      Msg  := '';
       // raise Exception.Create('Cannot parse return value of GetNextError '''+St+'''');
     End
   else
     Begin
       Code := StrToInt(Copy(St,1,I-1));
-      Text := Copy(St,I+2,Length(St)-I-2);
+      Msg  := Copy(St,I+2,Length(St)-I-2);
     End;
 End;
 

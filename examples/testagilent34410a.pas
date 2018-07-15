@@ -26,9 +26,12 @@ Program TestAgilent34410A;
 
 {$mode objfpc}{$H+}
 
+{ $ DEFINE Agilent34410A}
+{$DEFINE Keysight34461A}
+
 // either communicate via USB or TCP, define one of these two
-{ $ DEFINE USBTMC}
-{$DEFINE TCP}
+{$DEFINE USBTMC}
+{ $ DEFINE TCP}
 
 { $ DEFINE TEST_NPLC}
 { $ DEFINE TEST_APERTURE}
@@ -47,8 +50,14 @@ Uses
 
 Const
 {$IFDEF USBTMC}
+  {$IFDEF Agilent34410A}
   idVendor  = $0957;
   idProduct = $0607;
+  {$ENDIF}
+  {$IFDEF Keysight34461A}
+  idVendor  = $2A8D;
+  idProduct = $1301;
+  {$ENDIF}
 {$ENDIF USBTMC}
 {$IFDEF TCP}
   Host = '192.168.0.2';
@@ -63,7 +72,7 @@ Procedure TestSetting(ASetter:TSetter;AGetter:TGetter;AUnit:String;ADouble:Doubl
 Var GDouble : Double;
 Begin
   ASetter(ADouble);
-  Sleep(100);
+//  Sleep(100);
   if not assigned(AGetter) then
     Exit;
   GDouble := AGetter();
@@ -76,7 +85,6 @@ Var
 {$IFDEF USBTMC}
   Context : TLibUsbContext;
   Intf    : TUSBTMCIntfInfos;
-  I       : Integer;
   Tmc     : TUSBTMCUSB488;
   Comm    : TUSBTMCCommunicator;
 {$ENDIF USBTMC}
@@ -85,6 +93,29 @@ Var
 {$ENDIF TCP}
   A34410A : TAgilent34410A;
   I       : Integer;
+  Status  : Byte;
+
+{$IFDEF USBTMC}
+Procedure USBTMCErrorHandler;
+Var I    : Integer;
+    Code : Integer;
+    Msg  : String;
+Begin
+  if not assigned(A34410A) then Exit;    // prevent accessing the device before its constructor has finished
+  // print all errors in the queue
+  For I := 0 to 20 do       // 34410A and 34461A can store up to 20 errors
+    Begin
+      {$IFDEF USBTMC}
+      if (Tmc.ReadStatusByte and IEEE488_StatusByte_ErrorQueue) = 0 then Break;
+      {$ENDIF}
+      if I = 0 then
+        WriteLn('Error Queue:');
+      A34410A.GetNextError(Code,Msg);
+      WriteLn('  ',Code,': ',Msg);
+      if Code = 0 then Break;
+    End;
+End;
+{$ENDIF USBTMC}
 
 Begin
 {$IFDEF USBTMC}
@@ -110,6 +141,8 @@ Begin
       Halt;
     End;
   Comm := TUSBTMCCommunicator.Create(Tmc);
+  Comm.SetTimeout(1000000{us});
+  Comm.ErrorHandler := @USBTMCErrorHandler;
 {$ENDIF USBTMC}
 {$IFDEF TCP}
   // device connector via TCP/IP
@@ -118,10 +151,21 @@ Begin
 
   A34410A := TAgilent34410A.Create(Comm);
 
+{$IFDEF USBTMC}
+  // check residues from previous commands
+  Status := Tmc.ReadStatusByte;
+  if (Status and IEEE488_StatusByte_MessageAvailable) <> 0 then
+    WriteLn('Old Reply: ',Comm.Receive);
+  // print all errors in the queue
+  if (Status and IEEE488_StatusByte_ErrorQueue) <> 0 then
+    USBTMCErrorHandler;
+{$ENDIF USBTMC}
+
   // reset to default settings
   A34410A.Reset;
   // disable the beeper
   A34410A.SetBeeper(false);
+
   // print input terminals setting
   WriteLn('Input terminal selection: ',CInputTerminalsSettingNice[A34410A.GetInputTerminalsSetting]);
   // setup measurement to DC Volts
@@ -170,14 +214,21 @@ Begin
 {$ENDIF TEST_RANGE}
 {$IFDEF TEST_SAMPLE_TIMER}
   WriteLn('Testing Sample Timer');
-  For I := 1 to 25 do
-    TestSetting(@A34410A.SetSampleTimer,@A34410A.GetSampleTimer,'s',I * 20E-6);
-  A34410A.SetSampleTimer(1.0);  // set back to default of 1s
+  try
+    For I := 1 to 25 do
+      TestSetting(@A34410A.SetSampleTimer,@A34410A.GetSampleTimer,'s',I * 20E-3);
+    A34410A.SetSampleTimer(1.0);  // set back to default of 1s
+  except
+    on E : Exception do
+      WriteLn('Error: ',E.Message);
+  End;
 {$ENDIF TEST_SAMPLE_TIMER}
 
+  Sleep(150);
   A34410A.SetNPLC(1.0);
   A34410A.AutoZero;
   A34410A.SetRange(10.0);  // 10.0V
+  Sleep(50);
   // perform measurement
   WriteLn('Measurement = ',A34410A.GetValue:1:5,' V');
 
