@@ -47,12 +47,18 @@ Type
   private
     FQuantity : TQuantity;
     Function GetSenseFunctionStr : String;
+  protected
+    { internal functions }
+    // check if *IDN? string is a supported device
+    Function  IsSupportedDevice(IdnArr:TDynStringArray) : Boolean; virtual;
   public
     Constructor Create(ADeviceCommunicator:IDeviceCommunicator);
     Destructor  Destroy; override;
     { device function }
     Procedure Reset;
     Procedure SetBeeper(Enable:Boolean);
+    Function  GetNextError : String;
+    Procedure GetNextError(Out Code:Integer;Out Text : String);
     Function  GetInputTerminalsSetting : TInputTerminalsSetting;
     Procedure SetSenseFunction(Quantity:TQuantity);
     Procedure SetNPLC(IntegrationTime:Double);
@@ -95,18 +101,24 @@ Begin
   inherited Create(ADeviceCommunicator);
   { check device }
   Identity := Identify;
+//  WriteLn(Identity);   // e.g. 'Keysight Technologies,34461A,MY12345678,A.02.17-02.40-02.17-00.52-04-02'
   IdnArr := SplitStr(',',Identity);
 //  For I := 0 to Length(IdnArr)-1 do
 //    WriteLn(I,': ',IdnArr[I]);
-  if (Length(IdnArr) <> 4) or
-     (IdnArr[0] <> 'Agilent Technologies') or // TODO: check
-     (IdnArr[1] <> '34410A') then             // TODO: check
-    raise Exception.Create('Device '''+Identity+''' is not an Agilent 34410A digital multimeter');
+  if not IsSupportedDevice(IdnArr) then
+    raise Exception.Create('Device '''+Identity+''' is not a supported device');
 End;
 
 Destructor TAgilent34410A.Destroy;
 Begin
   Inherited Destroy;
+End;
+
+Function TAgilent34410A.IsSupportedDevice(IdnArr : TDynStringArray) : Boolean;
+Begin
+  Result := (Length(IdnArr) = 4) and
+            ((IdnArr[0] = 'Agilent Technologies')  and (IdnArr[1] = '34410A')) or
+            ((IdnArr[0] = 'Keysight Technologies') and (IdnArr[1] = '34461A'));
 End;
 
 (**
@@ -157,6 +169,30 @@ End;
 Procedure TAgilent34410A.SetBeeper(Enable : Boolean);
 Begin
   FDeviceCommunicator.Send('SYSTEM:BEEPER:STATE ' + Select(Enable,'ON','OFF'));
+End;
+
+Function TAgilent34410A.GetNextError : String;
+Begin
+  Result := FDeviceCommunicator.Query('SYSTEM:ERROR?');
+End;
+
+Procedure TAgilent34410A.GetNextError(Out Code : Integer; Out Text : String);
+Var St : String;
+    I  : Integer;
+Begin
+  St := GetNextError;   // returns e.g. '-410,"Query INTERRUPTED"' or '+0,"No error"'
+  I := Pos(',',St);
+  if I = 0 then
+    Begin
+      Code := StrToInt(St);
+      Text := '';
+      // raise Exception.Create('Cannot parse return value of GetNextError '''+St+'''');
+    End
+  else
+    Begin
+      Code := StrToInt(Copy(St,1,I-1));
+      Text := Copy(St,I+2,Length(St)-I-2);
+    End;
 End;
 
 (**
