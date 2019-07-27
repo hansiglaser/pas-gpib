@@ -15,8 +15,10 @@ Type
   TSenseMode  = (smLocal,smRemote);
 
 Const
-  CPairMode  : Array[TPairMode]  of String = ('OFF','PARALLEL','SERIES');
-  CSenseMode : Array[TSenseMode] of String = ('INTERNAL','EXTERNAL');
+  CPairMode       : Array[TPairMode]  of String = ('OFF','PARALLEL','SERIES');
+  CPairModeShort  : Array[TPairMode]  of String = ('OFF','PAR','SER');
+  CSenseMode      : Array[TSenseMode] of String = ('INTERNAL','EXTERNAL');
+  CSenseModeShort : Array[TSenseMode] of String = ('INT','EXT');
 
 Type
 
@@ -42,10 +44,14 @@ Type
     Function  MeasureCurrent(Ch : TChannel) : Double;
     Function  MeasureCurrent(Ch : TChannelSet) : TDynDoubleArray;
     Procedure EnableOutput(Ch : TChannelSet; State : Boolean);
+    Function  GetPairMode : TPairMode;
     Procedure SetPairMode(PairMode : TPairMode);
     Procedure SetTrackMode(TrackMode : Boolean);
+    Function  GetVoltage(Ch : TChannel) : Double;
     Procedure SetVoltage(Ch : TChannelSet; Voltage : Double);
+    Function  GetCurrentLimit(Ch : TChannel) : Double;
     Procedure SetCurrentLimit(Ch : TChannelSet; Current : Double);
+    Function  GetSenseMode(Ch : TChannel) : TSenseMode;
     Procedure SetSenseMode(Ch : TChannelSet; SenseMode : TSenseMode);
   End;
 
@@ -207,7 +213,20 @@ Begin
 End;
 
 (**
- * Set output pariing mode
+ * Get output pairing mode
+ *)
+Function TKeysightE3631xA.GetPairMode : TPairMode;
+Var St : String;
+Begin
+  St := FDeviceCommunicator.Query('OUTPUT:PAIR?');
+  For Result in TPairMode do
+    if St = CPairModeShort[Result] then
+      Exit;
+  raise Exception.Create('Invalid return string '''+St+'''');
+End;
+
+(**
+ * Set output pairing mode
  *
  * [E36300Prg] p. 73
  *)
@@ -227,6 +246,19 @@ Begin
 End;
 
 (**
+ * Get setting of output voltage
+ *)
+Function TKeysightE3631xA.GetVoltage(Ch : TChannel) : Double;
+Var St : String;
+    J  : Integer;
+Begin
+  St := FDeviceCommunicator.Query('SOURCE:VOLTAGE? '+GetChannelList(Ch));
+  Val(St,Result,J);
+  if J <> 0 then
+    raise Exception.CreateFmt('Invalid floating point number ''%s'' at position %d',[St,J]);
+End;
+
+(**
  * Set output voltage
  *
  * [E36300Prg] p. 89
@@ -237,6 +269,19 @@ Begin
 End;
 
 (**
+ * Get current limit
+ *)
+Function TKeysightE3631xA.GetCurrentLimit(Ch : TChannel) : Double;
+Var St : String;
+    J  : Integer;
+Begin
+  St := FDeviceCommunicator.Query('SOURCE:CURRENT? '+GetChannelList(Ch));
+  Val(St,Result,J);
+  if J <> 0 then
+    raise Exception.CreateFmt('Invalid floating point number ''%s'' at position %d',[St,J]);
+End;
+
+(**
  * Set the current limit
  *
  * [E36300Prg] p. 44
@@ -244,6 +289,19 @@ End;
 Procedure TKeysightE3631xA.SetCurrentLimit(Ch : TChannelSet; Current : Double);
 Begin
   FDeviceCommunicator.Send('SOURCE:CURRENT '+FloatToStrF(Current,ffFixed,1,5)+', '+GetChannelList(Ch));
+End;
+
+(**
+ * Get current setting of local or remote sensing
+ *)
+Function TKeysightE3631xA.GetSenseMode(Ch : TChannel) : TSenseMode;
+Var St : String;
+Begin
+  St := FDeviceCommunicator.Query('SOURCE:VOLTAGE:SENSE? '+GetChannelList(Ch));
+  For Result in TSenseMode do
+    if St = CSenseModeShort[Result] then
+      Exit;
+  raise Exception.Create('Invalid return string '''+St+'''');
 End;
 
 (**
