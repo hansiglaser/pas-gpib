@@ -91,6 +91,7 @@ Begin
       Halt;
     End;
   // search appropriate device in list and create UsbTmc handler
+  Tmc := Nil;
   For I := 0 to Length(IntfInfo)-1 do
     if (IntfInfo[I].DevDescr.idVendor  = idVendor) and
        (IntfInfo[I].DevDescr.idProduct = idProduct) and
