@@ -14,6 +14,7 @@ Type
 
 Function SplitStr(Delimiter:String;St:String) : TDynStringArray;
 Function SplitDouble(Delimiter:Char;St:String) : TDynDoubleArray;
+Function JoinStr(Delimiter:String;Arr:TDynStringArray) : String;
 
 Function Find(Needle:String;Haystack:TDynStringArray) : Integer;
 Function Count(Needle:Char;Heystack:String):Integer;
@@ -64,6 +65,17 @@ Begin
       if J <> 0 then
         raise Exception.CreateFmt('Invalid floating point number ''%s'' at position %d',[Copy(St,P1,P2),J]);
       P1 := P2 + 2;
+    End;
+End;
+
+Function JoinStr(Delimiter : String; Arr : TDynStringArray) : String;
+Var I : Integer;
+Begin
+  Result := '';
+  For I := 0 to Length(Arr)-1 do
+    Begin
+      if I <> 0 then Result := Result + Delimiter;
+      Result := Result + Arr[I];
     End;
 End;
 
