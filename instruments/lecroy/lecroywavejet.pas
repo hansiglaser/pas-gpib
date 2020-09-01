@@ -164,12 +164,18 @@ End;
  *)
 Function TLeCroyWaveJet.Screen(AImageFormat:TImageFormat) : TDynByteArray;
 Var St : String;
+    L  : LongInt;
 Begin
   St := FDeviceCommunicator.Query('TSCRN? '+CImageFormat[AImageFormat]);
   (* The return format is '#8<byte_length><binary_block>'
    * where <byte_length> are 8 digits (with leading zeros) specifying the number
    * of bytes in <binary_block>.
    *)
+  if (Length(St) < 10) or (St[1] <> '#') or (St[2] <> '8') then
+    raise Exception.Create('Received invalid data format');
+  L := StrToInt(Copy(St,3,8));
+  if Length(St) <> 10+L then
+    raise Exception.Create('Received '+IntToStr(Length(St))+' bytes but expected '+IntToStr(10+L)+' ('+IntToStr(L)+' for image data)');
   // just use the data starting at the 11th byte
   SetLength(Result,Length(St)-10);
   Move(St[11],Result[0],Length(St)-10);
@@ -177,6 +183,8 @@ End;
 
 (**
  * Query the timebase
+ *
+ * Returns the time/div in seconds
  *
  * [TCM] p. 40
  *)
@@ -345,6 +353,11 @@ Begin
   FName               := CLeCroyWaveJetChannelName[AChannel];
 End;
 
+(**
+ * Enable/disable the channel
+ *
+ * [PG] p. 267
+ *)
 Procedure TLeCroyWaveJetChannel.Trace(ATrace:Boolean);
 Begin
   CheckRealChannel('SetCoupling');
@@ -405,7 +418,7 @@ End;
  *   5     < AVDiv             10V/div
  *
  * Probe ratio settings will be used to multiply AVDiv, i.e. the real voltage
- * at the probe's top is used. E.g., if a 10:1 probe is used, the values are
+ * at the probe's tip is used. E.g., if a 10:1 probe is used, the values are
  * 100V/div to 20mV/div.
  *
  * [RCM] p. 53

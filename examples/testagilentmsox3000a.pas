@@ -1,0 +1,265 @@
+(**
+ * Demonstrate remote control of the Agilent InfiniiVision MSO-X 3000A oscilloscopes
+ *
+ * This test program can either communicate via USB or ethernet. Define either
+ * USBTMC or TCP.
+ * The TCP connection was not yet tested.
+ *
+ * USB: The USB bus is scanned for a device with the given idVendor and
+ *   idProduct (see constants below). The first one found is used.
+ *
+ * TCP: The device with the given hostname or IP address is used.
+ *
+ * At the beginning the scope is setup. Then several tests are performed,
+ * which can be enabled or disabled with the TEST_* defines.
+ * For a screenshot the user is asked to connect the
+ * probe of channel 1 to the square wave calibration output. After pressing
+ * [Enter], a screenshot is saved.
+ *)
+Program TestAgilentMSOX3000A;
+
+{$mode objfpc}{$H+}
+
+// either communicate via USB-TMC or TCP, define one of these two
+{$DEFINE USBTMC}
+{ $ DEFINE TCP}
+
+// define 0-n of the following to enable/disable the respective tests
+{ $ DEFINE TEST_TDIV}
+{ $ DEFINE TEST_TRIGGER_LEVEL}
+{ $ DEFINE TEST_VDIV}
+{ $ DEFINE TEST_VOFST}
+{$DEFINE TEST_SCREENSHOT}
+
+Uses
+  Classes, SysUtils, PasGpibUtils,
+{$IFDEF USBTMC}
+  LibUsbOop, UsbTmc, DevComUSBTMC,
+{$ENDIF USBTMC}
+{$IFDEF TCP}
+  DevComTCP,
+{$ENDIF TCP}
+  AgilentMSOX3000A;
+
+Const
+{$IFDEF USBTMC}
+  idVendor  = $0957;
+  idProduct = $17A6;
+{$ENDIF USBTMC}
+{$IFDEF TCP}
+  Host = '192.168.87.166';
+  Port = 5025;
+{$ENDIF TCP}
+
+Type
+  TSetter = Procedure(ADouble:Double) of object;
+  TGetter = Function : Double of object;
+
+Procedure TestSetting(ASetter:TSetter;AGetter:TGetter;AUnit:String;ADouble:Double);
+Var GDouble : Double;
+Begin
+  WriteLn('Testing ',ADouble,' ',AUnit);
+  ASetter(ADouble);
+  Sleep(200);   // with shorter delay the scope times out after ~20-50 commands and has to be power-cycled
+  if not assigned(AGetter) then
+    Exit;
+  GDouble := AGetter();
+  if ((abs(ADouble) < 1E-25) and (abs(GDouble-ADouble) > 0.01)) or
+     ((abs(ADouble) > 1E-25) and ((abs(GDouble-ADouble) / ADouble) > 0.01)) then
+    WriteLn('Error: Set ',ADouble,' ',AUnit,', but got ',GDouble,' ',AUnit,'.');
+End;
+
+Var
+{$IFDEF USBTMC}
+  Context  : TLibUsbContext;
+  Intf     : TUSBTMCIntfInfos;
+  Tmc      : TUSBTMCUSB488;
+  Comm     : TUSBTMCCommunicator;
+  I        : Integer;
+{$ENDIF USBTMC}
+{$IFDEF TCP}
+  Comm     : TTCPCommunicator;
+{$ENDIF TCP}
+  MSOX     : TAgilentMSOX3000A;
+  Filename : String;
+
+{$IFDEF USBTMC}
+Procedure USBTMCErrorHandler;
+Var I    : Integer;
+    Code : Integer;
+    Msg  : String;
+Begin
+  if not assigned(MSOX) then Exit;    // prevent accessing the device before its constructor has finished
+  // print all errors in the queue
+  For I := 0 to 20 do       // 34410A and 34461A can store up to 20 errors
+    Begin
+      {$IFDEF USBTMC}
+      if (Tmc.ReadStatusByte and IEEE488_StatusByte_ErrorQueue) = 0 then Break;
+      {$ENDIF}
+      if I = 0 then
+        WriteLn('Error Queue:');
+      MSOX.GetNextError(Code,Msg);
+      WriteLn('  ',Code,': ',Msg);
+      if Code = 0 then Break;
+    End;
+End;
+{$ENDIF USBTMC}
+
+Begin
+  { device communicator }
+{$IFDEF USBTMC}
+  // device connector via USB-TMC
+  Context := TLibUsbContext.Create;
+  Intf := TUSBTMCUSB488.Scan(Context);
+  if Length(Intf) = 0 then
+    Begin
+      WriteLn('Error: No USB devices with TMC and GPIB found');
+      Halt;
+    End;
+  // search appropriate device in list and create UsbTmc handler
+  For I := 0 to Length(Intf)-1 do
+    if (Intf[I].DevDescr.idVendor  = idVendor) and
+       (Intf[I].DevDescr.idProduct = idProduct) then
+      Begin
+        Tmc := TUSBTMCUSB488.Create(Context,Intf[I]);
+        break;
+      End;
+  if not assigned(Tmc) then
+    Begin
+      WriteLn('Error: No matching USB devices ',IntToHex(idVendor,4),':',IntToHex(idProduct,4),' found');
+      Halt;
+    End;
+  Comm := TUSBTMCCommunicator.Create(Tmc);
+  Comm.SetTimeout(2000000{us});
+  Comm.ErrorHandler := @USBTMCErrorHandler;
+{$ENDIF USBTMC}
+{$IFDEF TCP}
+  // device connector via TCP/IP
+  Comm := TTCPCommunicator.Create(Host,Port);
+{$ENDIF TCP}
+  Comm.SetTimeout(5000000{us});
+  { remote instrument }
+  MSOX := TAgilentMSOX3000A.Create(Comm);
+
+  WriteLn('Test program demonstrating remote control of the Agilent InfiniiVision MSO-X 3000A scopes');
+  WriteLn;
+  WriteLn('Current date at scope: ',MSOX.GetDateTime);
+  WriteLn;
+
+  // setup to display test signal (0mV to 600mV, 1kHz)
+  WriteLn('Setup for test signal');
+  MSOX.Reset;
+  Sleep(1000);
+  MSOX.Stop;   // stop acquisition, because it disrupts the setup commands below
+  MSOX.SetTimebaseMode(tmMain);
+  MSOX.Run;
+  MSOX.Channel[CH2].Display(false);  // switch off channel 2
+  MSOX.Channel[CH3].Display(false);  // switch off channel 3
+  MSOX.Channel[CH4].Display(false);  // switch off channel 4
+  MSOX.Channel[CH1].SetCoupling(cpDC);
+
+{$IFDEF TEST_TDIV}
+  WriteLn('Testing time base');
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div', 50.0);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div', 20.0);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div', 10.0);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',  5.0);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',  2.0);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',  1.0);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',500.0E-3);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',200.0E-3);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',100.0E-3);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div', 50.0E-3);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div', 20.0E-3);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div', 10.0E-3);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',  5.0E-3);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',  2.0E-3);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',  1.0E-3);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',500.0E-6);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',200.0E-6);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',100.0E-6);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div', 50.0E-6);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div', 20.0E-6);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div', 10.0E-6);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',  5.0E-6);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',  2.0E-6);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',  1.0E-6);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',500.0E-9);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',200.0E-9);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',100.0E-9);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div', 50.0E-9);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div', 20.0E-9);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div', 10.0E-9);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',  5.0E-9);
+  TestSetting(@MSOX.SetTDiv,@MSOX.GetTDiv,'s/div',  2.0E-9);
+{$ENDIF TEST_TDIV}
+{$IFDEF TEST_TRIGGER_LEVEL}
+  WriteLn('Testing trigger level');
+  MSOX.Channel[CH1].SetVDiv(0.2);  // 0.2V/div
+  For I := -10 to 10 do
+    TestSetting(@MSOX.SetTriggerLevel,@MSOX.GetTriggerLevel,'V', I * 0.1);
+{$ENDIF TEST_TRIGGER_LEVEL}
+{$IFDEF TEST_VDIV}
+  WriteLn('Testing vertical sensitivity');
+  TestSetting(@MSOX.Channel[CH1].SetVDiv,@MSOX.Channel[CH1].GetVDiv,'V/div', 50.0);
+  TestSetting(@MSOX.Channel[CH1].SetVDiv,@MSOX.Channel[CH1].GetVDiv,'V/div', 20.0);
+  TestSetting(@MSOX.Channel[CH1].SetVDiv,@MSOX.Channel[CH1].GetVDiv,'V/div', 10.0);
+  TestSetting(@MSOX.Channel[CH1].SetVDiv,@MSOX.Channel[CH1].GetVDiv,'V/div',  5.0);
+  TestSetting(@MSOX.Channel[CH1].SetVDiv,@MSOX.Channel[CH1].GetVDiv,'V/div',  2.0);
+  TestSetting(@MSOX.Channel[CH1].SetVDiv,@MSOX.Channel[CH1].GetVDiv,'V/div',  1.0);
+  TestSetting(@MSOX.Channel[CH1].SetVDiv,@MSOX.Channel[CH1].GetVDiv,'V/div',500.0E-3);
+  TestSetting(@MSOX.Channel[CH1].SetVDiv,@MSOX.Channel[CH1].GetVDiv,'V/div',200.0E-3);
+  TestSetting(@MSOX.Channel[CH1].SetVDiv,@MSOX.Channel[CH1].GetVDiv,'V/div',100.0E-3);
+  TestSetting(@MSOX.Channel[CH1].SetVDiv,@MSOX.Channel[CH1].GetVDiv,'V/div', 50.0E-3);
+  TestSetting(@MSOX.Channel[CH1].SetVDiv,@MSOX.Channel[CH1].GetVDiv,'V/div', 20.0E-3);
+  TestSetting(@MSOX.Channel[CH1].SetVDiv,@MSOX.Channel[CH1].GetVDiv,'V/div', 10.0E-3);
+{$ENDIF TEST_VDIV}
+{$IFDEF TEST_VOFST}
+  WriteLn('Testing vertical offset');
+  MSOX.Channel[CH1].SetVDiv(0.2);  // 0.2V/div
+  For I := -20 to 20 do
+    TestSetting(@MSOX.Channel[CH1].SetOffset,@MSOX.Channel[CH1].GetOffset,'V', I * 0.5);  // +/-10V at 100mV/div to 500mV/div
+{$ENDIF TEST_VOFST}
+{$IFDEF TEST_SCREENSHOT}
+  WriteLn('Testing screenshot');
+  MSOX.Channel[CH1].SetVDiv(0.5);  // 0.5V/div
+  MSOX.Channel[CH1].SetOffset(1.0);   // set base line to 1.0V = 2 div below center
+  MSOX.SetTDiv(0.0005);  // 500us/div
+  MSOX.SetTriggerSource(tsCH1);
+  MSOX.SetTriggerType(ttEdge);
+  MSOX.SetTriggerSlope(tsPositive);
+  MSOX.SetTriggerLevel(1.25);   // at 1.0V (half of 2.5Vpp signal)
+
+  // start acquisition
+  MSOX.SetTriggerMode(tmNormal);
+
+  WriteLn('Please prepare the test by connecting the probe of channel 1 to the');
+  WriteLn('square wave calibration output. Then press [Enter] to save a');
+  Write  ('screenshot.');
+  ReadLn;
+
+  // save a screenshot
+  Filename := 'MSOX-'+FormatDateTime('yyyymmdd-hhnnss',Now)+'.png';
+  WriteLn('Saving screenshot to ',Filename);
+  MSOX.SetHardcopyOptions(false);  // inksaver off: image is not inverted, i.e., mostly black
+  WriteLn('  Hardcopy Options: ',MSOX.GetHardcopyOptions);
+{$IFDEF USBTMC}
+  // increase USB-TMC transfer size for screenshot data
+  Comm.TransferSize := 1000000;
+{$ENDIF USBTMC}
+  WriteData(Filename,MSOX.Screen(ifPng, ipColor));
+{$IFDEF USBTMC}
+  Comm.TransferSize := 2048;
+{$ENDIF USBTMC}
+{$ENDIF TEST_SCREENSHOT}
+
+  MSOX.Free;
+
+  Comm.Free;
+{$IFDEF TCP}
+{$ENDIF TCP}
+{$IFDEF USBTMC}
+  Context.Free;
+{$ENDIF USBTMC}
+End.
+

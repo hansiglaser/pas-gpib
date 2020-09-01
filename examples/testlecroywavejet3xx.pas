@@ -12,7 +12,9 @@
  *
  * TCP: The device with the given hostname or IP address is used.
  *
- * At the beginning the scope is setup. Then the user is asked to connect the
+ * At the beginning the scope is setup. Then several tests are performed,
+ * which can be enabled or disabled with the TEST_* defines.
+ * For a screenshot the user is asked to connect the
  * probe of channel 1 to the square wave calibration output. After pressing
  * [Enter], a screenshot is saved.
  *)
@@ -24,10 +26,12 @@ Program TestLeCroyWaveJet3xx;
 { $ DEFINE USB}
 {$DEFINE TCP}
 
+// define 0-n of the following to enable/disable the respective tests
 { $ DEFINE TEST_TDIV}
 { $ DEFINE TEST_TRIGGER_LEVEL}
 { $ DEFINE TEST_VDIV}
 { $ DEFINE TEST_VOFST}
+{$DEFINE TEST_SCREENSHOT}
 
 Uses
   Classes, SysUtils, PasGpibUtils,
@@ -59,6 +63,7 @@ Type
 Procedure TestSetting(ASetter:TSetter;AGetter:TGetter;AUnit:String;ADouble:Double);
 Var GDouble : Double;
 Begin
+  WriteLn('Testing ',ADouble,' ',AUnit);
   ASetter(ADouble);
   Sleep(100);
   if not assigned(AGetter) then
@@ -105,6 +110,7 @@ Begin
   WriteLn;
 
   // setup to display test signal (0mV to 600mV, 1kHz)
+  WriteLn('Setup for test signal');
   WJ.Reset;
   Sleep(1000);
   WJ.SetTriggerMode(tmStop);   // stop acquisition, because it disrupts the setup commands below
@@ -182,7 +188,8 @@ Begin
   For I := -20 to 20 do
     TestSetting(@WJ.Channel[CH1].SetOffset,@WJ.Channel[CH1].GetOffset,'V', I * 0.5);  // +/-10V at 100mV/div to 500mV/div
 {$ENDIF TEST_VOFST}
-
+{$IFDEF TEST_SCREENSHOT}
+  WriteLn('Testing screenshot');
   WJ.Channel[CH1].SetVDiv(0.2);  // 0.2V/div
   WJ.Channel[CH1].SetOffset(-0.4);   // set base line to -0.4V = 2 div below center
   WJ.SetTDiv(0.0005);  // 500us/div
