@@ -11,31 +11,103 @@ Unit AgilentMSOX3000A;
 Interface
 
 Uses
-  Classes, SysUtils,
+  Classes, SysUtils, TypInfo,
   PasGpibUtils,
   DevCom, RemoteInstrument;
 
 Type
   TTimebaseMode  = (tmMain, tmWindow, tmXY, tmRoll);
   TCoupling      = (cpAC,cpDC);
-  TTriggerSource = (tsCH1,tsCH2,tsCH3,tsCH4,tsDig0,tsDig1,tsDig2,tsDig3,tsDig4,tsDig5,tsDig6,tsDig7,tsDig8,tsDig9,tsDig10,tsDig11,tsDig12,tsDig13,tsDig14,tsDig15,tsEXT,tsLine,tsWGen);
+  TTriggerSource = (tsCH1,tsCH2,tsCH3,tsCH4,
+                    tsDig0,tsDig1,tsDig2,tsDig3,tsDig4,tsDig5,tsDig6,tsDig7,tsDig8,tsDig9,tsDig10,tsDig11,tsDig12,tsDig13,tsDig14,tsDig15,
+                    tsEXT,tsLine,tsWGen);
   TTriggerType   = (ttEdge,ttGlitch,ttPattern,ttTV,ttDelay,ttEBurst,ttOr,ttRunt,ttShold,ttTransition,ttSBus1,ttSBus2,ttUSB);
   TTriggerSlope  = (tsNegative, tsPositive, tsEither, tsAlternate);
   TTriggerMode   = (tmAuto,tmNormal);
   TImageFormat   = (ifBMP, ifBMP8bit, ifPNG);
   TImagePalette  = (ipColor, ipGrayscale);
+  TMeasureType   = (mtVPP, mtVMax, mtVMin,
+                    mtVAmplitude, mtVTop, mtVBase,
+                    mtOvershoot, mtPreshoot,
+                    mtVAverage {N cycles or Display},
+                    mtVRMS {N cycles or Display, AC/DC}, mtVRatio {N cycles or Display, Source2},
+                    mtPeriod, mtFrequency, mtCounter, mtPWidth, mtNWidth, {TODO: bitrate} mtBurstWidth, mtDutyCycle, {TODO: neg. duty cycle?}
+                    mtRisetime, mtFalltime,
+                    mtDelay {Source2}, mtPhase {Source2},
+                    mtXatMaxY, mtXatMinY,
+                    mtPPulseCount, mtNPulseCount,
+                    mtPEdgeCount, mtNEdgeCount,
+                    mtArea {N cycles or Display});
+                    // VTIME, ...
+  TMeasureSource = (msCH1,msCH2,msCH3,msCH4,
+                    msDig0,msDig1,msDig2,msDig3,msDig4,msDig5,msDig6,msDig7,msDig8,msDig9,msDig10,msDig11,msDig12,msDig13,msDig14,msDig15,
+                    msFunction,msMath,msWMemory1,msWMemory2);
+  TStatisticsType= (stAll,stCurrent,stMinimum,stMaximum,stMean,stStdDev,stCount);
 
 Const
   // use the abbreviated forms because a quera only returns that, then the search in this array is simpler
   CTimebaseMode  : Array[TTimebaseMode]  of String = ('MAIN','WIND','XY','ROLL');
   CCoupling      : Array[TCoupling]      of String = ('AC','DC');
-  CTriggerSource : Array[TTriggerSource] of String = ('CHAN1','CHAN2','CHAN3','CHAN4','DIG0','DIG1','DIG2','DIG3','DIG4','DIG5','DIG6','DIG7','DIG8','DIG9','DIG10','DIG11','DIG12','DIG13','DIG14','DIG15','EXT','LINE','WGEN');
+  CTriggerSource : Array[TTriggerSource] of String = ('CHAN1','CHAN2','CHAN3','CHAN4',
+                                                      'DIG0','DIG1','DIG2','DIG3','DIG4','DIG5','DIG6','DIG7','DIG8','DIG9','DIG10','DIG11','DIG12','DIG13','DIG14','DIG15',
+                                                      'EXT','LINE','WGEN');
   CTriggerType   : Array[TTriggerType]   of String = ('EDGE','GLIT','PAT','TV','DEL','EBUR','OR','RUNT','SHOL','TRAN','SBUS1','SBUS2','USB');
   CTriggerSlope  : Array[TTriggerSlope]  of String = ('NEG', 'POS', 'EITH', 'ALT');
   CTriggerMode   : Array[TTriggerMode]   of String = ('AUTO','NORMAL');
   CImageFormat   : Array[TImageFormat]   of String = ('BMP','BMP8','PNG');
   CImagePalette  : Array[TImagePalette]  of String = ('COL','GRAY');
-
+  CMeasureType   : Array[TMeasureType]   of String = ('VPP','VMAX','VMIN',
+                                                      'VAMP','VTOP','VBAS',
+                                                      'OVER','PRES',
+                                                      'VAV',
+                                                      'VRMS','VRAT',
+                                                      'PER','FREQ','COUN','PWID','NWID','BWID','DUTY',
+                                                      'RIS','FALL',
+                                                      'DEL','PHAS',
+                                                      'XMAX','YMAX',
+                                                      'PPUL','NPUL',
+                                                      'PEDG','NEDG',
+                                                      'ARE');
+  CMeasureTypeCycles:Array[TMeasureType] of Boolean= (False, False, False,
+                                                      False, False, False,
+                                                      False, False,
+                                                      True,
+                                                      True, True,
+                                                      False, False, False, False, False, False, False,
+                                                      False, False,
+                                                      False, False,
+                                                      False, False,
+                                                      False, False,
+                                                      False, False,
+                                                      True);
+  CMeasureTypeACDC : Array[TMeasureType] of Boolean= (False, False, False,
+                                                      False, False, False,
+                                                      False, False,
+                                                      False,
+                                                      True, False,
+                                                      False, False, False, False, False, False, False,
+                                                      False, False,
+                                                      False, False,
+                                                      False, False,
+                                                      False, False,
+                                                      False, False,
+                                                      False);
+  CMeasureTypeSrc2 : Array[TMeasureType] of Boolean= (False, False, False,
+                                                      False, False, False,
+                                                      False, False,
+                                                      False,
+                                                      False, True,
+                                                      False, False, False, False, False, False, False,
+                                                      False, False,
+                                                      True, True,
+                                                      False, False,
+                                                      False, False,
+                                                      False, False,
+                                                      False);
+  CMeasureSource : Array[TMeasureSource] of String = ('CHAN1','CHAN2','CHAN3','CHAN4',
+                                                      'DIG0','DIG1','DIG2','DIG3','DIG4','DIG5','DIG6','DIG7','DIG8','DIG9','DIG10','DIG11','DIG12','DIG13','DIG14','DIG15',
+                                                      'FUNC','MATH','WMEM1','WMEM2');
+  CStatisticsType: Array[TStatisticsType] of String= ('ON','CURR','MIN','MAX','MEAN','STDD','COUN');
 
 Type
   TAgilentMSOX3000AChannel = class;
@@ -45,6 +117,18 @@ Type
 Const
    CAgilentMSOX3000AChannelName : Array[TAgilentMSOX3000AChannelIndex] of String = ('CHAN1','CHAN2','CHAN3','CHAN4');
    CAgilentMSOX3000AChannelReal = [CH1,CH2,CH3,CH4];
+
+Type
+  TMeasureResult = record
+    Name    : String;
+    Current : Double;
+    Min     : Double;
+    Max     : Double;
+    Mean    : Double;
+    StdDev  : Double;
+    Count   : Int64;
+  End;
+  TDynMeasureResultArray = Array of TMeasureResult;
 
 Type
   { TAgilentMSOX3000A }
@@ -85,6 +169,17 @@ Type
     // IEEE 488.1 Emulation
     // Others
     // Measure
+    Procedure MeasureAdd(AMeasureType:TMeasureType;ASource:TMeasureSource);
+    Procedure MeasureAdd(AMeasureType:TMeasureType;ASource:TMeasureSource;ACyclesDisplay:Integer);
+    Procedure MeasureAdd(AMeasureType:TMeasureType;ASource:TMeasureSource;ACyclesDisplay:Integer;AACDC:Boolean);
+    Procedure MeasureAdd(AMeasureType:TMeasureType;ASource:TMeasureSource;ACyclesDisplay:Integer;ASource2:TMeasureSource);
+    Procedure MeasureAdd(AMeasureType:TMeasureType;ASource:TMeasureSource;ASource2:TMeasureSource);
+    Procedure MeasureClear;
+    Function  GetMeasureResults : TDynMeasureResultArray;
+    Function  GetMeasureResults(AStatisticsType:TStatisticsType) : TDynDoubleArray;
+    Procedure SetMeasureStatistics(AStatisticsType:TStatisticsType);
+    Function  GetMeasureStatistics : TStatisticsType;
+    Procedure MeasureStatisticsReset;
     // Automatic Measurements
     // Save/Recall
     Procedure Reset;
@@ -124,6 +219,8 @@ Type
     Procedure SetVDiv(AVDiv:Double);
     Procedure SetOffset(AOffset:Double);
     Function  GetOffset : Double;
+    Procedure SetBWLimit(ALimit:Boolean);
+    Function  GetBWLimit : Boolean;
   End;
 
 Implementation
@@ -336,6 +433,7 @@ Begin
   For Result := Low(TTimebaseMode) to High(TTimebaseMode) do
     if St = CTimebaseMode[Result] then
       Exit;
+  raise Exception.Create('Unknown timebase mode '''+St+'''');
 End;
 
 (**
@@ -346,6 +444,200 @@ End;
 Procedure TAgilentMSOX3000A.SetTimebaseMode(ATimebaseMode : TTimebaseMode);
 Begin
   FDeviceCommunicator.Send(':TIMEBASE:MODE '+CTimebaseMode[ATimebaseMode]);
+End;
+
+(**
+ * Add a measurement to the display
+ *
+ * This function can be used for measurement types without parameters (except
+ * the source channel).
+ *
+ * [PG] p. 395ff
+ *)
+Procedure TAgilentMSOX3000A.MeasureAdd(AMeasureType : TMeasureType; ASource : TMeasureSource);
+Begin
+  if CMeasureTypeCycles[AMeasureType] or CMeasureTypeACDC[AMeasureType] or CMeasureTypeSrc2[AMeasureType] then
+    raise Exception.Create('Wrong overloaded function used for MeasureType '+GetEnumName(TypeInfo(TMeasureType), Ord(AMeasureType)));
+  FDeviceCommunicator.Send(':MEASURE:'+CMeasureType[AMeasureType]+' '+CMeasureSource[ASource]);
+End;
+
+(**
+ * Add a measurement to the display
+ *
+ * This function can be used for measurement types with an interval (0: full
+ * screen, >0: number of cycles).
+ *
+ * [PG] p. 395ff
+ *)
+Procedure TAgilentMSOX3000A.MeasureAdd(AMeasureType : TMeasureType; ASource : TMeasureSource; ACyclesDisplay : Integer);
+Begin
+  if (not CMeasureTypeCycles[AMeasureType]) or CMeasureTypeACDC[AMeasureType] or CMeasureTypeSrc2[AMeasureType] then
+    raise Exception.Create('Wrong overloaded function used for MeasureType '+GetEnumName(TypeInfo(TMeasureType), Ord(AMeasureType)));
+  FDeviceCommunicator.Send(':MEASURE:'+CMeasureType[AMeasureType]+' '
+    +Select(ACyclesDisplay<=0,'DISP',IntToStr(ACyclesDisplay))
+    +','+CMeasureSource[ASource]);
+End;
+
+(**
+ * Add a measurement to the display
+ *
+ * This function can be used for measurement types with an interval (0: full
+ * screen, >0: number of cycles) and coupling type (true: AC, false: DC).
+ *
+ * [PG] p. 395ff
+ *)
+Procedure TAgilentMSOX3000A.MeasureAdd(AMeasureType : TMeasureType; ASource : TMeasureSource; ACyclesDisplay : Integer; AACDC : Boolean);
+Begin
+  if (not CMeasureTypeCycles[AMeasureType]) or (not CMeasureTypeACDC[AMeasureType]) or CMeasureTypeSrc2[AMeasureType] then
+    raise Exception.Create('Wrong overloaded function used for MeasureType '+GetEnumName(TypeInfo(TMeasureType), Ord(AMeasureType)));
+  FDeviceCommunicator.Send(':MEASURE:'+CMeasureType[AMeasureType]+' '
+    +Select(ACyclesDisplay<=0,'DISP',IntToStr(ACyclesDisplay))
+    +','+Select(AACDC, 'AC', 'DC')
+    +','+CMeasureSource[ASource]);
+End;
+
+(**
+ * Add a measurement to the display
+ *
+ * This function can be used for measurement types with an interval (0: full
+ * screen, >0: number of cycles) and a second source channel.
+ *
+ * [PG] p. 395ff
+ *)
+Procedure TAgilentMSOX3000A.MeasureAdd(AMeasureType : TMeasureType; ASource : TMeasureSource; ACyclesDisplay : Integer; ASource2 : TMeasureSource);
+Begin
+  if (not CMeasureTypeCycles[AMeasureType]) or CMeasureTypeACDC[AMeasureType] or (not CMeasureTypeSrc2[AMeasureType]) then
+    raise Exception.Create('Wrong overloaded function used for MeasureType '+GetEnumName(TypeInfo(TMeasureType), Ord(AMeasureType)));
+  FDeviceCommunicator.Send(':MEASURE:'+CMeasureType[AMeasureType]+' '
+    +Select(ACyclesDisplay<=0,'DISP',IntToStr(ACyclesDisplay))
+    +','+CMeasureSource[ASource]
+    +','+CMeasureSource[ASource2]);
+End;
+
+(**
+ * Add a measurement to the display
+ *
+ * This function can be used for measurement types with a second source channel.
+ *
+ * [PG] p. 395ff
+ *)
+Procedure TAgilentMSOX3000A.MeasureAdd(AMeasureType : TMeasureType; ASource : TMeasureSource; ASource2 : TMeasureSource);
+Begin
+  if CMeasureTypeCycles[AMeasureType] or CMeasureTypeACDC[AMeasureType] or (not CMeasureTypeSrc2[AMeasureType]) then
+    raise Exception.Create('Wrong overloaded function used for MeasureType '+GetEnumName(TypeInfo(TMeasureType), Ord(AMeasureType)));
+  FDeviceCommunicator.Send(':MEASURE:'+CMeasureType[AMeasureType]+' '
+    +CMeasureSource[ASource]
+    +','+CMeasureSource[ASource2]);
+End;
+
+(**
+ * Query the results of the measurements
+ *
+ * This function is only allowed when SetMeasureStatistics(stAll) was used
+ * before.
+ *
+ * [PG] p. 438ff
+ *)
+Function TAgilentMSOX3000A.GetMeasureResults : TDynMeasureResultArray;
+Var St : String;
+    A  : TDynStringArray;
+    I  : Integer;
+Begin
+  SetLength(Result, 0);
+  St := FDeviceCommunicator.Query(':MEASURE:RESULTS?');
+  if St = '' then   // no measurements were setup
+    Exit;
+  A := SplitStr(',', St);
+  if (Length(A) mod 7) <> 0 then
+    raise Exception.Create('GetMeasureResults: Invalid string received: '''+St+'''. Did you SetMeasureStatistics(stAll)?');
+  SetLength(Result, Length(A) div 7);
+  For I := 0 to Length(Result)-1 do
+    Begin
+      Result[I].Name    :=            A[I*7+0];
+      Result[I].Current := StrToFloat(A[I*7+1]);
+      Result[I].Min     := StrToFloat(A[I*7+2]);
+      Result[I].Max     := StrToFloat(A[I*7+3]);
+      Result[I].Mean    := StrToFloat(A[I*7+4]);
+      Result[I].StdDev  := StrToFloat(A[I*7+5]);
+      Result[I].Count   := StrToInt64(A[I*7+6]);
+    End;
+End;
+
+(**
+ * Query the results of the measurements
+ *
+ * This function is only allowed when SetMeasureStatistics with a parameter
+ * other than stAll was used before.
+ *
+ * The parameter AStatisticsType is unused, it is only there to overload the
+ * function.
+ *
+ * [PG] p. 438ff
+ *)
+Function TAgilentMSOX3000A.GetMeasureResults(AStatisticsType : TStatisticsType) : TDynDoubleArray;
+Var St : String;
+    A  : TDynStringArray;
+    I  : Integer;
+Begin
+  St := FDeviceCommunicator.Query(':MEASURE:RESULTS?');
+  // The string is just a comma-separated list with values, one for each setup
+  // measurement, which shows the statistics value selected with
+  // SetMeasureStatistics
+  if St = '' then   // no measurements were setup
+    Exit;
+  A := SplitStr(',', St);
+  if Length(A) > 4 then
+    raise Exception.Create('GetMeasureResults: Invalid string received: '''+St+'''. Did you SetMeasureStatistics(stAll)?');
+  SetLength(Result, Length(A));
+  For I := 0 to Length(A)-1 do
+    Result[I] := StrToFloat(A[I]);
+End;
+
+(**
+ * Clear all selected measurements and markers from the screen
+ *
+ * [PG] p. 411
+ *)
+Procedure TAgilentMSOX3000A.MeasureClear;
+Begin
+  FDeviceCommunicator.Send(':MEASURE:CLEAR');
+End;
+
+(**
+ * Select the statistics type which can be queried with GetMeasureResults
+ *
+ * [PG] p. 446
+ *)
+Procedure TAgilentMSOX3000A.SetMeasureStatistics(AStatisticsType : TStatisticsType);
+Begin
+  FDeviceCommunicator.Send(':MEASURE:STATISTICS '+CStatisticsType[AStatisticsType]);
+End;
+
+(**
+ * Query the statistics type which can be queried with GetMeasureResults
+ *
+ * [PG] p. 446
+ *)
+Function TAgilentMSOX3000A.GetMeasureStatistics : TStatisticsType;
+Var St : String;
+Begin
+  St := FDeviceCommunicator.Query(':MEASURE:STATISTICS?');
+  For Result := Low(TStatisticsType) to High(TStatisticsType) do
+    if St = CStatisticsType[Result] then
+      Exit;
+  raise Exception.Create('Unknown statistics type '''+St+'''');
+End;
+
+(**
+ * Reset the measurement statistics and zero the counts
+ *
+ * The measurement (statistics) configuration is not deleted.
+ *
+ * [PG] p. 450
+ *)
+Procedure TAgilentMSOX3000A.MeasureStatisticsReset;
+Begin
+  FDeviceCommunicator.Send(':MEASURE:STATISTICS:RESET');
 End;
 
 (**
@@ -516,7 +808,7 @@ End;
 Procedure TAgilentMSOX3000AChannel.Display(ADisplay:Boolean);
 Begin
   CheckRealChannel('SetCoupling');
-  FDeviceCommunicator.Send(FName+':DISPLAY '+Select(ADisplay,'ON','OFF'));
+  FDeviceCommunicator.Send(':'+FName+':DISPLAY '+Select(ADisplay,'ON','OFF'));
 End;
 
 (**
@@ -528,7 +820,7 @@ Function TAgilentMSOX3000AChannel.GetCoupling : TCoupling;
 Var St : String;
 Begin
   CheckRealChannel('GetCoupling');
-  St := FDeviceCommunicator.Query(FName+':COUPLING?');
+  St := FDeviceCommunicator.Query(':'+FName+':COUPLING?');
   For Result := Low(TCoupling) to High(TCoupling) do
     if St = CCoupling[Result] then
       Exit;
@@ -542,7 +834,7 @@ End;
 Procedure TAgilentMSOX3000AChannel.SetCoupling(ACoupling : TCoupling);
 Begin
   CheckRealChannel('SetCoupling');
-  FDeviceCommunicator.Send(FName+':COUPLING '+CCoupling[ACoupling]);
+  FDeviceCommunicator.Send(':'+FName+':COUPLING '+CCoupling[ACoupling]);
 End;
 
 (**
@@ -552,7 +844,7 @@ End;
  *)
 Function TAgilentMSOX3000AChannel.GetVDiv : Double;
 Begin
-  Result := StrToFloat(FDeviceCommunicator.Query(FName+':SCALE?'));
+  Result := StrToFloat(FDeviceCommunicator.Query(':'+FName+':SCALE?'));
 End;
 
 (**
@@ -580,7 +872,7 @@ End;
  *)
 Procedure TAgilentMSOX3000AChannel.SetVDiv(AVDiv : Double);
 Begin
-  FDeviceCommunicator.Send(FName+':SCALE '+FloatToStrF(AVDiv,ffExponent,2,2));
+  FDeviceCommunicator.Send(':'+FName+':SCALE '+FloatToStrF(AVDiv,ffExponent,2,2));
 End;
 
 (**
@@ -592,7 +884,7 @@ End;
  *)
 Procedure TAgilentMSOX3000AChannel.SetOffset(AOffset : Double);
 Begin
-  FDeviceCommunicator.Send(FName+':OFFSET '+FloatToStrF(AOffset,ffExponent,4,2));
+  FDeviceCommunicator.Send(':'+FName+':OFFSET '+FloatToStrF(AOffset,ffExponent,4,2));
 End;
 
 (**
@@ -602,7 +894,27 @@ End;
  *)
 Function TAgilentMSOX3000AChannel.GetOffset:Double;
 Begin
-  Result := StrToFloat(FDeviceCommunicator.Query(FName+':OFFSET?'));
+  Result := StrToFloat(FDeviceCommunicator.Query(':'+FName+':OFFSET?'));
+End;
+
+(**
+ * Set bandwidth limit
+ *
+ * [PG] p. 265
+ *)
+Procedure TAgilentMSOX3000AChannel.SetBWLimit(ALimit : Boolean);
+Begin
+  FDeviceCommunicator.Send(':'+FName+':BWLIMIT '+Select(ALimit, 'ON', 'OFF'));
+End;
+
+(**
+ * Query bandwidth limit
+ *
+ * [PG] p. 265
+ *)
+Function TAgilentMSOX3000AChannel.GetBWLimit : Boolean;
+Begin
+  Result := (FDeviceCommunicator.Query(':'+FName+':BWLIMIT?') = '1');
 End;
 
 Procedure TAgilentMSOX3000AChannel.CheckRealChannel(AMethod:String);

@@ -29,10 +29,11 @@ Program TestAgilentMSOX3000A;
 { $ DEFINE TEST_TRIGGER_LEVEL}
 { $ DEFINE TEST_VDIV}
 { $ DEFINE TEST_VOFST}
+{$DEFINE TEST_MEASURE}
 {$DEFINE TEST_SCREENSHOT}
 
 Uses
-  Classes, SysUtils, PasGpibUtils,
+  Classes, SysUtils, TypInfo, PasGpibUtils,
 {$IFDEF USBTMC}
   LibUsbOop, UsbTmc, DevComUSBTMC,
 {$ENDIF USBTMC}
@@ -81,6 +82,8 @@ Var
   Comm     : TTCPCommunicator;
 {$ENDIF TCP}
   MSOX     : TAgilentMSOX3000A;
+  DA       : TDynDoubleArray;
+  MA       : TDynMeasureResultArray;
   Filename : String;
 
 {$IFDEF USBTMC}
@@ -157,6 +160,8 @@ Begin
   MSOX.Channel[CH3].Display(false);  // switch off channel 3
   MSOX.Channel[CH4].Display(false);  // switch off channel 4
   MSOX.Channel[CH1].SetCoupling(cpDC);
+  MSOX.Channel[CH1].SetBWLimit(True);
+  WriteLn('Bandwidth limit: ',Select(MSOX.Channel[CH1].GetBWLimit, 'on', 'off'));
 
 {$IFDEF TEST_TDIV}
   WriteLn('Testing time base');
@@ -220,8 +225,8 @@ Begin
   For I := -20 to 20 do
     TestSetting(@MSOX.Channel[CH1].SetOffset,@MSOX.Channel[CH1].GetOffset,'V', I * 0.5);  // +/-10V at 100mV/div to 500mV/div
 {$ENDIF TEST_VOFST}
-{$IFDEF TEST_SCREENSHOT}
-  WriteLn('Testing screenshot');
+{$IF defined(TEST_MEASURE) or defined(TEST_SCREENSHOT)}
+  WriteLn('Setup for next tests');
   MSOX.Channel[CH1].SetVDiv(0.5);  // 0.5V/div
   MSOX.Channel[CH1].SetOffset(1.0);   // set base line to 1.0V = 2 div below center
   MSOX.SetTDiv(0.0005);  // 500us/div
@@ -237,6 +242,50 @@ Begin
   WriteLn('square wave calibration output. Then press [Enter] to save a');
   Write  ('screenshot.');
   ReadLn;
+{$ENDIF}
+{$IFDEF TEST_MEASURE}
+  WriteLn;
+  WriteLn('Testing measurements');
+  // measurement: Amplitude, Frequency, Duty Cycle, Rise Time
+  MSOX.MeasureClear;
+  MSOX.MeasureAdd(mtVAmplitude, msCH1);
+  MSOX.MeasureAdd(mtFrequency,  msCH1);
+  MSOX.MeasureAdd(mtDutyCycle,  msCH1);
+  MSOX.MeasureAdd(mtRisetime,   msCH1);
+  // clear statistics, all four start with 0 counts
+  MSOX.MeasureStatisticsReset;
+  // select Mean as statistics type for GetMeasureResults, all other statistics
+  // will still be collected
+  MSOX.SetMeasureStatistics(stMean);
+  Sleep(2500);
+
+  WriteLn('Current statistics type is ' + GetEnumName(TypeInfo(TStatisticsType), Ord(MSOX.GetMeasureStatistics)));
+  DA := MSOX.GetMeasureResults(stMean);
+  WriteLn('Measurement results:');
+  WriteLn('  Mean Amplitude  = ',DA[0]:1:3,' V');
+  WriteLn('  Mean Frequency  = ',DA[1]*1E-3:1:3,' kHz');
+  WriteLn('  Mean Duty Cycle = ',DA[2]:1:3,' %');
+  WriteLn('  Mean Rise Time  = ',DA[3]*1E6:1:3,' µs');
+  WriteLn;
+
+  MSOX.SetMeasureStatistics(stAll);
+  WriteLn('Current statistics type is ' + GetEnumName(TypeInfo(TStatisticsType), Ord(MSOX.GetMeasureStatistics)));
+  MA := MSOX.GetMeasureResults;
+  WriteLn('Measurement results:');
+  For I := 0 to Length(MA)-1 do
+    Begin
+      WriteLn(MA[I].Name,':');
+      WriteLn('  Current = ',MA[I].Current:1:5);
+      WriteLn('  Min     = ',MA[I].Min    :1:5);
+      WriteLn('  Max     = ',MA[I].Max    :1:5);
+      WriteLn('  Mean    = ',MA[I].Mean   :1:5);
+      WriteLn('  StdDev  = ',MA[I].StdDev :1:5);
+      WriteLn('  Count   = ',MA[I].Count);
+    End;
+{$ENDIF}
+{$IFDEF TEST_SCREENSHOT}
+  WriteLn;
+  WriteLn('Testing screenshot');
 
   // save a screenshot
   Filename := 'MSOX-'+FormatDateTime('yyyymmdd-hhnnss',Now)+'.png';
