@@ -61,6 +61,8 @@ End;
 
 Procedure TUSBTMCCommunicator.Send(St:String);
 Begin
+//WriteLn('Send: ''',St,'''');
+//ReadLn;
   FDevice.Send(St+^J);
 End;
 
@@ -78,6 +80,7 @@ Begin
 
   // get the message
   Result := FDevice.Recv(FTransferSize);
+//WriteLn('Recv: ''',Result,'''');
   // if there was a further error, this has to be checked by the caller, e.g., Query
 End;
 
