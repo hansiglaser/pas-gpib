@@ -2,6 +2,7 @@ backup/
 lib/
 *.res
 *.o
+*.ppu
 *.compiled
 *.lps
 fpgacurrentmeasurement

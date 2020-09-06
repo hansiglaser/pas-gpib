@@ -1,7 +1,7 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="9"/>
+    <Version Value="11"/>
     <General>
       <Flags>
         <MainUnitHasUsesSectionForAllUnits Value="False"/>
@@ -9,263 +9,45 @@
         <MainUnitHasTitleStatement Value="False"/>
         <LRSInOutputDirectory Value="False"/>
       </Flags>
+      <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <ActiveWindowIndexAtStart Value="0"/>
     </General>
-    <VersionInfo>
-      <StringTable ProductVersion=""/>
-    </VersionInfo>
     <BuildModes Count="1">
       <Item1 Name="default" Default="True"/>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
-      <IgnoreBinaries Value="False"/>
-      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
-      <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
     </PublishOptions>
     <RunParams>
-      <local>
-        <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
-      </local>
+      <FormatVersion Value="2"/>
+      <Modes Count="1">
+        <Mode0 Name="default">
+          <local>
+            <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+          </local>
+        </Mode0>
+      </Modes>
     </RunParams>
-    <Units Count="16">
+    <Units Count="3">
       <Unit0>
         <Filename Value="fpgacurrentmeasurement.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="FPGACurrentMeasurement"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="0"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="40" Y="2"/>
-        <UsageCount Value="220"/>
-        <Loaded Value="True"/>
-        <LoadedDesigner Value="True"/>
       </Unit0>
       <Unit1>
-        <Filename Value="devicecommunication.pas"/>
-        <UnitName Value="DeviceCommunication"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="293"/>
-        <CursorPos X="23" Y="375"/>
-        <UsageCount Value="110"/>
-      </Unit1>
-      <Unit2>
-        <Filename Value="linuxgpib.pas"/>
-        <UnitName Value="LinuxGPIB"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="1" Y="1"/>
-        <UsageCount Value="110"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="oogpib.pas"/>
-        <UnitName Value="OoGPIB"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="161"/>
-        <CursorPos X="47" Y="178"/>
-        <UsageCount Value="110"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="remoteinstrument.pas"/>
-        <UnitName Value="RemoteInstrument"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="126"/>
-        <CursorPos X="3" Y="128"/>
-        <UsageCount Value="110"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="test1.pas"/>
-        <UnitName Value="Test1"/>
-        <EditorIndex Value="6"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="1" Y="23"/>
-        <UsageCount Value="110"/>
-        <Loaded Value="True"/>
-      </Unit5>
-      <Unit6>
         <Filename Value="gpibutils.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="GpibUtils"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="24" Y="17"/>
-        <UsageCount Value="220"/>
-      </Unit6>
-      <Unit7>
-        <Filename Value="testlecroywavejet3xx.pas"/>
-        <UnitName Value="TestLeCroyWaveJet3xx"/>
-        <TopLine Value="1"/>
-        <CursorPos X="1" Y="19"/>
-        <UsageCount Value="634"/>
-      </Unit7>
-      <Unit8>
+      </Unit1>
+      <Unit2>
         <Filename Value="testrohdeschwarzfse.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="TestRohdeSchwarzFSE"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="28" Y="1"/>
-        <UsageCount Value="600"/>
-      </Unit8>
-      <Unit9>
-        <Filename Value="usbutil.pas"/>
-        <UnitName Value="USBUtil"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="166"/>
-        <CursorPos X="77" Y="176"/>
-        <UsageCount Value="300"/>
-        <Bookmarks Count="1">
-          <Item0 X="47" Y="192" ID="1"/>
-        </Bookmarks>
-      </Unit9>
-      <Unit10>
-        <Filename Value="libusb.pas"/>
-        <UnitName Value="LibUSB"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="29"/>
-        <CursorPos X="9" Y="195"/>
-        <UsageCount Value="300"/>
-      </Unit10>
-      <Unit11>
-        <Filename Value="../gpib/linuxgpib.pas"/>
-        <UnitName Value="LinuxGPIB"/>
-        <EditorIndex Value="4"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="273"/>
-        <CursorPos X="72" Y="300"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit11>
-      <Unit12>
-        <Filename Value="../instruments/remoteinstrument.pas"/>
-        <UnitName Value="RemoteInstrument"/>
-        <EditorIndex Value="5"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="2"/>
-        <CursorPos X="1" Y="36"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit12>
-      <Unit13>
-        <Filename Value="../instruments/keithley/keithley2010.pas"/>
-        <UnitName Value="Keithley2010"/>
-        <EditorIndex Value="1"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="27" Y="19"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit13>
-      <Unit14>
-        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
-        <UnitName Value="LeCroyWaveJet"/>
-        <EditorIndex Value="2"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="26"/>
-        <CursorPos X="1" Y="37"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit14>
-      <Unit15>
-        <Filename Value="../instruments/rohdeschwarz/rohdeschwarzfseb.pas"/>
-        <UnitName Value=";"/>
-        <EditorIndex Value="3"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="11" Y="11"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit15>
+      </Unit2>
     </Units>
-    <JumpHistory Count="20" HistoryIndex="19">
-      <Position1>
-        <Filename Value="fpgacurrentmeasurement.pas"/>
-        <Caret Line="254" Column="25" TopLine="212"/>
-      </Position1>
-      <Position2>
-        <Filename Value="fpgacurrentmeasurement.pas"/>
-        <Caret Line="6" Column="47" TopLine="1"/>
-      </Position2>
-      <Position3>
-        <Filename Value="fpgacurrentmeasurement.pas"/>
-        <Caret Line="233" Column="52" TopLine="207"/>
-      </Position3>
-      <Position4>
-        <Filename Value="fpgacurrentmeasurement.pas"/>
-        <Caret Line="30" Column="72" TopLine="1"/>
-      </Position4>
-      <Position5>
-        <Filename Value="../gpib/linuxgpib.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position5>
-      <Position6>
-        <Filename Value="../instruments/remoteinstrument.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position6>
-      <Position7>
-        <Filename Value="../instruments/remoteinstrument.pas"/>
-        <Caret Line="55" Column="1" TopLine="27"/>
-      </Position7>
-      <Position8>
-        <Filename Value="fpgacurrentmeasurement.pas"/>
-        <Caret Line="34" Column="36" TopLine="213"/>
-      </Position8>
-      <Position9>
-        <Filename Value="../instruments/remoteinstrument.pas"/>
-        <Caret Line="55" Column="1" TopLine="4"/>
-      </Position9>
-      <Position10>
-        <Filename Value="fpgacurrentmeasurement.pas"/>
-        <Caret Line="23" Column="1" TopLine="1"/>
-      </Position10>
-      <Position11>
-        <Filename Value="fpgacurrentmeasurement.pas"/>
-        <Caret Line="6" Column="116" TopLine="1"/>
-      </Position11>
-      <Position12>
-        <Filename Value="../instruments/keithley/keithley2010.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position12>
-      <Position13>
-        <Filename Value="../instruments/keithley/keithley2010.pas"/>
-        <Caret Line="90" Column="1" TopLine="69"/>
-      </Position13>
-      <Position14>
-        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position14>
-      <Position15>
-        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
-        <Caret Line="130" Column="1" TopLine="91"/>
-      </Position15>
-      <Position16>
-        <Filename Value="../instruments/rohdeschwarz/rohdeschwarzfseb.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position16>
-      <Position17>
-        <Filename Value="../instruments/rohdeschwarz/rohdeschwarzfseb.pas"/>
-        <Caret Line="19" Column="11" TopLine="1"/>
-      </Position17>
-      <Position18>
-        <Filename Value="../instruments/rohdeschwarz/rohdeschwarzfseb.pas"/>
-        <Caret Line="37" Column="1" TopLine="1"/>
-      </Position18>
-      <Position19>
-        <Filename Value="../instruments/rohdeschwarz/rohdeschwarzfseb.pas"/>
-        <Caret Line="35" Column="1" TopLine="24"/>
-      </Position19>
-      <Position20>
-        <Filename Value="../instruments/lecroy/lecroywavejet.pas"/>
-        <Caret Line="37" Column="3" TopLine="13"/>
-      </Position20>
-    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="9"/>
+    <Version Value="11"/>
     <SearchPaths>
       <OtherUnitFiles Value="../base;../devcom;../usb;../gpib;../instruments;../instruments/keithley;../instruments/lecroy;../instruments/rohdeschwarz;../instruments/agilent"/>
     </SearchPaths>
@@ -274,28 +56,8 @@
         <UseAnsiStrings Value="False"/>
       </SyntaxOptions>
     </Parsing>
-    <Other>
-      <CompilerMessages>
-        <UseMsgFile Value="True"/>
-      </CompilerMessages>
-      <CompilerPath Value="$(CompPath)"/>
-    </Other>
   </CompilerOptions>
   <Debugging>
-    <BreakPoints Count="1">
-      <Item1>
-        <Source Value="remoteinstrument.pas"/>
-        <Line Value="228"/>
-      </Item1>
-    </BreakPoints>
-    <Watches Count="2">
-      <Item1>
-        <Expression Value="M1"/>
-      </Item1>
-      <Item2>
-        <Expression Value="V1"/>
-      </Item2>
-    </Watches>
     <Exceptions Count="2">
       <Item1>
         <Name Value="ECodetoolError"/>

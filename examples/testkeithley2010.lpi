@@ -1,7 +1,7 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="9"/>
+    <Version Value="11"/>
     <General>
       <Flags>
         <MainUnitHasUsesSectionForAllUnits Value="False"/>
@@ -9,284 +9,57 @@
         <MainUnitHasTitleStatement Value="False"/>
         <LRSInOutputDirectory Value="False"/>
       </Flags>
+      <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <ActiveWindowIndexAtStart Value="0"/>
     </General>
     <VersionInfo>
       <Language Value=""/>
       <CharSet Value=""/>
-      <StringTable ProductVersion=""/>
     </VersionInfo>
     <BuildModes Count="1">
       <Item1 Name="default" Default="True"/>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
-      <IgnoreBinaries Value="False"/>
-      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
-      <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
     </PublishOptions>
     <RunParams>
       <local>
-        <FormatVersion Value="1"/>
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
+      <FormatVersion Value="2"/>
+      <Modes Count="1">
+        <Mode0 Name="default">
+          <local>
+            <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+          </local>
+        </Mode0>
+      </Modes>
     </RunParams>
-    <Units Count="26">
+    <Units Count="4">
       <Unit0>
         <Filename Value="testkeithley2010.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="TestKeithley2010"/>
-        <EditorIndex Value="0"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="57" Y="42"/>
-        <UsageCount Value="66"/>
-        <Loaded Value="True"/>
-        <LoadedDesigner Value="True"/>
       </Unit0>
       <Unit1>
-        <Filename Value="gpib.pas"/>
-        <UnitName Value="gpib"/>
-        <TopLine Value="1"/>
-        <CursorPos X="6" Y="2"/>
-        <UsageCount Value="5"/>
-      </Unit1>
-      <Unit2>
-        <Filename Value="linuxgpib.pas"/>
-        <UnitName Value="LinuxGPIB"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="56" Y="26"/>
-        <UsageCount Value="33"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="../test.php"/>
-        <TopLine Value="1"/>
-        <CursorPos X="24" Y="12"/>
-        <UsageCount Value="5"/>
-        <DefaultSyntaxHighlighter Value="PHP"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="../ibnew.h"/>
-        <TopLine Value="179"/>
-        <CursorPos X="41" Y="210"/>
-        <UsageCount Value="5"/>
-        <DefaultSyntaxHighlighter Value="C++"/>
-      </Unit4>
-      <Unit5>
         <Filename Value="devicecommunication.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="DeviceCommunication"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="31"/>
-        <CursorPos X="1" Y="98"/>
-        <UsageCount Value="66"/>
-      </Unit5>
-      <Unit6>
+      </Unit1>
+      <Unit2>
         <Filename Value="oogpib.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="OoGPIB"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="130"/>
-        <CursorPos X="1" Y="215"/>
-        <UsageCount Value="66"/>
-      </Unit6>
-      <Unit7>
+      </Unit2>
+      <Unit3>
         <Filename Value="remoteinstrument.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="RemoteInstrument"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="50"/>
-        <CursorPos X="1" Y="87"/>
-        <UsageCount Value="66"/>
-      </Unit7>
-      <Unit8>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/objpas/strutils.pp"/>
-        <UnitName Value="strutils"/>
-        <TopLine Value="111"/>
-        <CursorPos X="10" Y="139"/>
-        <UsageCount Value="5"/>
-      </Unit8>
-      <Unit9>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/unix/sysutils.pp"/>
-        <UnitName Value="sysutils"/>
-        <TopLine Value="41"/>
-        <CursorPos X="10" Y="40"/>
-        <UsageCount Value="5"/>
-      </Unit9>
-      <Unit10>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/objpas/sysutils/sysutilh.inc"/>
-        <TopLine Value="212"/>
-        <CursorPos X="1" Y="1"/>
-        <UsageCount Value="5"/>
-      </Unit10>
-      <Unit11>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/inc/objpash.inc"/>
-        <TopLine Value="188"/>
-        <CursorPos X="26" Y="224"/>
-        <UsageCount Value="5"/>
-      </Unit11>
-      <Unit12>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/inc/objpas.inc"/>
-        <TopLine Value="695"/>
-        <CursorPos X="1" Y="743"/>
-        <UsageCount Value="5"/>
-      </Unit12>
-      <Unit13>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/unix/serial.pp"/>
-        <UnitName Value="Serial"/>
-        <TopLine Value="81"/>
-        <CursorPos X="16" Y="88"/>
-        <UsageCount Value="5"/>
-      </Unit13>
-      <Unit14>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/unix/bunxovlh.inc"/>
-        <TopLine Value="36"/>
-        <CursorPos X="45" Y="64"/>
-        <UsageCount Value="5"/>
-      </Unit14>
-      <Unit15>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/unix/errors.pp"/>
-        <UnitName Value="errors"/>
-        <TopLine Value="1"/>
-        <CursorPos X="9" Y="18"/>
-        <UsageCount Value="5"/>
-      </Unit15>
-      <Unit16>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/linux/errnostr.inc"/>
-        <TopLine Value="1"/>
-        <CursorPos X="1" Y="1"/>
-        <UsageCount Value="5"/>
-      </Unit16>
-      <Unit17>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/unix/unixtype.pp"/>
-        <UnitName Value="unixtype"/>
-        <TopLine Value="1"/>
-        <CursorPos X="9" Y="21"/>
-        <UsageCount Value="5"/>
-      </Unit17>
-      <Unit18>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/linux/ptypes.inc"/>
-        <TopLine Value="105"/>
-        <CursorPos X="35" Y="133"/>
-        <UsageCount Value="5"/>
-      </Unit18>
-      <Unit19>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/unix/unix.pp"/>
-        <UnitName Value="Unix"/>
-        <TopLine Value="151"/>
-        <CursorPos X="6" Y="155"/>
-        <UsageCount Value="5"/>
-      </Unit19>
-      <Unit20>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/unix/unixutil.pp"/>
-        <UnitName Value="unixutil"/>
-        <TopLine Value="31"/>
-        <CursorPos X="1" Y="1"/>
-        <UsageCount Value="5"/>
-      </Unit20>
-      <Unit21>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/unix/bunxovl.inc"/>
-        <TopLine Value="310"/>
-        <CursorPos X="3" Y="320"/>
-        <UsageCount Value="5"/>
-      </Unit21>
-      <Unit22>
-        <Filename Value="/usr/share/fpcsrc/2.2.2/rtl/unix/aliasptp.inc"/>
-        <TopLine Value="28"/>
-        <CursorPos X="23" Y="56"/>
-        <UsageCount Value="5"/>
-      </Unit22>
-      <Unit23>
-        <Filename Value="../instruments/keithley/keithley2010.pas"/>
-        <UnitName Value="Keithley2010"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="1"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="67"/>
-        <CursorPos X="6" Y="70"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit23>
-      <Unit24>
-        <Filename Value="../instruments/remoteinstrument.pas"/>
-        <UnitName Value="RemoteInstrument"/>
-        <EditorIndex Value="3"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="3"/>
-        <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit24>
-      <Unit25>
-        <Filename Value="../base/pasgpibutils.pas"/>
-        <UnitName Value="Utils"/>
-        <EditorIndex Value="2"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="4"/>
-        <CursorPos X="1" Y="70"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit25>
+      </Unit3>
     </Units>
-    <JumpHistory Count="13" HistoryIndex="12">
-      <Position1>
-        <Filename Value="testkeithley2010.pas"/>
-        <Caret Line="21" Column="1" TopLine="1"/>
-      </Position1>
-      <Position2>
-        <Filename Value="testkeithley2010.pas"/>
-        <Caret Line="27" Column="1" TopLine="1"/>
-      </Position2>
-      <Position3>
-        <Filename Value="testkeithley2010.pas"/>
-        <Caret Line="102" Column="1" TopLine="47"/>
-      </Position3>
-      <Position4>
-        <Filename Value="testkeithley2010.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position4>
-      <Position5>
-        <Filename Value="testkeithley2010.pas"/>
-        <Caret Line="101" Column="1" TopLine="47"/>
-      </Position5>
-      <Position6>
-        <Filename Value="testkeithley2010.pas"/>
-        <Caret Line="16" Column="41" TopLine="1"/>
-      </Position6>
-      <Position7>
-        <Filename Value="testkeithley2010.pas"/>
-        <Caret Line="29" Column="24" TopLine="1"/>
-      </Position7>
-      <Position8>
-        <Filename Value="testkeithley2010.pas"/>
-        <Caret Line="28" Column="29" TopLine="1"/>
-      </Position8>
-      <Position9>
-        <Filename Value="../instruments/keithley/keithley2010.pas"/>
-        <Caret Line="27" Column="35" TopLine="5"/>
-      </Position9>
-      <Position10>
-        <Filename Value="../instruments/keithley/keithley2010.pas"/>
-        <Caret Line="66" Column="18" TopLine="35"/>
-      </Position10>
-      <Position11>
-        <Filename Value="../base/pasgpibutils.pas"/>
-        <Caret Line="40" Column="38" TopLine="10"/>
-      </Position11>
-      <Position12>
-        <Filename Value="../base/pasgpibutils.pas"/>
-        <Caret Line="44" Column="31" TopLine="18"/>
-      </Position12>
-      <Position13>
-        <Filename Value="../base/pasgpibutils.pas"/>
-        <Caret Line="45" Column="12" TopLine="18"/>
-      </Position13>
-    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="9"/>
+    <Version Value="11"/>
     <SearchPaths>
       <OtherUnitFiles Value="../base;../devcom;../usb;../gpib;../instruments;../instruments/keithley;../instruments/lecroy;../instruments/rohdeschwarz;../instruments/agilent"/>
     </SearchPaths>
@@ -295,22 +68,8 @@
         <UseAnsiStrings Value="False"/>
       </SyntaxOptions>
     </Parsing>
-    <Other>
-      <CompilerMessages>
-        <UseMsgFile Value="True"/>
-      </CompilerMessages>
-      <CompilerPath Value="$(CompPath)"/>
-    </Other>
   </CompilerOptions>
   <Debugging>
-    <Watches Count="2">
-      <Item1>
-        <Expression Value="M1"/>
-      </Item1>
-      <Item2>
-        <Expression Value="V1"/>
-      </Item2>
-    </Watches>
     <Exceptions Count="2">
       <Item1>
         <Name Value="ECodetoolError"/>
