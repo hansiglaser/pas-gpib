@@ -119,6 +119,7 @@ Const
   T100s  = 15;   { Timeout of 100 sec (ideal)       }
   T300s  = 16;   { Timeout of 300 sec (ideal)       }
   T1000s = 17;   { Timeout of 1000 sec (maximum)    }
+  CGpibTimeout : Array[TNONE..T1000s] of LongInt = (0,10,30,100,300,1000,3000,10000,30000,100000,300000,1000000,3000000,10000000,30000000,100000000,300000000,1000000000);
 
 { End-of-string (EOS) modes for use with ibeos  }
 Type TEOSFlags = Longint;

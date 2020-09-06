@@ -40,6 +40,7 @@ Type
     Function  Receive : String;
     Function  Query(St:String):String;
     Procedure SetTimeout(ATimeout:LongInt);   // in us
+    Function  GetTimeout : Longint;
   End;
 
 
@@ -81,7 +82,9 @@ Begin
   SetLength(Result,0);
   repeat
     Waiting := SelectRead(FHandle,FTimeout);
-    if Waiting = 0 then
+    if (FTimeout = 0) and (Waiting = 0) then
+      Exit   // empty result
+    else if Waiting = 0 then
       raise Exception.Create('Communication timeout for serial device')  // no data -> timeout
     else if Waiting < 0 then
       raise Exception.Create('Error while reading from serial device: '+StrError(FpGetErrno));
@@ -102,6 +105,11 @@ End;
 Procedure TRS232Communicator.SetTimeout(ATimeout: LongInt);
 Begin
   FTimeout := ATimeout;
+End;
+
+Function TRS232Communicator.GetTimeout : Longint;
+Begin
+  Result := FTimeout;
 End;
 
 End.

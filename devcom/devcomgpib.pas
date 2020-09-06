@@ -20,6 +20,7 @@ Type
   TGPIBCommunicator = class(IDeviceCommunicator)
   private
     FGPIB : TGPIB;
+    FTimeout : LongInt;
   public
     Constructor Create(ADeviceName:String);  // device { name = "..." } from /etc/gpib.conf
     Destructor  Destroy; override;
@@ -27,6 +28,7 @@ Type
     Function  Receive : String;
     Function  Query(St:String):String;
     Procedure SetTimeout(ATimeout:LongInt);   // in us
+    Function  GetTimeout:LongInt;   // in us
   End;
 
 Implementation
@@ -84,6 +86,12 @@ Begin
   else if ATimeout < 1000000000 then T := T1000s   { Timeout of 1000 sec (maximum)    }
   else                               T := TNONE;   { Infinite timeout (disabled)      }
   FGPIB.SetTimeout(T);
+  FTimeout := CGpibTimeout[T];
+End;
+
+Function TGPIBCommunicator.GetTimeout : LongInt;
+Begin
+  Result := FTimeout;
 End;
 
 End.

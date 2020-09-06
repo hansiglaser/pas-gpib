@@ -41,6 +41,7 @@ Type
     Function  Receive : String; virtual;
     Function  Query(St:String):String; virtual;
     Procedure SetTimeout(ATimeout:LongInt);   // in us
+    Function  GetTimeout:LongInt;   // in us
   End;
 
 Implementation
@@ -96,6 +97,11 @@ End;
 Procedure TTCPCommunicator.SetTimeout(ATimeout: LongInt);
 Begin
   FTimeout := ATimeout;
+End;
+
+Function TTCPCommunicator.GetTimeout : LongInt;
+Begin
+  Result := FTimeout;
 End;
 
 End.

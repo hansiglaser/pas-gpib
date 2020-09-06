@@ -2,7 +2,7 @@ Unit DevCom;
 
 {$mode objfpc}{$H+}
 
-// use interfaces without IUnknown as ancestor, so they don' have reference
+// use interfaces without IUnknown as ancestor, so they don't have reference
 // counting, the classes don't need to be derived from TInterfacedObject, and
 // there are no strange problems when destroying objects using our classes
 {$interfaces corba}
@@ -33,6 +33,7 @@ Type
      * a different resolution provided by the communication interface.
      *)
     Procedure SetTimeout(ATimeout:LongInt);
+    Function  GetTimeout : LongInt;
   End;
 
 Implementation

@@ -33,6 +33,7 @@ Type
     Function  Receive : String;
     Function  Query(St: String): String;
     Procedure SetTimeout(ATimeout:LongInt);   // in us
+    Function  GetTimeout:LongInt;   // in us
   End;
 
 Implementation
@@ -64,6 +65,11 @@ End;
 Procedure TUSBLeCroyCommunicator.SetTimeout(ATimeout:LongInt);
 Begin
   FDevice.Timeout := (ATimeout + 500) div 1000;   // round to nearest value in ms
+End;
+
+Function TUSBLeCroyCommunicator.GetTimeout : LongInt;
+Begin
+  Result := FDevice.Timeout*1000;
 End;
 
 End.

@@ -38,6 +38,7 @@ Type
     Function  Receive : String;
     Function  Query(St: String): String;
     Procedure SetTimeout(ATimeout:LongInt);   // in us
+    Function  GetTimeout:LongInt;   // in us
     { USBTMC functions }
     Function WaitMessage(MinWaitMs : LongInt) : Byte;
     Procedure CheckErrors(Status : Byte);
@@ -110,6 +111,11 @@ End;
 Procedure TUSBTMCCommunicator.SetTimeout(ATimeout:LongInt);
 Begin
   FDevice.Timeout := (ATimeout + 500) div 1000;   // round to nearest value in ms
+End;
+
+Function TUSBTMCCommunicator.GetTimeout : LongInt;
+Begin
+  Result := FDevice.Timeout*1000;
 End;
 
 (**
