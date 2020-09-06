@@ -1,3 +1,11 @@
+(**
+ * Driver for Keysight U125xB Handheld True RMS (OLED) Multimeter
+ *
+ * Links:
+ *   http://privatfrickler.de/scpi-kommandos-des-agilent-u1253b-und-ein-python-Example/
+ *   https://www.mjoldfield.com/atelier/2011/06/agilent-macos.html
+ *   https://www.eevblog.com/forum/testgear/agilent-u1272a-data-logging-software-installation/msg46838/#msg46838
+ *)
 Unit KeysightU125xB;
 
 {$mode objfpc}{$H+}
@@ -63,6 +71,7 @@ Type
 Const
   CRotarySwitch              : Array[TRotarySwitch]      of String = ('','V AC','V DC/AC/ACDC','mV DC/AC/ACDC','Resistance/Continuity/Conductance','Diode/Frequency','Capacitance/Temperature','µA DC/AC/ACDC','mA/A DC/AC/ACDC','Square Wave Out');
   CMeasureQuantity           : Array[TMeasureQuantity]   of String = ('None','Voltage','Current','Frequency','Resistance','Continuity','Conducitivity','Diode','Capacitance','Temperature','Percent');
+  CMeasureQuantitySCPI       : Array[TMeasureQuantity]   of String = ('','VOLT','CURR','FREQ','RES','CONT','COND','DIOD','CAP','TEMP','CPER');
   CMeasureQuantityUnitSymbol : Array[TMeasureQuantity]   of String = ('','V','A','Hz','Ω','Ω','S','V','F','°C','%');
   CMeasureCoupling           : Array[TMeasureCoupling]   of String = ('','DC','AC','ACDC');
   CMeasureTempSensor         : Array[TMeasureTempSensor] of String = ('','K','J','ENV');
@@ -84,7 +93,7 @@ Type
     Procedure Reset;
     Function  GetMeasureStatus : TMeasureStatus;
     Function  GetMeasureConfig(AChannel : Byte = 1) : TMeasureConfig;
-    Procedure SetMeasureConfig;
+    Procedure SetMeasureConfig(AQuantity:TMeasureQuantity;ACoupling:TMeasureCoupling;ARange:Double);
     Function  GetBatteryLevel : Double;
     Function  GetVersion : String;
     Function  GetError : Integer;
@@ -138,9 +147,17 @@ End;
 
 Function TKeysightU125xB.GetMeasureStatus : TMeasureStatus;
 Var St : String;
+    L  : Longint;
 Begin
+  // Retrieve old data and throw away, this is probably '*1', ... from rotating the button
+  L := FDeviceCommunicator.GetTimeout;
+  FDeviceCommunicator.SetTimeout(0);
+  St := FDeviceCommunicator.Receive;
+//  WriteLn('First St = ''',St,'''');
+  FDeviceCommunicator.SetTimeout(L);
+  // Query status
   St := FDeviceCommunicator.Query('STAT?');
-//  WriteLn(St);
+//  WriteLn('Query result = ''',St,'''');
   if not MeasureStatusString2Record(St, Result) then
     raise Exception.Create('Can''t interpret measurement status '''+St+'''');
 End;
@@ -159,10 +176,86 @@ Begin
     raise Exception.Create('Can''t interpret measurement configuration '''+St+'''');
 End;
 
-Procedure TKeysightU125xB.SetMeasureConfig;
+(**
+ * Set measurement configuration (coupling, range)
+ *
+ * The following overview is from
+ *   http://privatfrickler.de/scpi-kommandos-des-agilent-u1253b-und-ein-python-beispiel/
+ * and sorted, updated, and translated to English.
+ *
+ * Rotary Switch: 0 (rsVAC, ~V)
+ *   CONF:VOLT:AC [Auto, 5, 50, 500, 1000]
+ *     Example: CONF:VOLT:AC 5
+ *     With this switch setting only AC is available. DC creates an error '*E'
+ *   CONF:FREQ	   (frequency measurement)
+ *
+ * Rotary Switch: 1 (rsVDCAC, ~=V)
+ *   CONF:VOLT:[AC,DC,ACDC] [Auto, 5, 50, 500, 1000]
+ *     Example: CONF:VOLT:DC 5
+ *     The setting CONF:VOLT:ACDC allows to read both, AC and DC.
+ *   CONF:FREQ	   (frequency measurement)
+ *
+ * Rotary Switch: 2 (rsmVDCAC, ~=mV)
+ *   CONF:VOLT:[AC,DC,ACDC] [Auto, 0.05, 0.5, 1, 1000]
+ *     Example: CONF:VOLT:AC 5
+ *   CONF:FREQ	   (frequency measurement)
+ *
+ * Rotary Switch: 3 (rsResistance, Ω)
+ *   CONF:[RES,CONT] [500, 5k, 50k, 5M, 50M, 500M]
+ *     RES enables resistance measurement, CONT adds the continuity beeper
+ *   CONF:COND	    (conductivity)
+ *     Conductivity has a fixed range of 500 nS
+ *   Example: CONF:RES 5M
+ *
+ * Rotary Switch: 4 (rsDiodeFrequency)
+ *   CONF:DIOD
+ *   CONF:FREQ
+ *
+ * Rotary Switch: 5 (rsCapacitanceTemperature, C, T)
+ *   CONF:CAP [Auto, 10n, 100n, 1000n, 10u, 100u, 1000u, 10m, 100m]
+ *     Example: CONF:CAP 10m
+ *   CONF:TEMP [J,K],[CEL,FAR]
+ *     J/K select the temperature sensor type
+ *     CEL/FAR select the temperature unit °C or °F, this is normally locked
+ *     Example: CONF:TEMP J,CEL
+ *   SYST:TCOM [0,1]
+ *     0 disables temperature compensation, 1 enables measures relative to the environment temperature
+ *     Example: SYST:TCOM 0
+ *
+ * Rotary Switch: 6 (rsuADCAC, µA)
+ *   CONF:CURR:[AC, DC, ACDC] [Auto, 500u 5000u]
+ *     Example: CONF:CURR:AC 500u
+ *
+ * Rotary Switch: 7 (rsmAADCAC, mA, A)
+ *   CONF:CURR:[AC, DC, ACDC] [Auto, 50m, 500m]
+ *     Example: CONF:CURR:AC 50m
+ *   CONF:CURR:[AC, DC, ACDC] [Auto, 5, 10]
+ *     Example: CONF:CURR:AC 10
+ *     The ranges above 500mA can only be selected if a cable is in the 10A socket
+ *   SYST:CPER [4-20, 0-20]
+ *     Example: SYST:CPER 4-20
+ *   CONF:CURR:PERC
+ *     Current measurement in % in the ranges 4-20mA or 0-20mA. A reading of
+ *     25% reflects a current of 8mA in the 4-20mA range and a current of 5mA
+ *     in the 0-20mA range.
+ *
+ * Rotary Switch: 8 (rsOut)
+ *
+ * The range numbers can be written as e.g., '5000u', '5m', '0.005'.
+ *
+ *)
+Procedure TKeysightU125xB.SetMeasureConfig(AQuantity : TMeasureQuantity; ACoupling : TMeasureCoupling; ARange : Double);
+Var St : String;
 Begin
-
+  if not (AQuantity in [mqVoltage,mqCurrent]) then
+    raise Exception.Create('This function is only applicable for voltage and current');
+  if ARange > 0.0 then
+    St := 'CONF:'+CMeasureQuantitySCPI[AQuantity]+':'+CMeasureCoupling[ACoupling]+' '+FloatToStr(ARange)
+  else
+    St := 'CONF:'+CMeasureQuantitySCPI[AQuantity]+':'+CMeasureCoupling[ACoupling]+' Auto';
+  FDeviceCommunicator.Send(St);
 End;
+// TODO: implement more variants for the other functions
 
 Function TKeysightU125xB.GetBatteryLevel : Double;
 Begin

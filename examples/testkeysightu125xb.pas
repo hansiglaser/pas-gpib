@@ -11,6 +11,7 @@ Program TestKeysightU125xB;
 
 // define 0-n of the following to enable/disable the respective tests
 {$DEFINE TEST_INITIAL}
+{$DEFINE TEST_SETCONFIG}
 
 Uses
   Classes, SysUtils,
@@ -62,6 +63,24 @@ Begin
   Value := U125xB.Measure(3);
   WriteLn('Measurement Ch3: ',Value,' = ',FloatToStrSI(Value,FormatSettings),CMeasureQuantityUnitSymbol[MeasureConfig[3].Quantity]);
 {$ENDIF TEST_INITIAL}
+{$IFDEF TEST_SETCONFIG}
+  While true do
+    Begin
+      MeasureStatus := U125xB.GetMeasureStatus;
+      if MeasureStatus.RotarySwitch = rsmAADCAC then Break;
+      WriteLn('WARNING: Set the rotary switch to ',CRotarySwitch[rsmAADCAC],' and plug in the correct terminal');
+      WriteLn('Then press Enter');
+      ReadLn;
+    End;
+  MeasureConfig[1] := U125xB.GetMeasureConfig;
+  WriteLn('Current measurement configuration of channel 1: ',MeasureConfig[1].ToString);
+  U125xB.SetMeasureConfig(mqCurrent, mcDC, 0.5);
+  MeasureConfig[1] := U125xB.GetMeasureConfig;
+  WriteLn('New     measurement configuration of channel 1: ',MeasureConfig[1].ToString);
+  U125xB.SetMeasureConfig(mqCurrent, mcACDC, 0);
+  MeasureConfig[1] := U125xB.GetMeasureConfig;
+  WriteLn('New     measurement configuration of channel 1: ',MeasureConfig[1].ToString);
+{$ENDIF TEST_SETCONFIG}
 
 //  WriteLn('Reset to default settings');
 //  U125xB.Reset;
