@@ -76,7 +76,6 @@ Var
   Intf     : TUSBTMCIntfInfos;
   Tmc      : TUSBTMCUSB488;
   Comm     : TUSBTMCCommunicator;
-  I        : Integer;
 {$ENDIF USBTMC}
 {$IFDEF TCP}
   Comm     : TTCPCommunicator;
@@ -85,6 +84,7 @@ Var
   DA       : TDynDoubleArray;
   MA       : TDynMeasureResultArray;
   Filename : String;
+  I        : Integer;
 
 {$IFDEF USBTMC}
 Procedure USBTMCErrorHandler;

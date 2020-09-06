@@ -210,6 +210,7 @@ Begin
   Filename := 'wj-'+FormatDateTime('yyyymmdd-hhnnss',Now)+'.png';
   WriteLn('Saving screenshot to ',Filename);
   WriteData(Filename,WJ.Screen(ifPng));
+{$ENDIF TEST_SCREENSHOT}
 
   WJ.Free;
 
