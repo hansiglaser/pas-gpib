@@ -29,8 +29,35 @@ Procedure WriteData(Filename:String;Data:TDynByteArray);
 
 Procedure Dump(Const Buf;Size:LongInt);
 
+Type
+  TSIPrefix = (
+    spYocto, spZepto, spAtto, spFemto, spPico, spNano, spMicro, spMilli, spCenti, spDeci,
+    spNone,
+    spDeca, spHecto, spKilo, spMega, spGiga, spTera, spPeta, spExa, spZetta, spYotta);
+
+Const
+  CSIPrefixSymbol : Array[TSiPrefix] of String[2] = (
+    'y', 'z', 'a', 'f', 'p', 'n', 'µ', 'm', 'c', 'd',
+    '',
+    'da', 'h', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y');
+  CSIPrefixText : Array[TSiPrefix] of String[5] = (
+    'yocto', 'zepto', 'atto', 'femto', 'pico', 'nano', 'micro', 'milli', 'centi', 'deci',
+    '',
+    'deca', 'hecto', 'kilo', 'mega', 'giga', 'tera', 'peta', 'exa', 'zetta', 'yotta');
+  CSIPrefixPower : Array[TSiPrefix] of Integer = (
+    -24, -21, -18, -15, -12, -9, -6, -3, -2, -1,
+    0,
+    1, 2, 3, 6, 9, 12, 15, 18, 21, 24);
+  CSIPrefixFactor : Array[TSiPrefix] of Double = (
+    1E-24, 1E-21, 1E-18, 1E-15, 1E-12, 1E-9, 1E-6, 1E-3, 1E-2, 1E-1,
+    1,
+    1E1, 1E2, 1E3, 1E6, 1E9, 1E12, 1E15, 1E18, 1E21, 1E24);
+
+Function GetSIPrefix(Value:Double) : TSIPrefix;
+Function FloatToStrSI(Value:Double;Const FormatSettings:TFormatSettings) : String;
+
 Implementation
-Uses BaseUnix, StrUtils;
+Uses BaseUnix, StrUtils, Math;
 
 Function SplitStr(Delimiter:String;St:String) : TDynStringArray;
 Var S,E : Integer;
@@ -167,6 +194,28 @@ Begin
     Begin
       WriteLn(StringOfChar(' ',3*(15-(I and $F))),'  ',S);
     End;
+End;
+
+Function GetSIPrefix(Value : Double) : TSIPrefix;
+Var LogValue : Integer;
+Begin
+  Result := spNone;
+  if Value = 0 then Exit;
+  Value := Abs(Value);
+  LogValue := Floor(Log10(Value)/3.0)*3;
+
+  While (LogValue > CSIPrefixPower[Result]) and (Result < High(TSIPrefix)) do
+    Result := Succ(Result);
+  While (LogValue < CSIPrefixPower[Result]) and (Result > Low(TSIPrefix)) do
+    Result := Pred(Result);
+End;
+
+Function FloatToStrSI(Value:Double;Const FormatSettings:TFormatSettings) : String;
+Var SIPrefix : TSIPrefix;
+Begin
+  SIPrefix := GetSIPrefix(Value);
+  Value    := Value / CSIPrefixFactor[SIPrefix];
+  Result   := FloatToStr(Value,FormatSettings) + CSIPrefixSymbol[SIPrefix];
 End;
 
 End.
