@@ -77,6 +77,11 @@ Function SplitDouble(Delimiter : Char; St : String) : TDynDoubleArray;
 Var C,I,P1,P2,J : Integer;
     V : String;
 Begin
+  if St = '' then
+    Begin
+      SetLength(Result, 0);
+      Exit;
+    End;
   P1 := 1;
   C := Count(Delimiter,St)+1;
   SetLength(Result,C);
