@@ -31,6 +31,7 @@ Type
     FTransferSize : Integer;
     FErrorHandler       : TErrorHandler;
     FEnableErrorHandler : Boolean;
+    FLastSend           : String;
   public
     Constructor Create(ADevice : TUSBTMCUSB488);
     { interface IDeviceCommunicator }
@@ -46,6 +47,7 @@ Type
     // (maximum) number of bytes used for DEV_DEP_MSG_IN
     property TransferSize : Integer read FTransferSize write FTransferSize;
     property ErrorHandler : TErrorHandler read FErrorHandler write FErrorHandler;
+    property LastSend     : String read FLastSend;
   End;
 
 Implementation
@@ -58,12 +60,14 @@ Begin
   SetTimeout(500000{us});  // default to 500ms
   FTransferSize := 2048;
   FEnableErrorHandler := True;
+  FLastSend := '';
 End;
 
 Procedure TUSBTMCCommunicator.Send(St:String);
 Begin
 //WriteLn('Send: ''',St,'''');
 //ReadLn;
+  FLastSend := St;    // keep last command for the USBTMCErrorHandler
   FDevice.Send(St+^J);
 End;
 
