@@ -26,6 +26,7 @@ Program TestAgilent34410A;
 
 {$mode objfpc}{$H+}
 
+// select device type, define one of these two
 { $ DEFINE Agilent34410A}
 {$DEFINE Keysight34461A}
 
@@ -34,12 +35,13 @@ Program TestAgilent34410A;
 { $ DEFINE TCP}
 
 { $ DEFINE TEST_NPLC}
-{ $ DEFINE TEST_APERTURE}
+{ $ DEFINE TEST_APERTURE}          // only for 34410A series and 34465A and 34470A
 { $ DEFINE TEST_RANGE}
-{ $ DEFINE TEST_SAMPLE_TIMER}
+{ $ DEFINE TEST_SAMPLE_TIMER}      // only for 34410A series and 34465A and 34470A
+{$DEFINE TEST_SERIES}
 
 Uses
-  Classes, SysUtils, DevCom,
+  Classes, SysUtils, DevCom, PasGpibUtils, Math, DateUtils,
 {$IFDEF USBTMC}
   LibUsbOop, UsbTmc, DevComUSBTMC,
 {$ENDIF USBTMC}
@@ -92,8 +94,10 @@ Var
   Comm    : TTCPCommunicator;
 {$ENDIF TCP}
   A34410A : TAgilent34410A;
-  I       : Integer;
+  I,J     : Integer;
   Status  : Byte;
+  DT      : TDateTime;
+  MeasArr : TDynDoubleArray;
 
 {$IFDEF USBTMC}
 Procedure USBTMCErrorHandler;
@@ -109,7 +113,7 @@ Begin
       if (Tmc.ReadStatusByte and IEEE488_StatusByte_ErrorQueue) = 0 then Break;
       {$ENDIF}
       if I = 0 then
-        WriteLn('Error Queue:');
+        WriteLn('Error Queue after last command '''+Comm.LastSend+''':');
       A34410A.GetNextError(Code,Msg);
       WriteLn('  ',Code,': ',Msg);
       if Code = 0 then Break;
@@ -223,7 +227,47 @@ Begin
       WriteLn('Error: ',E.Message);
   End;
 {$ENDIF TEST_SAMPLE_TIMER}
+{$IFDEF TEST_SERIES}
+  A34410A.SetNPLC(1.0);
+  A34410A.AutoZero;
+  A34410A.SetRange(10.0);  // 10.0V
+  WriteLn('Starting measurement series with 500 measurements with NPLC=1.0');
+  // set number of samples
+  A34410A.SetSampleCount(50*10);    // record 10 seconds with NPLC 1.0
+  // don't wait for any trigger condition
+  A34410A.SetTriggerSource(tsImmediate);
+  // initiate measurements
+  A34410A.Initiate;
+  DT := Now;
+  For J := 0 to 10*10 do
+    Begin
+      Sleep(100);
+      I := A34410A.GetNumDataPoints;
+      Write(I,' ');
+      if I >= 50*10 then
+        Begin
+          WriteLn('Done after ',J,' * ~0.1s, or more accurately ',MilliSecondsBetween(Now, DT)*0.001:1:3,' ms.');
+          break;
+        End;
+    End;
+  if I < 50*10 then
+    WriteLn('Timeout!!!')
+  else
+    Begin
+      WriteLn('Fetching measurement results');
+      // fetch measurement data
+      Comm.TransferSize := 500*(1+1+1+8+1+1+2+1+10);  // each value '+8.54957768E-04,', plus 10 chars to be on the safe side :-)
+      MeasArr := A34410A.FetchAll;
+      Comm.TransferSize := 2048;
+      WriteLn('  Num:    ',Length(MeasArr));
+      WriteLn('  Min:    ',MinValue(MeasArr));
+      WriteLn('  Max:    ',MaxValue(MeasArr));
+      WriteLn('  Mean:   ',Mean(MeasArr));
+      WriteLn('  StdDev: ',StdDev(MeasArr));
+    End;
+{$ENDIF TEST_SERIES}
 
+  // simple demonstration
   Sleep(150);
   A34410A.SetNPLC(1.0);
   A34410A.AutoZero;

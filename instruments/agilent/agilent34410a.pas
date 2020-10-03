@@ -1,3 +1,12 @@
+(**
+ * Remote control of Agilent/Keysight 3441xA and 3446xA/3447xA Multimeters
+ *
+ * [UG-34410A]  Agilent 34410A/11A 6 1⁄2 Digit Multimeter User’s Guide
+ *              (includes the L4411A 1U DMM), Fifth Edition. June 2012
+ *
+ * [OSG-34460A] Keysight Truevolt Series Digital Multimeters Operating and
+ *              Service Guide, 18 August 2017 Edition 5
+ *)
 Unit Agilent34410A;
 
 {$mode objfpc}{$H+}
@@ -45,6 +54,7 @@ Type
    *)
   TAgilent34410A = class(TRemoteInstrument)
   private
+    FIdentity : TDynStringArray;
     FQuantity : TQuantity;
     Function GetSenseFunctionStr : String;
   protected
@@ -78,8 +88,11 @@ Type
     Procedure SetSampleCount(Count:Integer);
     Procedure SetTriggerSource(TriggerSource:TTriggerSource);
     Procedure Initiate;
+    Procedure Abort;
     Function  Fetch : Double;
+    Function  FetchAll : TDynDoubleArray;
     Function  GetValue : Double;
+    Function  GetNumDataPoints : Integer;
     Function  DataRemove(Count : Integer) : TDynDoubleArray;
     Procedure StartMeasurements(Count:Integer);
   End;
@@ -96,16 +109,12 @@ Implementation
  *)
 Constructor TAgilent34410A.Create(ADeviceCommunicator: IDeviceCommunicator);
 Var Identity : String;
-    IdnArr   : TDynStringArray;
 Begin
   inherited Create(ADeviceCommunicator);
   { check device }
   Identity := Identify;
-//  WriteLn(Identity);   // e.g. 'Keysight Technologies,34461A,MY12345678,A.02.17-02.40-02.17-00.52-04-02'
-  IdnArr := SplitStr(',',Identity);
-//  For I := 0 to Length(IdnArr)-1 do
-//    WriteLn(I,': ',IdnArr[I]);
-  if not IsSupportedDevice(IdnArr) then
+  FIdentity := SplitStr(',',Identity);
+  if not IsSupportedDevice(FIdentity) then
     raise Exception.Create('Device '''+Identity+''' is not a supported device');
 End;
 
@@ -256,6 +265,8 @@ End;
  *   20µs to 1s
  *
  * [UG-34410A] p. 52f
+ *
+ * [OSG-34460A] p. 381f Applies only to the 34465A and 34470A.
  *)
 Procedure TAgilent34410A.SetAperture(IntegrationTime : Double);
 Begin
@@ -271,6 +282,8 @@ End;
  *   20µs to 1s
  *
  * [UG-34410A] p. 52f
+ *
+ * [OSG-34460A] p. 381f Applies only to the 34465A and 34470A.
  *)
 Function TAgilent34410A.GetAperture : Double;
 Begin
@@ -339,6 +352,8 @@ End;
 (**
  * Set whether each sampling is started after a trigger delay time or
  * periodically using the sampling timer.
+ *
+ * [OSG-34460A] p. 309f: Applies only to the 34465A and 34470A.
  *)
 Procedure TAgilent34410A.SetSampleSource(SampleSource : TSampleSource);
 Begin
@@ -347,6 +362,8 @@ End;
 
 (**
  * Set the sampling timer interval.
+ *
+ * This presumably only works with the 34465A and 34470A.
  *)
 Procedure TAgilent34410A.SetSampleTimer(SampleTimer : Double);
 Begin
@@ -357,6 +374,8 @@ End;
  * Query the sampling timer interval.
  *
  * Up to 3600 sec in 20 μs steps
+ *
+ * This presumably only works with the 34465A and 34470A.
  *)
 Function TAgilent34410A.GetSampleTimer : Double;
 Begin
@@ -367,6 +386,8 @@ End;
  * Set the sampling timer interval to its minimum or maximum value.
  *
  * The minimum value depends on the measurement settings.
+ *
+ * This presumably only works with the 34465A and 34470A.
  *)
 Procedure TAgilent34410A.SetSampleTimer(SampleTimer : TMinMax);
 Begin
@@ -377,6 +398,11 @@ End;
  * Set the number of samples taken after a trigger
  *
  * Allowed values: 1 - 50000 (34410A), 1 - 1000000 (34411A/L4411A)
+ *
+ * You can store up to 1,000 measurements in the reading memory of the 34460A,
+ * 10,000 measurements on the 34461A, 50,000 measurements on the 34465A/70A
+ * (without the MEM option), or 2,000,000 measurements on the 34465A/70A (with
+ * the MEM option) ([OSG-34460A] p. 307).
  *)
 Procedure TAgilent34410A.SetSampleCount(Count : Integer);
 Begin
@@ -387,15 +413,28 @@ End;
  * Select trigger source.
  *
  * stInternal is only supported by 34411A and L4411A, but not by 34410A.
+ *
+ * [OSG-34460A] p. 435ff:
+ *  - The INTernal source is available for the 34465A and 34470A with the DIG
+ *    option only.
+ *  - On the 34460A, EXTernal requires option 34460-LAN or option 3446LANU.
  *)
 Procedure TAgilent34410A.SetTriggerSource(TriggerSource : TTriggerSource);
 Begin
-  FDeviceCommunicator.Send('SAMPLE:SOURCE '+CTriggerSource[TriggerSource]);
+  FDeviceCommunicator.Send('TRIGGER:SOURCE '+CTriggerSource[TriggerSource]);
 End;
 
 (**
  * Place the trigger system from "idle" to "wait-for-trigger" and delete all
  * readings from the memory.
+ *
+ * The INITiate command is also an "overlapped" command. This means that after
+ * executing INITiate, you can send other commands that do not affect the
+ * measurements.
+ *
+ * Use ABORt to return to idle.
+ *
+ * [OSG-34460A] p. 204
  *)
 Procedure TAgilent34410A.Initiate;
 Begin
@@ -403,15 +442,59 @@ Begin
 End;
 
 (**
+ * Abort a measurement in progress and returns the instrument to the trigger
+ * idle state.
+ *
+ * Use this to abort a measurement when the instrument is waiting for a
+ * trigger, or for aborting a long measurement or series of measurements.
+ *
+ * [OSG-34460A] p. 202
+ *)
+Procedure TAgilent34410A.Abort;
+Begin
+  FDeviceCommunicator.Send('ABORT');
+End;
+
+(**
  * Fetch the latest measurement value
  *
  * This command will wait until the measurement is complete. Then it can return
  * the same measurement multiple times.
+ *
+ * Don't use this command if a measurement series was performed!
  *)
-Function TAgilent34410A.Fetch: Double;
+Function TAgilent34410A.Fetch : Double;
 Begin
   Result := StrToFloat(FDeviceCommunicator.Query('FETCH?'));
-  // TODO: check what happens if SetSampleCount > 1
+End;
+
+(**
+ * Waits for measurements to complete and fetches all values.
+ *
+ * This command will wait until the measurement (series) is complete. Then it
+ * can return the same data multiple times.
+ *
+ * Use this command also for a measurement series.
+ *
+ * Warning: The data is (at least) 16 chars per value ('+8.54957768E-04,'). Be
+ * sure to set the transfer size of the USBTMC device communicator (e.g.,
+ * with Comm.TransferSize := Num*16;) before calling this function.
+ *
+ *)
+Function TAgilent34410A.FetchAll : TDynDoubleArray;
+Var St : String;
+Begin
+  St := FDeviceCommunicator.Query('FETCH?');
+  Result := SplitDouble(',',St);
+End;
+
+(**
+ * Query the total number of measurements currently in reading memory.
+ *
+ *)
+Function TAgilent34410A.GetNumDataPoints : Integer;
+Begin
+  Result := StrToInt(FDeviceCommunicator.Query('DATA:POINTS?'));
 End;
 
 (**
@@ -419,13 +502,15 @@ End;
  *
  * If Count is larger than the number of stored readings, the device generates
  * an error.
+ *
+ * See also the documentation of FetchAll for considerations on the USBTMC
+ * transfer size.
  *)
 Function TAgilent34410A.DataRemove(Count : Integer) : TDynDoubleArray;
 Var St : String;
 Begin
-  // TODO: set maximum number of bytes to read for TUSBTMC
   St := FDeviceCommunicator.Query('DATA:REMOVE? '+IntToStr(Count));
-  Result := SplitDouble(',',St);  // TODO: check
+  Result := SplitDouble(',',St);
 End;
 
 (**
@@ -435,6 +520,11 @@ End;
  * the command to set the "Operation Complete" and "*ESR?" to query this bit,
  * or STATUS:OPERATION:CONDITION? if the device is still measuring, or
  * DATA:POINTS? to query the number of points in the measurement memory.
+ *
+ * FETCH? will wait until the completion of the measurement series.
+ *
+ * Do not use this function with 34460A and 34461A, because they don't support
+ * the sample source and timer functions!
  *)
 Procedure TAgilent34410A.StartMeasurements(Count : Integer);
 Begin
