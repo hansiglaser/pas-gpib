@@ -30,10 +30,11 @@ Program TestAgilentMSOX3000A;
 { $ DEFINE TEST_VDIV}
 { $ DEFINE TEST_VOFST}
 {$DEFINE TEST_MEASURE}
+{$DEFINE TEST_LONG_RECORD}
 {$DEFINE TEST_SCREENSHOT}
 
 Uses
-  Classes, SysUtils, TypInfo, PasGpibUtils,
+  Classes, SysUtils, TypInfo, DateUtils, PasGpibUtils,
 {$IFDEF USBTMC}
   LibUsbOop, UsbTmc, DevComUSBTMC,
 {$ENDIF USBTMC}
@@ -84,7 +85,8 @@ Var
   DA       : TDynDoubleArray;
   MA       : TDynMeasureResultArray;
   Filename : String;
-  I        : Integer;
+  I,J      : Integer;
+  DT       : TDateTime;
 
 {$IFDEF USBTMC}
 Procedure USBTMCErrorHandler;
@@ -100,7 +102,7 @@ Begin
       if (Tmc.ReadStatusByte and IEEE488_StatusByte_ErrorQueue) = 0 then Break;
       {$ENDIF}
       if I = 0 then
-        WriteLn('Error Queue:');
+        WriteLn('Error Queue after last command '''+Comm.LastSend+''':');
       MSOX.GetNextError(Code,Msg);
       WriteLn('  ',Code,': ',Msg);
       if Code = 0 then Break;
@@ -146,6 +148,7 @@ Begin
 
   WriteLn('Test program demonstrating remote control of the Agilent InfiniiVision MSO-X 3000A scopes');
   WriteLn;
+  WriteLn('Identity: ',MSOX.Identify);
   WriteLn('Current date at scope: ',MSOX.GetDateTime);
   WriteLn;
 
@@ -283,6 +286,29 @@ Begin
       WriteLn('  Count   = ',MA[I].Count);
     End;
 {$ENDIF}
+{$IFDEF TEST_LONG_RECORD}
+  WriteLn;
+  WriteLn('Testing long-running recording at 1s/dev');
+  MSOX.SetTDiv(1.0);              // record at 1s/div --> 10s for one recording
+  MSOX.MeasureStatisticsReset;
+  MSOX.Single;
+  MSOX.TriggerForce;              // force trigger, because trigger mode is always "normal" in single shot mode
+  // wait for the scope to finish
+  DT := Now;
+  For I := 0 to 10*10 do
+    Begin
+      Sleep(100);
+      J := MSOX.GetOperationStatusCondition;
+      Write('$',IntToHex(J, 4),' ');
+      if (J and COpStatRun) = 0 then
+        Begin
+          WriteLn('Done after ',I,' * ~0.1s, or more accurately ',MilliSecondsBetween(Now, DT)*0.001:1:3,' ms.');
+          break;
+        End;
+    End;
+  if (J and COpStatRun) <> 0 then
+    WriteLn('Timeout!!!');
+{$ENDIF TEST_LONG_RECORD}
 {$IFDEF TEST_SCREENSHOT}
   WriteLn;
   WriteLn('Testing screenshot');

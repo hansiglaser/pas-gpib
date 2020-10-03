@@ -108,6 +108,11 @@ Const
                                                       'DIG0','DIG1','DIG2','DIG3','DIG4','DIG5','DIG6','DIG7','DIG8','DIG9','DIG10','DIG11','DIG12','DIG13','DIG14','DIG15',
                                                       'FUNC','MATH','WMEM1','WMEM2');
   CStatisticsType: Array[TStatisticsType] of String= ('ON','CURR','MIN','MAX','MEAN','STDD','COUN');
+  COpStatRun           = 1 shl  3;   // [PG] p. 207
+  COpStatWaitTrig      = 1 shl  5;
+  COpStatPowerEvent    = 1 shl  7;
+  COpStatMaskTestEvent = 1 shl  9;
+  COpStatOverload      = 1 shl 11;
 
 Type
   TAgilentMSOX3000AChannel = class;
@@ -155,7 +160,9 @@ Type
     Procedure Run;
     Procedure Stop;
     Procedure SetTriggerMode(AMode:TTriggerMode);
+    Procedure TriggerForce;
     // Status
+    Function  GetOperationStatusCondition : Word;
     // Cursor
     // Hard Copy
     Procedure SetHardcopyOptions(AInkSaver : Boolean);
@@ -300,7 +307,8 @@ End;
  * Use the method HardcopySet to set inverted screen, ...
  *
  * Warning: The screenshot data is at least 18kB. Be sure to set the transfer size of
- * the USBTMC device communicator before calling this function.
+ * the USBTMC device communicator before calling this function, (e.g., with
+ * Comm.TransferSize := 32768;).
  *
  * [PG] p. 306
  *)
@@ -419,6 +427,28 @@ End;
 Procedure TAgilentMSOX3000A.SetTriggerMode(AMode : TTriggerMode);
 Begin
   FDeviceCommunicator.Send(':TRIGGER:SWEEP '+CTriggerMode[AMode]);
+End;
+
+(**
+ * Force the trigger now
+ *
+ * [PG] p. 878
+ *)
+Procedure TAgilentMSOX3000A.TriggerForce;
+Begin
+  FDeviceCommunicator.Send(':TRIGGER:FORCE');
+End;
+
+(**
+ * Query Operation Status Condition Register
+ *
+ * Use the constants COpStat*
+ *
+ * [PG] p. 207
+ *)
+Function TAgilentMSOX3000A.GetOperationStatusCondition : Word;
+Begin
+  Result := StrToInt(FDeviceCommunicator.Query(':OPEREGISTER:CONDITION?'));
 End;
 
 (**
