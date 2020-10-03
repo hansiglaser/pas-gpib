@@ -122,6 +122,7 @@ End;
 {$ENDIF USBTMC}
 
 Begin
+  { device communicator }
 {$IFDEF USBTMC}
   // device connector via USB-TMC
   Context := TLibUsbContext.Create;
@@ -153,6 +154,7 @@ Begin
   Comm := TTCPCommunicator.Create(Host,Port);
 {$ENDIF TCP}
 
+  { remote instrument }
   A34410A := TAgilent34410A.Create(Comm);
 
 {$IFDEF USBTMC}
