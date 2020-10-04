@@ -25,6 +25,7 @@
 Program TestAgilent34410A;
 
 {$mode objfpc}{$H+}
+{$MODESWITCH NestedProcVars}
 
 // select device type, define one of these two
 { $ DEFINE Agilent34410A}
@@ -120,6 +121,14 @@ Begin
     End;
 End;
 {$ENDIF USBTMC}
+
+Function SeriesChecker(Data:Pointer) : Boolean;
+Var Num : Integer;
+Begin
+  Num := A34410A.GetNumDataPoints;
+  Write(Num,' ');
+  Result := (Num >= 50*10);
+End;
 
 Begin
   { device communicator }
@@ -240,32 +249,24 @@ Begin
   A34410A.SetTriggerSource(tsImmediate);
   // initiate measurements
   A34410A.Initiate;
-  DT := Now;
-  For J := 0 to 10*10 do
-    Begin
-      Sleep(100);
-      I := A34410A.GetNumDataPoints;
-      Write(I,' ');
-      if I >= 50*10 then
-        Begin
-          WriteLn('Done after ',J,' * ~0.1s, or more accurately ',MilliSecondsBetween(Now, DT)*0.001:1:3,' ms.');
-          break;
-        End;
-    End;
-  if I < 50*10 then
+  // wait for the measurement series to finish
+  I := WaitTimeout(5000, 100, 15000, @SeriesChecker, Nil);
+  WriteLn;
+  if I >= 15000 then
     WriteLn('Timeout!!!')
   else
     Begin
+      WriteLn('Done after ',I,' ms.');
       WriteLn('Fetching measurement results');
       // fetch measurement data
       Comm.TransferSize := 500*(1+1+1+8+1+1+2+1+10);  // each value '+8.54957768E-04,', plus 10 chars to be on the safe side :-)
       MeasArr := A34410A.FetchAll;
       Comm.TransferSize := 2048;
       WriteLn('  Num:    ',Length(MeasArr));
-      WriteLn('  Min:    ',MinValue(MeasArr));
-      WriteLn('  Max:    ',MaxValue(MeasArr));
-      WriteLn('  Mean:   ',Mean(MeasArr));
-      WriteLn('  StdDev: ',StdDev(MeasArr));
+      WriteLn('  Min:    ',FloatToStrSI(MinValue(MeasArr),FormatSettings));
+      WriteLn('  Max:    ',FloatToStrSI(MaxValue(MeasArr),FormatSettings));
+      WriteLn('  Mean:   ',FloatToStrSI(Mean    (MeasArr),FormatSettings));
+      WriteLn('  StdDev: ',FloatToStrSI(StdDev  (MeasArr),FormatSettings));
     End;
 {$ENDIF TEST_SERIES}
 

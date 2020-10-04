@@ -1,6 +1,7 @@
 Unit PasGpibUtils;
 
 {$mode objfpc}{$H+}
+{$MODESWITCH NestedProcVars}
 
 Interface
 
@@ -11,6 +12,7 @@ Type
   TDynByteArray   = Array of Byte;
   TDynStringArray = Array of String;
   TDynDoubleArray = Array of Double;
+  TWaitCheckerFunc = Function (Data:Pointer) : Boolean is nested;
 
 Function SplitStr(Delimiter:String;St:String) : TDynStringArray;
 Function SplitDouble(Delimiter:Char;St:String) : TDynDoubleArray;
@@ -25,6 +27,9 @@ Function Select(I : Integer; Const S:Array of String) : String;
 Function SigPending(SigNo:Integer) : Boolean;
 
 Function SelectRead(AHandle:Integer;ATimeout:Integer { in us }) : Integer;
+
+Function WaitTimeout(Initial,Period,Max:Integer;Checker:TWaitCheckerFunc;Data:Pointer) : Integer;
+
 Procedure WriteData(Filename:String;Data:TDynByteArray);
 
 Procedure Dump(Const Buf;Size:LongInt);
@@ -57,7 +62,7 @@ Function GetSIPrefix(Value:Double) : TSIPrefix;
 Function FloatToStrSI(Value:Double;Const FormatSettings:TFormatSettings) : String;
 
 Implementation
-Uses BaseUnix, StrUtils, Math;
+Uses BaseUnix, StrUtils, Math, DateUtils;
 
 Function SplitStr(Delimiter:String;St:String) : TDynStringArray;
 Var S,E : Integer;
@@ -173,6 +178,20 @@ Begin
   BlockWrite(F,Data[0],Length(Data));
   Close(F);
 end;
+
+Function WaitTimeout(Initial,Period,Max:Integer;Checker:TWaitCheckerFunc;Data:Pointer) : Integer;
+Var DT : TDateTime;
+Begin
+  DT := Now;
+  if Initial > 0 then
+    Sleep(Initial);
+  repeat
+    Result := MilliSecondsBetween(Now, DT);
+    if Checker(Data) then Exit;
+    if Result > Max then Exit;
+    Sleep(Period);
+  Until false;
+End;
 
 Procedure Dump(Const Buf;Size:LongInt);
 Var I : Integer;

@@ -19,6 +19,7 @@
 Program TestAgilentMSOX3000A;
 
 {$mode objfpc}{$H+}
+{$MODESWITCH NestedProcVars}
 
 // either communicate via USB-TMC or TCP, define one of these two
 {$DEFINE USBTMC}
@@ -34,7 +35,7 @@ Program TestAgilentMSOX3000A;
 {$DEFINE TEST_SCREENSHOT}
 
 Uses
-  Classes, SysUtils, TypInfo, DateUtils, PasGpibUtils,
+  Classes, SysUtils, TypInfo, PasGpibUtils,
 {$IFDEF USBTMC}
   LibUsbOop, UsbTmc, DevComUSBTMC,
 {$ENDIF USBTMC}
@@ -85,8 +86,7 @@ Var
   DA       : TDynDoubleArray;
   MA       : TDynMeasureResultArray;
   Filename : String;
-  I,J      : Integer;
-  DT       : TDateTime;
+  I        : Integer;
 
 {$IFDEF USBTMC}
 Procedure USBTMCErrorHandler;
@@ -109,6 +109,14 @@ Begin
     End;
 End;
 {$ENDIF USBTMC}
+
+Function LongRecordChecker(Data:Pointer) : Boolean;
+Var OSC : Integer;
+Begin
+  OSC := MSOX.GetOperationStatusCondition;
+  Write('$',IntToHex(OSC, 4),' ');
+  Result := ((OSC and COpStatRun) = 0);
+End;
 
 Begin
   { device communicator }
@@ -294,20 +302,12 @@ Begin
   MSOX.Single;
   MSOX.TriggerForce;              // force trigger, because trigger mode is always "normal" in single shot mode
   // wait for the scope to finish
-  DT := Now;
-  For I := 0 to 10*10 do
-    Begin
-      Sleep(100);
-      J := MSOX.GetOperationStatusCondition;
-      Write('$',IntToHex(J, 4),' ');
-      if (J and COpStatRun) = 0 then
-        Begin
-          WriteLn('Done after ',I,' * ~0.1s, or more accurately ',MilliSecondsBetween(Now, DT)*0.001:1:3,' ms.');
-          break;
-        End;
-    End;
-  if (J and COpStatRun) <> 0 then
-    WriteLn('Timeout!!!');
+  I := WaitTimeout(5000, 100, 15000, @LongRecordChecker, Nil);
+  WriteLn;
+  if I >= 15000 then
+    WriteLn('Timeout!!!')
+  else
+    WriteLn('Done after ',I,' ms.');
 {$ENDIF TEST_LONG_RECORD}
 {$IFDEF TEST_SCREENSHOT}
   WriteLn;
