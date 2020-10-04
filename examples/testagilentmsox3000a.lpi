@@ -27,12 +27,17 @@
         <Mode0 Name="default"/>
       </Modes>
     </RunParams>
-    <Units Count="1">
+    <Units Count="2">
       <Unit0>
         <Filename Value="testagilentmsox3000a.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="TestAgilentMSOX3000A"/>
       </Unit0>
+      <Unit1>
+        <Filename Value="../base/asciidiagram.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="AsciiDiagram"/>
+      </Unit1>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

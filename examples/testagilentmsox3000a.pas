@@ -30,9 +30,10 @@ Program TestAgilentMSOX3000A;
 { $ DEFINE TEST_TRIGGER_LEVEL}
 { $ DEFINE TEST_VDIV}
 { $ DEFINE TEST_VOFST}
-{$DEFINE TEST_MEASURE}
-{$DEFINE TEST_LONG_RECORD}
-{$DEFINE TEST_SCREENSHOT}
+{ $ DEFINE TEST_MEASURE}
+{ $ DEFINE TEST_LONG_RECORD}
+{ $ DEFINE TEST_SCREENSHOT}
+{$DEFINE TEST_WAVEFORM}
 
 Uses
   Classes, SysUtils, TypInfo, PasGpibUtils,
@@ -87,6 +88,7 @@ Var
   MA       : TDynMeasureResultArray;
   Filename : String;
   I        : Integer;
+  Waveform : TWaveform;
 
 {$IFDEF USBTMC}
 Procedure USBTMCErrorHandler;
@@ -172,6 +174,7 @@ Begin
   MSOX.Channel[CH4].Display(false);  // switch off channel 4
   MSOX.Channel[CH1].SetCoupling(cpDC);
   MSOX.Channel[CH1].SetBWLimit(True);
+  MSOX.Channel[CH1].SetVDiv(0.5);  // 0.5V/div
   WriteLn('Bandwidth limit: ',Select(MSOX.Channel[CH1].GetBWLimit, 'on', 'off'));
 
 {$IFDEF TEST_TDIV}
@@ -236,7 +239,7 @@ Begin
   For I := -20 to 20 do
     TestSetting(@MSOX.Channel[CH1].SetOffset,@MSOX.Channel[CH1].GetOffset,'V', I * 0.5);  // +/-10V at 100mV/div to 500mV/div
 {$ENDIF TEST_VOFST}
-{$IF defined(TEST_MEASURE) or defined(TEST_SCREENSHOT)}
+{$IF defined(TEST_MEASURE) or defined(TEST_SCREENSHOT) or defined(TEST_WAVEFORM)}
   WriteLn('Setup for next tests');
   MSOX.Channel[CH1].SetVDiv(0.5);  // 0.5V/div
   MSOX.Channel[CH1].SetOffset(1.0);   // set base line to 1.0V = 2 div below center
@@ -318,15 +321,23 @@ Begin
   WriteLn('Saving screenshot to ',Filename);
   MSOX.SetHardcopyOptions(false);  // inksaver off: image is not inverted, i.e., mostly black
   WriteLn('  Hardcopy Options: ',MSOX.GetHardcopyOptions);
-{$IFDEF USBTMC}
-  // increase USB-TMC transfer size for screenshot data
-  Comm.TransferSize := 1000000;
-{$ENDIF USBTMC}
   WriteData(Filename,MSOX.Screen(ifPng, ipColor));
-{$IFDEF USBTMC}
-  Comm.TransferSize := 2048;
-{$ENDIF USBTMC}
 {$ENDIF TEST_SCREENSHOT}
+{$IFDEF TEST_WAVEFORM}
+  MSOX.MeasureStatisticsReset;
+  MSOX.Single;
+  MSOX.TriggerForce;              // force trigger, because trigger mode is always "normal" in single shot mode
+  Sleep(100);
+  MSOX.SetWaveformFormat(wfByte);
+  MSOX.SetWaveformPointsMode(wpmRaw);
+  MSOX.SetWaveformPointsCount(100);
+//  MSOX.SetWaveformPointsCount(0);
+  Waveform := MSOX.GetWaveformPreamble;
+  Waveform.PrintPreamble;
+  MSOX.GetWaveformData(Waveform);
+  Waveform.ConvToReal;
+  Waveform.PrintAsciiArt(80, 25, 500e-6, 0.5);
+{$ENDIF TEST_WAVEFORM}
 
   MSOX.Free;
 

@@ -7,12 +7,13 @@
 Unit AgilentMSOX3000A;
 
 {$mode objfpc}{$H+}
+{$MODESWITCH NestedProcVars}
 
 Interface
 
 Uses
-  Classes, SysUtils, TypInfo,
-  PasGpibUtils,
+  Classes, SysUtils, TypInfo, Math,
+  PasGpibUtils, AsciiDiagram,
   DevCom, RemoteInstrument;
 
 Type
@@ -43,6 +44,14 @@ Type
                     msDig0,msDig1,msDig2,msDig3,msDig4,msDig5,msDig6,msDig7,msDig8,msDig9,msDig10,msDig11,msDig12,msDig13,msDig14,msDig15,
                     msFunction,msMath,msWMemory1,msWMemory2);
   TStatisticsType= (stAll,stCurrent,stMinimum,stMaximum,stMean,stStdDev,stCount);
+  TWaveformSource     = (wsCH1,wsCH2,wsCH3,wsCH4,
+                         wsPOD1,wsPOD2,wsBus1,wsBus2,
+                         wsFunction,wsMath,wsWMemory1,wsWMemory2,wsSBus1,SBus2);
+  TWaveformSubSource  = (wsSub0,wsSub1);
+  TWaveformFormat     = (wfByte, wfWord, wfAscii);
+  TWaveformType       = (wtNormal, wtPeak, wtAverage, wtHighRes);
+  TWaveformPointsMode = (wpmNormal, wpmMaximum, wpmRaw);
+  TWaveformByteOrder  = (wboLSBFirst,wboMSBFirst);
 
 Const
   // use the abbreviated forms because a quera only returns that, then the search in this array is simpler
@@ -113,6 +122,14 @@ Const
   COpStatPowerEvent    = 1 shl  7;
   COpStatMaskTestEvent = 1 shl  9;
   COpStatOverload      = 1 shl 11;
+  CWaveformSource     : Array[TWaveformSource]     of String = ('CHAN1','CHAN2','CHAN3','CHAN4',
+                                                                'POD1','POD2','BUS1','BUS2',
+                                                                'FUNC','MATH','WMEM1','WMEM2','SBUS1','SBUS2');
+  CWaveformSubSource  : Array[TWaveformSubSource]  of String = ('SUB0','SUB1');
+  CWaveformFormat     : Array[TWaveformFormat]     of String = ('BYTE', 'WORD', 'ASC');
+  CWaveformType       : Array[TWaveformType]       of String = ('NORM', 'PEAK', 'AVER','HRES');
+  CWaveformPointsMode : Array[TWaveformPointsMode] of String = ('NORM', 'MAX', 'RAW');
+  CWaveformByteOrder  : Array[TWaveformByteOrder]  of String = ('LSBF','MSBF');
 
 Type
   TAgilentMSOX3000AChannel = class;
@@ -135,6 +152,40 @@ Type
   End;
   TDynMeasureResultArray = Array of TMeasureResult;
 
+  TEventData = record
+    Timestamp : Double;
+    Event     : String;
+  End;
+  TDynEventArray = Array of TEventData;
+
+  { TWaveform }
+
+  TWaveform = class
+    FSource     : TWaveformSource;
+    FSubSource  : TWaveformSubSource;
+    FFormat     : TWaveformFormat;
+    FType       : TWaveformType;
+    FPoints     : Integer;
+    FAvgCount   : Integer;
+    FXIncrement : Double;
+    FXOrigin    : Double;
+    FXReference : Integer;
+    FYIncrement : Double;
+    FYOrigin    : Double;
+    FYReference : Integer;
+    FPointsMode : TWaveformPointsMode;
+    FByteOrder  : TWaveformByteOrder;
+    FUnsigned   : Boolean;
+    FByteData   : TDynByteArray;
+    FWordData   : TDynWordArray;
+    FRealData   : TDynDoubleArray;
+    FSerialData : TDynEventArray;
+    Procedure PrintPreamble;
+    Procedure ConvToReal;
+    Function  GetTime(Index:Integer) : Double;
+    Procedure PrintAsciiArt(Width, Height : Integer; XDiv, YDiv : Double);
+  End;
+
 Type
   { TAgilentMSOX3000A }
 
@@ -150,6 +201,7 @@ Type
   public
     Constructor Create(ADeviceCommunicator:IDeviceCommunicator);
     Destructor  Destroy; override;
+    Function  QueryBinary(Cmd : String) : TDynByteArray;
     Function  GetNextError : String;
     Procedure GetNextError(Out Code : Integer; Out Msg : String);
     // Horizontal
@@ -169,6 +221,24 @@ Type
     Function  GetHardcopyOptions : String;
     // Data transfer
     Function Screen(AImageFormat : TImageFormat; AImagePalette : TImagePalette) : TDynByteArray;
+    // Waveform
+    Procedure SetWaveformSource(ASource:TWaveformSource);
+    Function  GetWaveformSource : TWaveformSource;
+    Procedure SetWaveformSubSource(ASubSource:TWaveformSubSource);
+    Function  GetWaveformSubSource : TWaveformSubSource;
+    Procedure SetWaveformFormat(AFormat:TWaveformFormat);
+    Function  GetWaveformFormat : TWaveformFormat;
+    Procedure SetWaveformPointsCount(ACount:Integer);
+    Function  GetWaveformPointsCount:Integer;
+    Procedure SetWaveformPointsMode(APointsMode:TWaveformPointsMode);
+    Function  GetWaveformPointsMode : TWaveformPointsMode;
+    Procedure SetWaveformByteOrder(AByteOrder:TWaveformByteOrder);
+    Function  GetWaveformByteOrder : TWaveformByteOrder;
+    Procedure SetWaveformUnsigned(AUnsigned:Boolean);
+    Function  GetWaveformUnsigned : Boolean;
+    Function  GetWaveformPreamble : TWaveform;
+    Procedure GetWaveformData(AWaveform : TWaveform);
+    Function  GetWaveformData : TWaveform;
     // Math
     // Display
     Function  GetTimebaseMode : TTimebaseMode;
@@ -270,6 +340,52 @@ Begin
 End;
 
 (**
+ * Query command which expects IEEE-488.2 binary block data
+ *
+ *)
+Function TAgilentMSOX3000A.QueryBinary(Cmd : String) : TDynByteArray;
+Var St : String;
+    L  : Integer;
+
+  // function to be called by WaitTimeout multiple times until enough data was recieved or a timeout has happened
+  Function ReceiveData(Data:Pointer) : Boolean;
+  Begin
+    St := St + FDeviceCommunicator.Receive;
+    if (L = 0) and (Length(St) >= 10) then
+      Begin
+        // received enough to have the full length information
+        if (St[1] <> '#') or (St[2] <> '8') then
+          raise Exception.Create('Received invalid data format');
+        L := StrToInt(Copy(St,3,8));
+      End;
+    Result := (Length(St) >= 10+L+1);
+  End;
+
+Begin
+  // not using FDeviceCommunicator.Query because firstly it is limited by the
+  // USBTMC (and perhaps others) transfer size, and secondly because it trims
+  // the received string.
+  FDeviceCommunicator.Send(Cmd);
+  (* The return format is '#8<byte_length><binary_block>'+LF
+   * where <byte_length> are 8 digits (with leading zeros) specifying the number
+   * of bytes in <binary_block>.
+   *)
+  St := '';
+  L  := 0;
+  WaitTimeout(0, 1, (FDeviceCommunicator.GetTimeout div 1000)+30000, @ReceiveData, Nil);
+  // check
+  //WriteLn('Received '+IntToStr(Length(St))+' bytes, expected '+IntToStr(10+L+1)+' ('+IntToStr(L)+' for image data)');
+  if Length(St) <> 10+L+1 then
+    raise Exception.Create('Received '+IntToStr(Length(St))+' bytes but expected '+IntToStr(10+L+1)+' ('+IntToStr(L)+' for data)');
+  if St[Length(St)] <> #10 then
+    raise Exception.Create('Received invalid data format');
+  //Dump(St[1], Length(St));
+  // just use the data starting at the 11th byte
+  SetLength(Result,L);
+  Move(St[11],Result[0],L);
+End;
+
+(**
  * Get next error
  *
  * [PG] p. 385
@@ -302,36 +418,6 @@ Begin
 End;
 
 (**
- * Acquire a screenshot and return its data
- *
- * Use the method HardcopySet to set inverted screen, ...
- *
- * Warning: The screenshot data is at least 18kB. Be sure to set the transfer size of
- * the USBTMC device communicator before calling this function, (e.g., with
- * Comm.TransferSize := 32768;).
- *
- * [PG] p. 306
- *)
-Function TAgilentMSOX3000A.Screen(AImageFormat:TImageFormat;AImagePalette:TImagePalette) : TDynByteArray;
-Var St : String;
-    L  : LongInt;
-Begin
-  St := FDeviceCommunicator.Query(':DISPLAY:DATA? '+CImageFormat[AImageFormat]+', '+CImagePalette[AImagePalette]);
-  (* The return format is '#8<byte_length><binary_block>'
-   * where <byte_length> are 8 digits (with leading zeros) specifying the number
-   * of bytes in <binary_block>.
-   *)
-  if (Length(St) < 10) or (St[1] <> '#') or (St[2] <> '8') then
-    raise Exception.Create('Received invalid data format');
-  L := StrToInt(Copy(St,3,8));
-  if Length(St) <> 10+L then
-    raise Exception.Create('Received '+IntToStr(Length(St))+' bytes but expected '+IntToStr(10+L)+' ('+IntToStr(L)+' for image data)');
-  // just use the data starting at the 11th byte
-  SetLength(Result,Length(St)-10);
-  Move(St[11],Result[0],Length(St)-10);
-End;
-
-(**
  * Set screen shot and hardcopy options
  *
  * [PG] p. 357ff
@@ -359,6 +445,241 @@ End;
 Function TAgilentMSOX3000A.GetHardcopyOptions : String;
 Begin
   Result := FDeviceCommunicator.Query(':HARDCOPY?');
+End;
+
+(**
+ * Acquire a screenshot and return its data
+ *
+ * Use the method HardcopySet to set inverted screen, ...
+ *
+ * [PG] p. 306
+ *)
+Function TAgilentMSOX3000A.Screen(AImageFormat:TImageFormat;AImagePalette:TImagePalette) : TDynByteArray;
+Var St : String;
+    L  : LongInt;
+Begin
+  Result := QueryBinary(':DISPLAY:DATA? '+CImageFormat[AImageFormat]+', '+CImagePalette[AImagePalette]);
+End;
+
+(**
+ * Select source for waveform commands
+ *
+ * [PG] p. 979ff
+ *)
+Procedure TAgilentMSOX3000A.SetWaveformSource(ASource : TWaveformSource);
+Begin
+  FDeviceCommunicator.Send(':WAVEFORM:SOURCE '+CWaveformSource[ASource])
+End;
+
+(**
+ * Query source for waveform commands
+ *
+ * [PG] p. 979ff
+ *)
+Function TAgilentMSOX3000A.GetWaveformSource : TWaveformSource;
+Begin
+  Result := TWaveformSource(Find(FDeviceCommunicator.Query(':WAVEFORM:SOURCE?'), CWaveformSource, 'Invalid waveform source'));
+End;
+
+(**
+ * Select sub-source for waveform commands for the source SBUS<n>
+ *
+ * [PG] p. 983ff
+ *)
+Procedure TAgilentMSOX3000A.SetWaveformSubSource(ASubSource : TWaveformSubSource);
+Begin
+  FDeviceCommunicator.Send(':WAVEFORM:SOURCE:SUBSOURCE '+CWaveformSubSource[ASubSource])
+End;
+
+(**
+ * Query sub-source for waveform commands for the source SBUS<n>
+ *
+ * [PG] p. 983ff
+ *)
+Function TAgilentMSOX3000A.GetWaveformSubSource : TWaveformSubSource;
+Begin
+  Result := TWaveformSubSource(Find(FDeviceCommunicator.Query(':WAVEFORM:SOURCE:SUBSOURCE?'), CWaveformSubSource, 'Invalid waveform subsource'));
+End;
+
+(**
+ * Select waveform transmission format
+ *
+ * [PG] p. 969
+ *)
+Procedure TAgilentMSOX3000A.SetWaveformFormat(AFormat : TWaveformFormat);
+Begin
+  FDeviceCommunicator.Send(':WAVEFORM:FORMAT '+CWaveformFormat[AFormat])
+End;
+
+(**
+ * Query swaveform transmission format
+ *
+ * [PG] p. 969
+ *)
+Function TAgilentMSOX3000A.GetWaveformFormat : TWaveformFormat;
+Begin
+  Result := TWaveformFormat(Find(FDeviceCommunicator.Query(':WAVEFORM:FORMAT?'), CWaveformFormat, 'Invalid waveform format'));
+End;
+
+(**
+ * Set number of points to be retrieved for a waveform
+ *
+ * Specify a value <=0 to request the maximum number of points.
+ *
+ * [PG] p. 970f
+ *)
+Procedure TAgilentMSOX3000A.SetWaveformPointsCount(ACount : Integer);
+Begin
+  if ACount > 0 then
+    FDeviceCommunicator.Send(':WAVEFORM:POINTS '+IntToStr(ACount))
+  else
+    FDeviceCommunicator.Send(':WAVEFORM:POINTS MAX')
+End;
+
+(**
+ * Set number of points to be retrieved for a waveform
+ *
+ * [PG] p. 970f
+ *)
+Function TAgilentMSOX3000A.GetWaveformPointsCount : Integer;
+Begin
+  Result := StrToInt(FDeviceCommunicator.Query(':WAVEFORM:POINTS?'));
+End;
+
+(**
+ * Set waveform points mode
+ *
+ * [PG] p. 972f
+ *)
+Procedure TAgilentMSOX3000A.SetWaveformPointsMode(APointsMode : TWaveformPointsMode);
+Begin
+  FDeviceCommunicator.Send(':WAVEFORM:POINTS:MODE '+CWaveformPointsMode[APointsMode]);
+End;
+
+(**
+ * Query waveform points mode
+ *
+ * [PG] p. 972f
+ *)
+Function TAgilentMSOX3000A.GetWaveformPointsMode : TWaveformPointsMode;
+Begin
+  Result := TWaveformPointsMode(Find(FDeviceCommunicator.Query(':WAVEFORM:POINTS:MODE?'), CWaveformPointsMode, 'Invalid waveform points mode'));
+End;
+
+(**
+ * Set waveform byte order
+ *
+ * [PG] p. 965
+ *)
+Procedure TAgilentMSOX3000A.SetWaveformByteOrder(AByteOrder : TWaveformByteOrder);
+Begin
+  FDeviceCommunicator.Send(':WAVEFORM:BYTEORDER '+CWaveformByteOrder[AByteOrder]);
+End;
+
+(**
+ * Query waveform byte order
+ *
+ * [PG] p. 965
+ *)
+Function TAgilentMSOX3000A.GetWaveformByteOrder : TWaveformByteOrder;
+Begin
+  Result := TWaveformByteOrder(Find(FDeviceCommunicator.Query(':WAVEFORM:BYTEORDER?'), CWaveformByteOrder, 'Invalid waveform byte order'));
+End;
+
+(**
+ * Set waveform unsigned transfer setting
+ *
+ * [PG] p. 985
+ *)
+Procedure TAgilentMSOX3000A.SetWaveformUnsigned(AUnsigned : Boolean);
+Begin
+  FDeviceCommunicator.Send(':WAVEFORM:POINTS:MODE '+Select(AUnsigned,'ON','OFF'));
+End;
+
+(**
+ * Query waveform unsigned transfer setting
+ *
+ * [PG] p. 985
+ *)
+Function TAgilentMSOX3000A.GetWaveformUnsigned : Boolean;
+Begin
+  Result := (FDeviceCommunicator.Query(':WAVEFORM:FORMAT?') = '1');
+End;
+
+(**
+ * Query waveform preamble information
+ *
+ * [PG] p. 374ff
+ *)
+Function TAgilentMSOX3000A.GetWaveformPreamble : TWaveform;
+Var St    : String;
+    StArr : TDynStringArray;
+Begin
+  St := FDeviceCommunicator.Query(':WAVEFORM:PREAMBLE?');
+  StArr := SplitStr(',', St);
+  if Length(StArr) <> 10 then
+    raise Exception.Create('Ill formatted waveform preamble info '''+St+'''');
+  Result := TWaveform.Create;
+  // format
+  Case StArr[0] of
+    '+0' : Result.FFormat := wfByte;
+    '+1' : Result.FFormat := wfWord;
+    '+4' : Result.FFormat := wfAscii;
+  else
+    raise Exception.Create('Invalid waveform preamble format '''+StArr[0]+'''');
+  End;
+  // type
+  Case StArr[1] of
+    '+0' : Result.FType := wtNormal;
+    '+1' : Result.FType := wtPeak;
+    '+2' : Result.FType := wtAverage;
+    '+3' : Result.FType := wtHighRes;
+  else
+    raise Exception.Create('Invalid waveform preamble type '''+StArr[0]+'''');
+  End;
+  // and simpler values
+  Result.FPoints     := StrToInt  (StArr[2]);
+  Result.FAvgCount   := StrToInt  (StArr[3]);
+  Result.FXIncrement := StrToFloat(StArr[4]);
+  Result.FXOrigin    := StrToFloat(StArr[5]);
+  Result.FXReference := StrToInt  (StArr[6]);
+  Result.FYIncrement := StrToFloat(StArr[7]);
+  Result.FYOrigin    := StrToFloat(StArr[8]);
+  Result.FYReference := StrToInt  (StArr[9]);
+  // and more information
+  Result.FSource     := GetWaveformSource;
+  Result.FSubSource  := GetWaveformSubSource;
+  Result.FPointsMode := GetWaveformPointsMode;
+  Result.FByteOrder  := GetWaveformByteOrder;
+  Result.FUnsigned   := GetWaveformUnsigned;
+End;
+
+Procedure TAgilentMSOX3000A.GetWaveformData(AWaveform : TWaveform);
+Var St : String;
+Begin
+  AWaveform.FByteData := QueryBinary(':WAVEFORM:DATA?');
+  if AWaveform.FFormat = wfWord then
+    Begin
+      // copy to FWordData
+      SetLength(AWaveform.FWordData, Length(AWaveform.FByteData) shr 1);
+      Move(AWaveform.FByteData[0], AWaveform.FWordData[0], Length(AWaveform.FByteData));
+      SetLength(AWaveform.FByteData, 0);
+    End
+  else if AWaveform.FFormat = wfAscii then
+    Begin
+      // copy to String
+      SetLength(St, Length(AWaveform.FByteData));
+      Move(AWaveform.FByteData[0], St[1], Length(AWaveform.FByteData));
+      SetLength(AWaveform.FByteData, 0);
+      // split
+      AWaveform.FRealData := SplitDouble(',', St);
+    End;
+End;
+
+Function TAgilentMSOX3000A.GetWaveformData : TWaveform;
+Begin
+  Result := GetWaveformPreamble;
+  GetWaveformData(Result);
 End;
 
 (**
@@ -951,6 +1272,85 @@ Procedure TAgilentMSOX3000AChannel.CheckRealChannel(AMethod:String);
 Begin
   if not (FChannel in CAgilentMSOX3000AChannelReal) then
     Exception.Create(AMethod+' is only allowed for real channels');
+End;
+
+{ TWaveform }
+
+Procedure TWaveform.PrintPreamble;
+Begin
+  WriteLn('Source    : ', CWaveformSource    [FSource    ]);               // TWaveformSource;
+  WriteLn('SubSource : ', CWaveformSubSource [FSubSource ]);               // TWaveformSubSource;
+  WriteLn('Format    : ', CWaveformFormat    [FFormat    ]);               // TWaveformFormat;
+  WriteLn('Type      : ', CWaveformType      [FType      ]);               // TWaveformType;
+  WriteLn('Points    : ', FPoints);                                        // Integer;
+  WriteLn('AvgCount  : ', FAvgCount);                                      // Integer;
+  WriteLn('XIncrement: ', FloatToStrSI(FXIncrement,FormatSettings), 's');  // Double;
+  WriteLn('XOrigin   : ', FloatToStrSI(FXOrigin,   FormatSettings), 's');  // Double;
+  WriteLn('XReference: ', FXReference);                                    // Integer;
+  WriteLn('YIncrement: ', FloatToStrSI(FYIncrement,FormatSettings), 'V');  // Double;
+  WriteLn('YOrigin   : ', FloatToStrSI(FYOrigin,   FormatSettings), 'V');  // Double;
+  WriteLn('YReference: ', FYReference);                                    // Integer;
+  WriteLn('PointsMode: ', CWaveformPointsMode[FPointsMode]);               // TWaveformPointsMode;
+  WriteLn('ByteOrder : ', CWaveformByteOrder [FByteOrder]);                // TWaveformByteOrder;
+  WriteLn('Unsigned  : ', FUnsigned);                                      // Boolean;
+End;
+
+(**
+ * Convert raw values to voltages
+ *
+ * [PG] p. 961f
+ *)
+Procedure TWaveform.ConvToReal;
+Var I : Integer;
+Begin
+  if Length(FWordData) > 0 then
+    Begin
+      // word data takes precedence over byte data
+      SetLength(FRealData, Length(FWordData));
+      For I := 0 to Length(FWordData)-1 do
+        FRealData[I] := ((FWordData[I] - FYReference) * FYIncrement) + FYOrigin;
+    End
+  else if Length(FByteData) > 0 then
+    Begin
+      SetLength(FRealData, Length(FByteData));
+      For I := 0 to Length(FByteData)-1 do
+        FRealData[I] := ((FByteData[I] - FYReference) * FYIncrement) + FYOrigin;
+    End
+  else if (Length(FByteData) = 0) and (Length(FWordData) = 0) then
+    raise Exception.Create('No byte nor word data available');
+End;
+
+(**
+ * Convert indices to time relative to the trigger instant
+ *
+ * [PG] p. 961f
+ *)
+Function TWaveform.GetTime(Index : Integer) : Double;
+Begin
+  if FType <> wtPeak then
+    Result := ((Index - FXReference) * FXIncrement) + FXOrigin
+  else
+    Result := ((Index - FXReference) * 2 * FXIncrement) + FXOrigin;
+End;
+
+Procedure TWaveform.PrintAsciiArt(Width, Height : Integer; XDiv,YDiv:Double);
+Var Min,Max : Double;
+    AD : TAsciiDiagram;
+    I  : Integer;
+Begin
+  if Length(FRealData) = 0 then Exit;
+  Min := MinValue(FRealData);
+  Max := MaxValue(FRealData);
+  Min := Min - (Max-Min)*0.05;
+  Max := Max + (Max-Min)*0.05;
+  AD := TAsciiDiagram.Create(Width, Height, 5, 1, GetTime(0), GetTime(Length(FRealData)-1)*1.02, Min, Max);
+  AD.DrawAxes;
+  AD.DrawXTics(XDiv);
+  AD.DrawXTics(YDiv);
+  For I := 0 to Length(FRealData)-1 do
+    AD.Put(GetTime(I), FRealData[I], '*');
+  AD.Print;
+  AD.Free;
 End;
 
 End.
