@@ -10,6 +10,7 @@ Uses
 
 Type
   TDynByteArray   = Array of Byte;
+  TDynWordArray   = Array of Word;
   TDynStringArray = Array of String;
   TDynDoubleArray = Array of Double;
   TWaitCheckerFunc = Function (Data:Pointer) : Boolean is nested;
@@ -19,6 +20,7 @@ Function SplitDouble(Delimiter:Char;St:String) : TDynDoubleArray;
 Function JoinStr(Delimiter:String;Arr:TDynStringArray) : String;
 
 Function Find(Needle:String;Haystack:TDynStringArray) : Integer;
+Function Find(Needle:String;Haystack:TDynStringArray;Msg:String) : Integer;
 Function Count(Needle:Char;Heystack:String):Integer;
 
 Function Select(B:Boolean;T,F:String):String;
@@ -45,6 +47,10 @@ Const
     'y', 'z', 'a', 'f', 'p', 'n', 'µ', 'm', 'c', 'd',
     '',
     'da', 'h', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y');
+  CSIPrefixSymbolAscii : Array[TSiPrefix] of String[2] = (
+    'y', 'z', 'a', 'f', 'p', 'n', 'u', 'm', 'c', 'd',
+    '',
+    'da', 'h', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y');
   CSIPrefixText : Array[TSiPrefix] of String[5] = (
     'yocto', 'zepto', 'atto', 'femto', 'pico', 'nano', 'micro', 'milli', 'centi', 'deci',
     '',
@@ -59,7 +65,7 @@ Const
     1E1, 1E2, 1E3, 1E6, 1E9, 1E12, 1E15, 1E18, 1E21, 1E24);
 
 Function GetSIPrefix(Value:Double) : TSIPrefix;
-Function FloatToStrSI(Value:Double;Const FormatSettings:TFormatSettings) : String;
+Function FloatToStrSI(Value:Double;Const FormatSettings:TFormatSettings;Unicode:Boolean=True) : String;
 
 Implementation
 Uses BaseUnix, StrUtils, Math, DateUtils;
@@ -129,6 +135,13 @@ Begin
   Result := -1;
 End;
 
+Function Find(Needle : String; Haystack : TDynStringArray; Msg : String) : Integer;
+Begin
+  Result := Find(Needle, Haystack);
+  if Result < 0 then
+    raise Exception.Create(Msg + ': '''+Needle+'''');
+end;
+
 Function Count(Needle:Char;Heystack:String):Integer;
 Var I : Integer;
 Begin
@@ -189,7 +202,8 @@ Begin
     Result := MilliSecondsBetween(Now, DT);
     if Checker(Data) then Exit;
     if Result > Max then Exit;
-    Sleep(Period);
+    if Period > 0 then
+      Sleep(Period);
   Until false;
 End;
 
@@ -234,12 +248,13 @@ Begin
     Result := Pred(Result);
 End;
 
-Function FloatToStrSI(Value:Double;Const FormatSettings:TFormatSettings) : String;
+Function FloatToStrSI(Value : Double; Const FormatSettings : TFormatSettings; Unicode : Boolean) : String;
 Var SIPrefix : TSIPrefix;
 Begin
   SIPrefix := GetSIPrefix(Value);
   Value    := Value / CSIPrefixFactor[SIPrefix];
-  Result   := FloatToStr(Value,FormatSettings) + CSIPrefixSymbol[SIPrefix];
+  if Unicode then Result := FloatToStr(Value,FormatSettings) + CSIPrefixSymbol     [SIPrefix]
+  else            Result := FloatToStr(Value,FormatSettings) + CSIPrefixSymbolAscii[SIPrefix];
 End;
 
 End.
