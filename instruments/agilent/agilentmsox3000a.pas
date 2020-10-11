@@ -180,9 +180,11 @@ Type
     FWordData   : TDynWordArray;
     FRealData   : TDynDoubleArray;
     FSerialData : TDynEventArray;
+    FTimes      : TDynDoubleArray;
     Procedure PrintPreamble;
     Procedure ConvToReal;
     Function  GetTime(Index:Integer) : Double;
+    Procedure ConvTimes;
     Procedure PrintAsciiArt(Width, Height : Integer; XDiv, YDiv : Double);
   End;
 
@@ -1333,22 +1335,33 @@ Begin
     Result := ((Index - FXReference) * 2 * FXIncrement) + FXOrigin;
 End;
 
-Procedure TWaveform.PrintAsciiArt(Width, Height : Integer; XDiv,YDiv:Double);
-Var Min,Max : Double;
-    AD : TAsciiDiagram;
-    I  : Integer;
+(**
+ * Convert indices to time relative to the trigger instant
+ *
+ * [PG] p. 961f
+ *)
+Procedure TWaveform.ConvTimes;
+Var I : Integer;
 Begin
-  if Length(FRealData) = 0 then Exit;
-  Min := MinValue(FRealData);
-  Max := MaxValue(FRealData);
-  Min := Min - (Max-Min)*0.05;
-  Max := Max + (Max-Min)*0.05;
-  AD := TAsciiDiagram.Create(Width, Height, 5, 1, GetTime(0), GetTime(Length(FRealData)-1)*1.02, Min, Max);
-  AD.DrawAxes;
-  AD.DrawXTics(XDiv);
-  AD.DrawXTics(YDiv);
-  For I := 0 to Length(FRealData)-1 do
-    AD.Put(GetTime(I), FRealData[I], '*');
+  SetLength(FTimes, Length(FRealData));
+  if FType <> wtPeak then
+    Begin
+      For I := 0 to Length(FRealData)-1 do
+        FTimes[I] := ((I - FXReference) * FXIncrement) + FXOrigin
+    End
+  else
+    Begin
+      For I := 0 to Length(FRealData)-1 do
+        FTimes[I] := ((I - FXReference) * 2 * FXIncrement) + FXOrigin;
+    End;
+End;
+
+Procedure TWaveform.PrintAsciiArt(Width, Height : Integer; XDiv,YDiv:Double);
+Var AD : TAsciiDiagram;
+Begin
+  if (Length(FRealData) = 0) or (Length(FTimes) = 0) then
+    raise Exception.Create('No real and/or time data available, don''t forget ConvToReal and ConvTimes.');
+  AD := TAsciiDiagram.Create(Width, Height, 5, 1, FTimes, FRealData, XDiv, YDiv);
   AD.Print;
   AD.Free;
 End;
