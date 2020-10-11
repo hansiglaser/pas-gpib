@@ -64,6 +64,7 @@ Type
     FYMin    : Double;
     FYMax    : Double;
     Constructor Create(AWidth, AHeight, AXOrigin, AYOrigin : Integer; AXMin, AXMax, AYMin, AYMax : Double);
+    Constructor Create(AWidth, AHeight, AXOrigin, AYOrigin : Integer; AXData, AYData : TDynDoubleArray; AXDiv, AYDiv : Double);
     Procedure DrawAxes;
     Procedure DrawXTics(ATickDist:Double);
     Procedure DrawYTics(ATickDist:Double);
@@ -243,6 +244,22 @@ Begin
   FXMax    := AXMax;
   FYMin    := AYMin;
   FYMax    := AYMax;
+End;
+
+Constructor TAsciiDiagram.Create(AWidth, AHeight, AXOrigin, AYOrigin : Integer; AXData, AYData : TDynDoubleArray; AXDiv,AYDiv:Double);
+Var Min,Max : Double;
+    I       : Integer;
+Begin
+  Min := MinValue(AYData);
+  Max := MaxValue(AYData);
+  Min := Min - (Max-Min)*0.05;
+  Max := Max + (Max-Min)*0.05;
+  Create(AWidth, AHeight, AXOrigin, AYOrigin, AXData[0], AXData[Length(AXData)-1]*1.02, Min, Max);
+  DrawAxes;
+  DrawXTics(AXDiv);
+  DrawYTics(AYDiv);
+  For I := 0 to Length(AXData)-1 do
+    Put(AXData[I], AYData[I], '*');
 End;
 
 Procedure TAsciiDiagram.DrawAxes;

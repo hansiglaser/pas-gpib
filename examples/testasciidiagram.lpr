@@ -3,11 +3,14 @@ Program TestAsciiDiagram;
 {$mode objfpc}{$H+}
 
 Uses
-  Classes, AsciiDiagram;
+  Classes, AsciiDiagram, PasGpibUtils;
 
 Var AI : TAsciiImage;
     AR : TAsciiImageReal;
     AD : TAsciiDiagram;
+    I  : Integer;
+    X  : TDynDoubleArray;
+    Y  : TDynDoubleArray;
 
 Begin
   WriteLn('TAsciiImage'); ////////////////////////////////////////////////////
@@ -84,7 +87,7 @@ Begin
   AR.Print;
   AR.Free;
 
-  WriteLn('TAsciiImageReal'); ////////////////////////////////////////////////
+  WriteLn('TAsciiDiagram'); //////////////////////////////////////////////////
   AD := TAsciiDiagram.Create(80, 25, 5, 3, 10.0, 20.0, 100.0, 200.0);
   // Put(X,Y:Double;Ch:Char);
   AD.Put(10.0, 100.0, '1');
@@ -104,6 +107,18 @@ Begin
   AD.DrawAxes;
   AD.DrawXTics(500e-6);
   AD.DrawYTics(20.0);
+  AD.Print;
+  AD.Free;
+
+  WriteLn('TAsciiDiagram'); //////////////////////////////////////////////////
+  SetLength(X, 75);
+  SetLength(Y, 75);
+  For I := 0 to Length(X)-1 do
+    Begin
+      X[I] := I * 2.0 * Pi / (Length(X)*1.0);
+      Y[I] := 3 + 2*sin(X[I]);
+    End;
+  AD := TAsciiDiagram.Create(80, 25, 5, 3, X, Y, Pi/2, 1.0);
   AD.Print;
   AD.Free;
 End.
