@@ -19,6 +19,9 @@ Function SplitStr(Delimiter:String;St:String) : TDynStringArray;
 Function SplitDouble(Delimiter:Char;St:String) : TDynDoubleArray;
 Function JoinStr(Delimiter:String;Arr:TDynStringArray) : String;
 
+Procedure ToStrings(Values:TDynDoubleArray;Format:TFloatFormat;Precision,Digits:Integer;Strings:TStringList);
+Function  ToStrings(Values:TDynDoubleArray;Format:TFloatFormat;Precision,Digits:Integer) : TStringList;
+
 Function Find(Needle:String;Haystack:TDynStringArray) : Integer;
 Function Find(Needle:String;Haystack:TDynStringArray;Msg:String) : Integer;
 Function Count(Needle:Char;Heystack:String):Integer;
@@ -120,6 +123,19 @@ Begin
       if I <> 0 then Result := Result + Delimiter;
       Result := Result + Arr[I];
     End;
+End;
+
+Procedure ToStrings(Values:TDynDoubleArray;Format:TFloatFormat;Precision,Digits:Integer;Strings:TStringList);
+Var I : Integer;
+Begin
+  For I := 0 to Length(Values)-1 do
+    Strings.Add(FloatToStrF(Values[I], Format, Precision, Digits));
+End;
+
+Function ToStrings(Values:TDynDoubleArray;Format:TFloatFormat;Precision,Digits:Integer):TStringList;
+Begin
+  Result := TStringList.Create;
+  ToStrings(Values, Format, Precision, Digits, Result);
 End;
 
 (**
