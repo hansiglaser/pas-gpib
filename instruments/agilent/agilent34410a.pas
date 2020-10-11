@@ -86,6 +86,8 @@ Type
     Function  GetSampleTimer : Double;
     Procedure SetSampleTimer(SampleTimer:TMinMax);
     Procedure SetSampleCount(Count:Integer);
+    Procedure SetTriggerDelay(Delay:Double);
+    Function  GetTriggerDelay:Double;
     Procedure SetTriggerSource(TriggerSource:TTriggerSource);
     Procedure Initiate;
     Procedure Abort;
@@ -233,8 +235,36 @@ End;
  *   0.006, 0.02, 0.06, 0.2, 1, 2, 10, 100
  * Models 34411A/L4411A additionally allow:
  *   0.001, 0.006
+ * Models 34460A/34461A:
+ *   0.02, 0.2, 1, 10, 100
+ * Models 34465A/34470A (without DIG option) support additionally:
+ *   0.02, 0.06, 0.2, 1.0, 10. 100
+ * Models 34465A/34470A (with DIG option) support additionally:
+ *   0.001, 0.002, 0.006
+ *
+ * The aperture times for models 3446xA is given at [OSG-34460A] p. 454ff
+ *   0.001  0.002  0.006  0.02   0.06  0.2  1.0     10     100
+ *   20µs   40µs   100µs  300µs  1ms   3ms  20ms    200ms  2s
+ *   20µs   40µs   100µs  300µs  1ms   3ms  16.7ms  167ms  1.67s
+ *
+ * For models 3446xA, a default delay is inserted before each measurement of
+ *  - 100µs for NPLC <= 0.02,
+ *  - 130µs for NPLC = 0.06 and 0.2, and
+ *  - 160µs for NPLC >= 1
+ * for DCV measurements. Other values apply for other ranges, see [OSG-34460A]
+ * p. 458ff. Use SetTriggerDelay to change that value.
+ *
+ * Measurements with the scope of the "VMComp" BNC output of the 34461A shows
+ * a 2µs pulse every time a measurement is finished, see [OSG-34460A] p. 461.
+ *
+ * With a trigger delay set to 0µs and a fixed range, the following periods
+ * were measured:
+ *  - NPLC = 0.02 --> 908.86 µs
+ *  - NPLC = 0.2  -->   3.001ms
+ *  - NPLC = 1    -->  20.001ms
  *
  * [UG-34410A] p. 51f
+ * [OSG-34460A] p. 384
  *)
 Procedure TAgilent34410A.SetNPLC(IntegrationTime : Double);
 Begin
@@ -407,6 +437,34 @@ End;
 Procedure TAgilent34410A.SetSampleCount(Count : Integer);
 Begin
   FDeviceCommunicator.Send('SAMPLE:COUNT '+IntToStr(Count));
+End;
+
+(**
+ * Set the delay between the trigger signal and the first measurement.
+ *
+ * This may be useful in applications where you want to allow the input to
+ * settle before taking a measurement or for pacing a burst of measurements.
+ *
+ * If you specify a trigger delay with this command, that delay is used for
+ * all functions (except CONTinuity and DIODe) and ranges. The CONTinuity and
+ * DIODe tests ignore the trigger delay setting.
+ *
+ * If you have configured the instrument for more than one measurement per
+ * trigger (SAMPle:COUNt>1), the delay is inserted after the trigger and
+ * between consecutive measurements.
+ *
+ * @param Delay  0 to ~3600 seconds (~1 μs steps)
+ *
+ * [OSG-34460A] p. 96ff, 431
+ *)
+Procedure TAgilent34410A.SetTriggerDelay(Delay : Double);
+Begin
+  FDeviceCommunicator.Send('TRIGGER:DELAY '+FloatToStrF(Delay,ffExponent,12,2));
+End;
+
+Function TAgilent34410A.GetTriggerDelay : Double;
+Begin
+  Result := StrToFloat(FDeviceCommunicator.Query('TRIGGER:DELAY?'));
 End;
 
 (**
