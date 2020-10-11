@@ -21,6 +21,8 @@ Function JoinStr(Delimiter:String;Arr:TDynStringArray) : String;
 
 Procedure ToStrings(Values:TDynDoubleArray;Format:TFloatFormat;Precision,Digits:Integer;Strings:TStringList);
 Function  ToStrings(Values:TDynDoubleArray;Format:TFloatFormat;Precision,Digits:Integer) : TStringList;
+Procedure ToStrings(Values1,Values2:TDynDoubleArray;Delimiter:String;Format:TFloatFormat;Precision,Digits:Integer;Strings:TStringList);
+Function  ToStrings(Values1,Values2:TDynDoubleArray;Delimiter:String;Format:TFloatFormat;Precision,Digits:Integer) : TStringList;
 
 Function Find(Needle:String;Haystack:TDynStringArray) : Integer;
 Function Find(Needle:String;Haystack:TDynStringArray;Msg:String) : Integer;
@@ -109,7 +111,7 @@ Begin
       V := Trim(Copy(St,P1,P2-P1+1));
       Val(V,Result[I],J);
       if J <> 0 then
-        raise Exception.CreateFmt('Invalid floating point number ''%s'' at position %d',[Copy(St,P1,P2),J]);
+        raise Exception.CreateFmt('Invalid floating point number ''%s'' between %d and %d at character ',[V,P1,P2,J]);
       P1 := P2 + 2;
     End;
 End;
@@ -136,6 +138,20 @@ Function ToStrings(Values:TDynDoubleArray;Format:TFloatFormat;Precision,Digits:I
 Begin
   Result := TStringList.Create;
   ToStrings(Values, Format, Precision, Digits, Result);
+End;
+
+Procedure ToStrings(Values1,Values2:TDynDoubleArray;Delimiter:String;Format:TFloatFormat;Precision,Digits:Integer;Strings:TStringList);
+Var I : Integer;
+Begin
+  For I := 0 to Length(Values1)-1 do
+    Strings.Add(FloatToStrF(Values1[I], Format, Precision, Digits) + Delimiter +
+                FloatToStrF(Values2[I], Format, Precision, Digits));
+End;
+
+Function ToStrings(Values1,Values2:TDynDoubleArray;Delimiter:String;Format:TFloatFormat;Precision,Digits:Integer):TStringList;
+Begin
+  Result := TStringList.Create;
+  ToStrings(Values1, Values2, Delimiter, Format, Precision, Digits, Result);
 End;
 
 (**
