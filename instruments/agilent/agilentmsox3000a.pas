@@ -46,7 +46,7 @@ Type
   TStatisticsType= (stAll,stCurrent,stMinimum,stMaximum,stMean,stStdDev,stCount);
   TWaveformSource     = (wsCH1,wsCH2,wsCH3,wsCH4,
                          wsPOD1,wsPOD2,wsBus1,wsBus2,
-                         wsFunction,wsMath,wsWMemory1,wsWMemory2,wsSBus1,SBus2);
+                         wsFunction,wsMath,wsWMemory1,wsWMemory2,wsSBus1,wsSBus2);
   TWaveformSubSource  = (wsSub0,wsSub1);
   TWaveformFormat     = (wfByte, wfWord, wfAscii);
   TWaveformType       = (wtNormal, wtPeak, wtAverage, wtHighRes);
@@ -186,6 +186,8 @@ Type
     Function  GetTime(Index:Integer) : Double;
     Procedure ConvTimes;
     Procedure PrintAsciiArt(Width, Height : Integer; XDiv, YDiv : Double);
+    Procedure PrintSerialData;
+    Procedure SaveSerialData(Filename:String);
   End;
 
 Type
@@ -457,8 +459,6 @@ End;
  * [PG] p. 306
  *)
 Function TAgilentMSOX3000A.Screen(AImageFormat:TImageFormat;AImagePalette:TImagePalette) : TDynByteArray;
-Var St : String;
-    L  : LongInt;
 Begin
   Result := QueryBinary(':DISPLAY:DATA? '+CImageFormat[AImageFormat]+', '+CImagePalette[AImagePalette]);
 End;
@@ -539,7 +539,7 @@ Begin
 End;
 
 (**
- * Set number of points to be retrieved for a waveform
+ * Query number of points to be retrieved for a waveform
  *
  * [PG] p. 970f
  *)
@@ -658,6 +658,8 @@ End;
 
 Procedure TAgilentMSOX3000A.GetWaveformData(AWaveform : TWaveform);
 Var St : String;
+    SA : TDynStringArray;
+    I  : Integer;
 Begin
   AWaveform.FByteData := QueryBinary(':WAVEFORM:DATA?');
   if AWaveform.FFormat = wfWord then
@@ -673,8 +675,33 @@ Begin
       SetLength(St, Length(AWaveform.FByteData));
       Move(AWaveform.FByteData[0], St[1], Length(AWaveform.FByteData));
       SetLength(AWaveform.FByteData, 0);
-      // split
-      AWaveform.FRealData := SplitDouble(',', St);
+      if not (AWaveform.FSource in [wsSBus1, wsSBus2]) then
+        Begin
+          // convert numberic data
+          // split and convert to double
+          AWaveform.FRealData := SplitDouble(',', St);
+        End
+      else
+        Begin
+          // convert serial decode bus data
+          // the returned string is '<time0>,<data0>,<time1>,<data1>,...', and it has many spaces
+          // split
+          SA := SplitStr(',', St);
+          if Length(SA) <> AWaveform.FPoints*2 then
+            Begin
+              WriteLn('Length(SA) = ',Length(SA),' <> AWaveform.Points*2 = ',AWaveform.FPoints*2);
+              Exit;
+              // TODO: Exception
+            End;
+          // convert
+          SetLength(AWaveform.FSerialData, AWaveform.FPoints);
+          For I := 0 to AWaveform.FPoints-1 do
+            With AWaveform.FSerialData[I] do
+              Begin
+                Timestamp := StrToFloat(Trim(SA[I*2]));
+                Event     := Trim(SA[I*2+1]);
+              End;
+        End;
     End;
 End;
 
@@ -1364,6 +1391,34 @@ Begin
   AD := TAsciiDiagram.Create(Width, Height, 5, 1, FTimes, FRealData, XDiv, YDiv);
   AD.Print;
   AD.Free;
+End;
+
+Procedure TWaveform.PrintSerialData;
+Var I : Integer;
+Begin
+  if Length(FSerialData) = 0 then
+    raise Exception.Create('No serial decode data available.');
+  For I := 0 to Length(FSerialData)-1 do
+    With FSerialData[I] do
+      Begin
+        WriteLn(Timestamp*1e6:1:3, '  ', Event);
+      End;
+End;
+
+Procedure TWaveform.SaveSerialData(Filename : String);
+Var I : Integer;
+    T : Text;
+Begin
+  if Length(FSerialData) = 0 then
+    raise Exception.Create('No serial decode data available.');
+  Assign(T, Filename);
+  Rewrite(T);
+  For I := 0 to Length(FSerialData)-1 do
+    With FSerialData[I] do
+      Begin
+        WriteLn(T,Timestamp*1e6:1:3, ',', Event);
+      End;
+  Close(T);
 End;
 
 End.
