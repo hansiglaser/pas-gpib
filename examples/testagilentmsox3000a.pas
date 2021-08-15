@@ -88,7 +88,10 @@ Var
   MA       : TDynMeasureResultArray;
   Filename : String;
   I        : Integer;
+{$IFDEF TEST_WAVEFORM}
   Waveform : TWaveform;
+  W        : Word;
+{$ENDIF}
 
 {$IFDEF USBTMC}
 Procedure USBTMCErrorHandler;
@@ -324,6 +327,8 @@ Begin
   WriteData(Filename,MSOX.Screen(ifPng, ipColor));
 {$ENDIF TEST_SCREENSHOT}
 {$IFDEF TEST_WAVEFORM}
+  WriteLn;
+  WriteLn('Testing downloading waveform data with normal settings');
   MSOX.MeasureStatisticsReset;
   MSOX.Single;
   MSOX.TriggerForce;              // force trigger, because trigger mode is always "normal" in single shot mode
@@ -336,7 +341,42 @@ Begin
   Waveform.PrintPreamble;
   MSOX.GetWaveformData(Waveform);
   Waveform.ConvToReal;
+  Waveform.ConvTimes;
   Waveform.PrintAsciiArt(80, 25, 500e-6, 0.5);
+  Waveform.Free;
+  // try again with 16 bit values
+  WriteLn;
+  WriteLn('Testing downloading waveform data with High Res acquisition');
+  MSOX.SetAcquireType(atHighRes);
+//  MSOX.SetAcquireType(atAverage);
+//  MSOX.SetAcquireCount(2);
+  WriteLn('Acquire Type = ', MSOX.GetAcquireType);
+  // With AcquireType = atNormal,                the data is quantized with $0100, i.e., still only 8 bits despite word data selected below.
+  // With AcquireType = atHighRes and atAverage, the data is quantized with $0010, i.e., 16x higher resolution.
+  MSOX.MeasureStatisticsReset;
+  MSOX.Single;
+  MSOX.TriggerForce;              // force trigger, because trigger mode is always "normal" in single shot mode
+  Sleep(100);
+  MSOX.SetWaveformFormat(wfWord);
+  MSOX.SetWaveformPointsMode(wpmNormal);
+  MSOX.SetWaveformPointsCount(100);
+  Waveform := MSOX.GetWaveformPreamble;
+  Waveform.PrintPreamble;
+  MSOX.GetWaveformData(Waveform);
+  // OR all waveform data bits on top of each other to check quantization
+  W := 0;
+  For I := 0 to Length(Waveform.FWordData)-1 do
+    W := W or Waveform.FWordData[I];
+  WriteLn('Waveform data bits used: $', IntToHex(W, 4)); // $FFF0 with atHighRes and $FF00 with atNormal (often not all upper bits set)
+  // convert, draw, and save
+  Waveform.ConvToReal;
+  Waveform.ConvTimes;
+  Waveform.PrintAsciiArt(80, 25, 500e-6, 0.5);
+  Filename := 'MSOX-waveform-'+FormatDateTime('yyyymmdd-hhnnss',Now)+'.csv';
+  WriteLn('Saving waveform to ',Filename);
+  Waveform.SaveCSV(Filename);
+  Waveform.Free;
+  // TODO: properly implement atPeak, see [PG] p. 961
 {$ENDIF TEST_WAVEFORM}
 
   MSOX.Free;

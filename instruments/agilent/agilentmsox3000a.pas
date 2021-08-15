@@ -44,12 +44,13 @@ Type
                     msDig0,msDig1,msDig2,msDig3,msDig4,msDig5,msDig6,msDig7,msDig8,msDig9,msDig10,msDig11,msDig12,msDig13,msDig14,msDig15,
                     msFunction,msMath,msWMemory1,msWMemory2);
   TStatisticsType= (stAll,stCurrent,stMinimum,stMaximum,stMean,stStdDev,stCount);
+  TAcquireMode        = (amRealtime, amSegmented);
+  TAcquireType        = (atNormal, atPeak, atAverage, atHighRes);
   TWaveformSource     = (wsCH1,wsCH2,wsCH3,wsCH4,
                          wsPOD1,wsPOD2,wsBus1,wsBus2,
                          wsFunction,wsMath,wsWMemory1,wsWMemory2,wsSBus1,wsSBus2);
   TWaveformSubSource  = (wsSub0,wsSub1);
   TWaveformFormat     = (wfByte, wfWord, wfAscii);
-  TWaveformType       = (wtNormal, wtPeak, wtAverage, wtHighRes);
   TWaveformPointsMode = (wpmNormal, wpmMaximum, wpmRaw);
   TWaveformByteOrder  = (wboLSBFirst,wboMSBFirst);
 
@@ -122,12 +123,13 @@ Const
   COpStatPowerEvent    = 1 shl  7;
   COpStatMaskTestEvent = 1 shl  9;
   COpStatOverload      = 1 shl 11;
+  CAcquireMode        : Array[TAcquireMode]        of String = ('RTIM', 'SEGM');
+  CAcquireType        : Array[TAcquireType]        of String = ('NORM', 'PEAK', 'AVER','HRES');
   CWaveformSource     : Array[TWaveformSource]     of String = ('CHAN1','CHAN2','CHAN3','CHAN4',
                                                                 'POD1','POD2','BUS1','BUS2',
                                                                 'FUNC','MATH','WMEM1','WMEM2','SBUS1','SBUS2');
   CWaveformSubSource  : Array[TWaveformSubSource]  of String = ('SUB0','SUB1');
   CWaveformFormat     : Array[TWaveformFormat]     of String = ('BYTE', 'WORD', 'ASC');
-  CWaveformType       : Array[TWaveformType]       of String = ('NORM', 'PEAK', 'AVER','HRES');
   CWaveformPointsMode : Array[TWaveformPointsMode] of String = ('NORM', 'MAX', 'RAW');
   CWaveformByteOrder  : Array[TWaveformByteOrder]  of String = ('LSBF','MSBF');
 
@@ -164,7 +166,7 @@ Type
     FSource     : TWaveformSource;
     FSubSource  : TWaveformSubSource;
     FFormat     : TWaveformFormat;
-    FType       : TWaveformType;
+    FType       : TAcquireType;
     FPoints     : Integer;
     FAvgCount   : Integer;
     FXIncrement : Double;
@@ -188,6 +190,7 @@ Type
     Procedure PrintAsciiArt(Width, Height : Integer; XDiv, YDiv : Double);
     Procedure PrintSerialData;
     Procedure SaveSerialData(Filename:String);
+    Procedure SaveCSV(Filename:String);
   End;
 
 Type
@@ -217,6 +220,17 @@ Type
     Procedure Stop;
     Procedure SetTriggerMode(AMode:TTriggerMode);
     Procedure TriggerForce;
+    // Acquire
+    Procedure SetAcquireMode(AMode:TAcquireMode);
+    Function  GetAcquireMode : TAcquireMode;
+    Procedure SetAcquireType(AType:TAcquireType);
+    Function  GetAcquireType : TAcquireType;
+    Procedure SetAcquireCount(ACount:Integer);
+    Function  GetAcquireCount : Integer;
+    Function  GetAcquirePoints : Integer;
+    Procedure SetAcquireSegCount(ACount:Integer);
+    Function  GetAcquireSegCount : Integer;
+    Function  GetAcquireSampleRate : Double;
     // Status
     Function  GetOperationStatusCondition : Word;
     // Cursor
@@ -506,6 +520,10 @@ End;
 (**
  * Select waveform transmission format
  *
+ * Byte vs. Word doesn't provide higher resolution (i.e., less quantization),
+ * even when only retrieving a smaller sample count, neither for normal nor for
+ * raw data format.
+ *
  * [PG] p. 969
  *)
 Procedure TAgilentMSOX3000A.SetWaveformFormat(AFormat : TWaveformFormat);
@@ -632,10 +650,10 @@ Begin
   End;
   // type
   Case StArr[1] of
-    '+0' : Result.FType := wtNormal;
-    '+1' : Result.FType := wtPeak;
-    '+2' : Result.FType := wtAverage;
-    '+3' : Result.FType := wtHighRes;
+    '+0' : Result.FType := atNormal;
+    '+1' : Result.FType := atPeak;
+    '+2' : Result.FType := atAverage;
+    '+3' : Result.FType := atHighRes;
   else
     raise Exception.Create('Invalid waveform preamble type '''+StArr[0]+'''');
   End;
@@ -668,6 +686,9 @@ Begin
       SetLength(AWaveform.FWordData, Length(AWaveform.FByteData) shr 1);
       Move(AWaveform.FByteData[0], AWaveform.FWordData[0], Length(AWaveform.FByteData));
       SetLength(AWaveform.FByteData, 0);
+      if AWaveform.FByteOrder = wboMSBFirst then
+        for I := 0 to Length(AWaveform.FWordData)-1 do
+          AWaveform.FWordData[I] := Swap(AWaveform.FWordData[I]);
     End
   else if AWaveform.FFormat = wfAscii then
     Begin
@@ -787,6 +808,125 @@ End;
 Procedure TAgilentMSOX3000A.TriggerForce;
 Begin
   FDeviceCommunicator.Send(':TRIGGER:FORCE');
+End;
+
+(**
+ * Set the acquisition mode (realtime vs. segmented)
+ *
+ * [PG] p. 231
+ *)
+Procedure TAgilentMSOX3000A.SetAcquireMode(AMode : TAcquireMode);
+Begin
+  FDeviceCommunicator.Send(':ACQUIRE:MODE '+CAcquireMode[AMode]);
+End;
+
+(**
+ * Query the acquisition mode (realtime vs. segmented)
+ *
+ * [PG] p. 231
+ *)
+Function TAgilentMSOX3000A.GetAcquireMode : TAcquireMode;
+Var St : String;
+Begin
+  St := FDeviceCommunicator.Query(':ACQUIRE:MODE?');
+  For Result := Low(TAcquireMode) to High(TAcquireMode) do
+    if St = CAcquireMode[Result] then
+      Exit;
+  raise Exception.Create('Unknown acquire mode '''+St+'''');
+End;
+
+(**
+ * Set the acqiwtion type (normal, average, high resolution, peak)
+ *
+ * [PG] p. 239
+ *)
+Procedure TAgilentMSOX3000A.SetAcquireType(AType : TAcquireType);
+Begin
+  FDeviceCommunicator.Send(':ACQUIRE:TYPE '+CAcquireType[AType]);
+End;
+
+(**
+ * Query the acqiwtion type (normal, average, high resolution, peak)
+ *
+ * [PG] p.
+ *)
+Function TAgilentMSOX3000A.GetAcquireType : TAcquireType;
+Var St : String;
+Begin
+  St := FDeviceCommunicator.Query(':ACQUIRE:TYPE?');
+  For Result := Low(TAcquireType) to High(TAcquireType) do
+    if St = CAcquireType[Result] then
+      Exit;
+  raise Exception.Create('Unknown acquire type '''+St+'''');
+End;
+
+(**
+ * Set the number of values to be averaged
+ *
+ * Set the number of values to be averaged for each time bucket before the
+ * acquisition is considered to be complete for that time bucket. When
+ * :ACQuire:Mode is set to AVERage, the count can be set to any value from
+ * 2 to 65536.
+ *
+ * [PG] p. 230
+ *)
+Procedure TAgilentMSOX3000A.SetAcquireCount(ACount : Integer);
+Begin
+  FDeviceCommunicator.Send(':ACQUIRE:COUNT '+IntToStr(ACount));
+End;
+
+(**
+ * Query the currently selected count value for averaging mode
+ *
+ * [PG] p. 230
+ *)
+Function TAgilentMSOX3000A.GetAcquireCount : Integer;
+Begin
+  Result := StrToInt(FDeviceCommunicator.Query(':ACQUIRE:COUNT?'));
+End;
+
+(**
+ * Query the number of data points that the hardware will acquire from the input signal
+ *
+ * The number of points acquired is not directly controllable.
+ *
+ * [PG] p. 232
+ *)
+Function TAgilentMSOX3000A.GetAcquirePoints : Integer;
+Begin
+  Result := StrToInt(FDeviceCommunicator.Query(':ACQUIRE:POINTS?'));
+End;
+
+(**
+ * Set the number of memory segments to acquire
+ *
+ * [PG] p. 234
+ *)
+Procedure TAgilentMSOX3000A.SetAcquireSegCount(ACount : Integer);
+Begin
+  FDeviceCommunicator.Send(':ACQUIRE:SEGMENTED:COUNT '+IntToStr(ACount));
+End;
+
+(**
+ * Query the number of memory segments to acquire
+ *
+ * [PG] p. 234
+ *)
+Function TAgilentMSOX3000A.GetAcquireSegCount : Integer;
+Begin
+  Result := StrToInt(FDeviceCommunicator.Query(':ACQUIRE:SEGMENTED:COUNT?'));
+End;
+
+(**
+ * Query the current oscilloscope acquisition sample rate
+ *
+ * The sample rate is not directly controllable.
+ *
+ * [PG] p. 238
+ *)
+Function TAgilentMSOX3000A.GetAcquireSampleRate : Double;
+Begin
+  Result := StrToFloat(FDeviceCommunicator.Query(':ACQUIRE:SRATE?'));
 End;
 
 (**
@@ -1310,7 +1450,7 @@ Begin
   WriteLn('Source    : ', CWaveformSource    [FSource    ]);               // TWaveformSource;
   WriteLn('SubSource : ', CWaveformSubSource [FSubSource ]);               // TWaveformSubSource;
   WriteLn('Format    : ', CWaveformFormat    [FFormat    ]);               // TWaveformFormat;
-  WriteLn('Type      : ', CWaveformType      [FType      ]);               // TWaveformType;
+  WriteLn('Type      : ', CAcquireType       [FType      ]);               // TAcquireType;
   WriteLn('Points    : ', FPoints);                                        // Integer;
   WriteLn('AvgCount  : ', FAvgCount);                                      // Integer;
   WriteLn('XIncrement: ', FloatToStrSI(FXIncrement,FormatSettings), 's');  // Double;
@@ -1356,7 +1496,7 @@ End;
  *)
 Function TWaveform.GetTime(Index : Integer) : Double;
 Begin
-  if FType <> wtPeak then
+  if FType <> atPeak then
     Result := ((Index - FXReference) * FXIncrement) + FXOrigin
   else
     Result := ((Index - FXReference) * 2 * FXIncrement) + FXOrigin;
@@ -1371,7 +1511,7 @@ Procedure TWaveform.ConvTimes;
 Var I : Integer;
 Begin
   SetLength(FTimes, Length(FRealData));
-  if FType <> wtPeak then
+  if FType <> atPeak then
     Begin
       For I := 0 to Length(FRealData)-1 do
         FTimes[I] := ((I - FXReference) * FXIncrement) + FXOrigin
@@ -1418,6 +1558,29 @@ Begin
       Begin
         WriteLn(T,Timestamp*1e6:1:3, ',', Event);
       End;
+  Close(T);
+End;
+
+Procedure TWaveform.SaveCSV(Filename : String);
+Var I : Integer;
+    T : Text;
+Begin
+  if (Length(FRealData) = 0) or (Length(FTimes) = 0) then
+    raise Exception.Create('No real and/or time data available, don''t forget ConvToReal and ConvTimes.');
+  Assign(T, Filename);
+  Rewrite(T);
+  WriteLn(T,'Index,Time,Integer,Real');
+  if Length(FWordData) > 0 then
+    Begin
+      // word data takes precedence over byte data
+      For I := 0 to Length(FWordData)-1 do
+        WriteLn(T, I, ',', FTimes[I], ',', FWordData[I], ',', FRealData[I]);
+    End
+  else
+    Begin
+      For I := 0 to Length(FByteData)-1 do
+        WriteLn(T, I, ',', FTimes[I], ',', FByteData[I], ',', FRealData[I]);
+    End;
   Close(T);
 End;
 
