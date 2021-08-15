@@ -698,7 +698,7 @@ Begin
       SetLength(AWaveform.FByteData, 0);
       if not (AWaveform.FSource in [wsSBus1, wsSBus2]) then
         Begin
-          // convert numberic data
+          // convert numeric data
           // split and convert to double
           AWaveform.FRealData := SplitDouble(',', St);
         End
@@ -1485,6 +1485,8 @@ Begin
       For I := 0 to Length(FByteData)-1 do
         FRealData[I] := ((FByteData[I] - FYReference) * FYIncrement) + FYOrigin;
     End
+  else if (Length(FRealData) > 0) and (FFormat = wfAscii) then
+    Exit    // ASCII is directly converted to FRealData
   else if (Length(FByteData) = 0) and (Length(FWordData) = 0) then
     raise Exception.Create('No byte nor word data available');
 End;
