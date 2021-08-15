@@ -1571,18 +1571,27 @@ Begin
     raise Exception.Create('No real and/or time data available, don''t forget ConvToReal and ConvTimes.');
   Assign(T, Filename);
   Rewrite(T);
-  WriteLn(T,'Index,Time,Integer,Real');
-  if Length(FWordData) > 0 then
+  if (FFormat = wfWord) and (Length(FWordData) > 0) then
     Begin
+      WriteLn(T,'Index,Time[s],Word,Real[V]');
       // word data takes precedence over byte data
       For I := 0 to Length(FWordData)-1 do
         WriteLn(T, I, ',', FTimes[I], ',', FWordData[I], ',', FRealData[I]);
     End
-  else
+  else if (FFormat = wfByte) and (Length(FByteData) > 0) then
     Begin
+      WriteLn(T,'Index,Time[s],Byte,Real[V]');
       For I := 0 to Length(FByteData)-1 do
         WriteLn(T, I, ',', FTimes[I], ',', FByteData[I], ',', FRealData[I]);
-    End;
+    End
+  else if (FFormat = wfAscii) and (Length(FRealData) > 0) then
+    Begin
+      WriteLn(T,'Index,Time[s],Real[V]');
+      For I := 0 to Length(FRealData)-1 do
+        WriteLn(T, I, ',', FTimes[I], ',', FRealData[I]);
+    End
+  else
+    raise Exception.Create('Unknown waveform format or no word/byte data available.');
   Close(T);
 End;
 

@@ -359,7 +359,7 @@ Begin
   Sleep(100);
   MSOX.SetWaveformFormat(wfWord);
   MSOX.SetWaveformPointsMode(wpmNormal);
-  MSOX.SetWaveformPointsCount(100);
+  MSOX.SetWaveformPointsCount(100);       // interestingly, with these settings only 99 points are transferred and XIncrement is 50.206µs to compensate, setting count to 101 crashes the scope
   Waveform := MSOX.GetWaveformPreamble;
   Waveform.PrintPreamble;
   MSOX.GetWaveformData(Waveform);
