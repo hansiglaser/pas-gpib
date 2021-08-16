@@ -84,8 +84,13 @@ Begin
     End;
 
   // get the message
-  Result := FDevice.Recv(FTransferSize);
-//WriteLn('Recv: ''',Result,'''');
+  Result := '';
+  repeat
+    Result := Result + FDevice.Recv(FTransferSize);
+    Status := FDevice.ReadStatusByte;
+//WriteLn('Recv Loop: ''',Result,'''');
+  Until (Status and IEEE488_StatusByte_MessageAvailable) = 0;
+//WriteLn('Recv Done: ''',Result,'''');
   // if there was a further error, this has to be checked by the caller, e.g., Query
 End;
 
@@ -102,6 +107,9 @@ Begin
       Message := Trim(FDevice.Recv(FTransferSize));
       raise Exception.Create('Error: Before sending '''+St+''', a message from the device was available: '''+Message+'''');
     End;
+  // This checking could be moved to Send, but then some cases where multiple
+  // calls to Send are executed after each other, and then one common call to
+  // Receive would perhaps be impossible.
 
   // send the command
   Send(St);

@@ -259,9 +259,7 @@ Begin
       WriteLn('Done after ',I,' ms.');
       WriteLn('Fetching measurement results');
       // fetch measurement data
-      Comm.TransferSize := 500*(1+1+1+8+1+1+2+1+10);  // each value '+8.54957768E-04,', plus 10 chars to be on the safe side :-)
       MeasArr := A34410A.FetchAll;
-      Comm.TransferSize := 2048;
       WriteLn('  Num:    ',Length(MeasArr));
       WriteLn('  Min:    ',FloatToStrSI(MinValue(MeasArr),FormatSettings));
       WriteLn('  Max:    ',FloatToStrSI(MaxValue(MeasArr),FormatSettings));

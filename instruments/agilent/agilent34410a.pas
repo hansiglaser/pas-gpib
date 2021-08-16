@@ -534,15 +534,11 @@ End;
  *
  * Use this command also for a measurement series.
  *
- * Warning: The data is (at least) 16 chars per value ('+8.54957768E-04,'). Be
- * sure to set the transfer size of the USBTMC device communicator (e.g.,
- * with Comm.TransferSize := Num*16;) before calling this function.
- *
  *)
 Function TAgilent34410A.FetchAll : TDynDoubleArray;
 Var St : String;
 Begin
-  St := FDeviceCommunicator.Query('FETCH?');
+  St := QueryLong('FETCH?');
   Result := SplitDouble(',',St);
 End;
 
