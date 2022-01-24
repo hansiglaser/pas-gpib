@@ -88,6 +88,8 @@ Begin
   repeat
     Result := Result + FDevice.Recv(FTransferSize);
     Status := FDevice.ReadStatusByte;
+    if (Status and IEEE488_StatusByte_MessageAvailable) <> 0 then
+      Sleep(1);   // AgilentMSOX3000A likes to crash if without delay
 //WriteLn('Recv Loop: ''',Result,'''');
   Until (Status and IEEE488_StatusByte_MessageAvailable) = 0;
 //WriteLn('Recv Done: ''',Result,'''');
