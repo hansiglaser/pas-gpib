@@ -62,6 +62,7 @@ Var St : String;
   // function to be called by WaitTimeout multiple times until enough data was recieved or a timeout has happened
   Function ReceiveData(Data:Pointer) : Boolean;
   Begin
+//    WriteLn('QueryLong at ',Length(St));
     St := St + FDeviceCommunicator.Receive;
     Result := (St[Length(St)] = #10);
   End;
@@ -75,7 +76,7 @@ Begin
   //WriteLn('Received '+IntToStr(Length(St))+' bytes');
   if St[Length(St)] <> #10 then
     raise Exception.Create('Received invalid data format');
-  Dump(St[1], Length(St));
+  //Dump(St[1], Length(St));
   SetLength(St, Length(St)-1);
   Result := St;
 End;
@@ -91,6 +92,7 @@ Var St : String;
   // function to be called by WaitTimeout multiple times until enough data was recieved or a timeout has happened
   Function ReceiveData(Data:Pointer) : Boolean;
   Begin
+//    WriteLn('QueryBinary at ',Length(St),', L = ',L);
     St := St + FDeviceCommunicator.Receive;
     if (L = 0) and (Length(St) >= 10) then
       Begin
