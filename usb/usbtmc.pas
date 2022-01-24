@@ -529,7 +529,9 @@ Begin
 //  Dump(Packet,SizeOf(Packet));
 
   Result := FEPOut.Send(Packet,SizeOf(Packet),FTimeout);
-  if Result <> SizeOf(Packet) then
+  if Result < 0 then
+    raise Exception.Create('RequestDevDepMsgIn: USB Error: '+FContext.ErrorName(Result))
+  else if Result <> SizeOf(Packet) then
     raise Exception.CreateFmt('RequestDevDepMsgIn: Len = %d should be %d, %s',[Result,SizeOf(Packet),FContext.ErrorName(Result)]);
 End;
 
@@ -547,9 +549,19 @@ Begin
   Packet := GetMem(Len);
   try
     Result := FEPIn.Recv(Packet^,Len,FTimeout);
-    if Result < 0 then
-      raise Exception.Create('DevDepMsgIn: USB Error: '+FContext.ErrorName(Result))
-    else if Result < SizeOf(TUSBTMCDevDepMsgIn) then
+    if Result = LIBUSB_ERROR_TIMEOUT then
+      Begin
+        // a response is optional, see TUSBTMCUSB488.Recv
+        WriteLn('Timeout, ignored, Len = ',Len);
+        if (Len = 0) or (Len = SizeOf(TUSBTMCDevDepMsgIn)-1 + (Size + 3) and $FFFFFFFC) then
+          Begin
+            Size := 0;
+            Exit;
+          End;
+      End
+    else if Result < 0 then
+      raise Exception.Create('DevDepMsgIn: USB Error: '+FContext.ErrorName(Result));
+    if Len < SizeOf(TUSBTMCDevDepMsgIn) then
       raise Exception.CreateFmt('DevDepMsgIn: Received only %d bytes, but expected at least %d',[Result,SizeOf(TUSBTMCDevDepMsgIn)]);
     Len := SizeOf(TUSBTMCDevDepMsgIn)-1 + (Packet^.TransferSize + 3) and $FFFFFFFC;
 //    WriteLn('DevDepMsgIn');
