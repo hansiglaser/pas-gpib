@@ -485,7 +485,7 @@ Begin
 End;
 
 (**
- * Query swaveform transmission format
+ * Query waveform transmission format
  *
  * [PG] p. 969
  *)
