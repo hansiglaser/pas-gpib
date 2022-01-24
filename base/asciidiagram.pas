@@ -252,6 +252,8 @@ Var Min,Max : Double;
 Begin
   Min := MinValue(AYData);
   Max := MaxValue(AYData);
+  if Max-Min < 1E-9 then
+    Max := 1E-9;
   Min := Min - (Max-Min)*0.05;
   Max := Max + (Max-Min)*0.05;
   Create(AWidth, AHeight, AXOrigin, AYOrigin, AXData[0], AXData[Length(AXData)-1]*1.02, Min, Max);
