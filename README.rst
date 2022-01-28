@@ -165,7 +165,7 @@ A submodule by default is a 'Detached Head' this means it isn't on a branch.
 ::
 
   cd pas-libusb/
-  git branch libusb-1.0      # switch to a branch
+  git checkout libusb-1.0    # switch to a branch
   # make changes
   git add ...                # stage changes
   git commit                 # commit
@@ -173,7 +173,7 @@ A submodule by default is a 'Detached Head' this means it isn't on a branch.
   cd ../..
   git submodule              # shows that submodules are at a newer state
                              # than referenced by the main project
-  git add host/pas-libusb    # tell git to use the most current revision of
+  git add pas-libusb         # tell git to use the most current revision of
                              # this submodule
   git commit                 # commit
   git push                   # and push to GitHub
