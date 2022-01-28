@@ -70,7 +70,7 @@ Const
     1E1, 1E2, 1E3, 1E6, 1E9, 1E12, 1E15, 1E18, 1E21, 1E24);
 
 Function GetSIPrefix(Value:Double) : TSIPrefix;
-Function FloatToStrSI(Value:Double;Const FormatSettings:TFormatSettings;Unicode:Boolean=True) : String;
+Function FloatToStrSI(Value:Double;Const FormatSettings:TFormatSettings;Unicode:Boolean=True;Format:TFloatFormat=ffGeneral;Precision:Integer=15;Digits:Integer=0) : String;
 
 Implementation
 Uses BaseUnix, StrUtils, Math, DateUtils;
@@ -280,13 +280,14 @@ Begin
     Result := Pred(Result);
 End;
 
-Function FloatToStrSI(Value : Double; Const FormatSettings : TFormatSettings; Unicode : Boolean) : String;
+Function FloatToStrSI(Value : Double; Const FormatSettings : TFormatSettings; Unicode : Boolean; Format : TFloatFormat; Precision, Digits : Integer) : String;
 Var SIPrefix : TSIPrefix;
 Begin
   SIPrefix := GetSIPrefix(Value);
   Value    := Value / CSIPrefixFactor[SIPrefix];
-  if Unicode then Result := FloatToStr(Value,FormatSettings) + CSIPrefixSymbol     [SIPrefix]
-  else            Result := FloatToStr(Value,FormatSettings) + CSIPrefixSymbolAscii[SIPrefix];
+  Result := FloatToStrF(Value,Format,Precision,Digits,FormatSettings);
+  if Unicode then Result := Result + CSIPrefixSymbol     [SIPrefix]
+  else            Result := Result + CSIPrefixSymbolAscii[SIPrefix];
 End;
 
 End.
