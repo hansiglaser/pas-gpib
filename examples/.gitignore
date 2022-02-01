@@ -17,3 +17,10 @@ testagilentmsox3000a
 MSOX-*.png
 testkeysightu125xb
 testasciidiagram
+agilentmsox3000a-serial
+serialparse
+MSOX-waveform-*.csv
+serial-*.csv
+serial-i2c-lex.pas
+serial-i2c-parser.pas
+y.tab.c
