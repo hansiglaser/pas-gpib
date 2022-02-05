@@ -24,6 +24,8 @@ Function  ToStrings(Values:TDynDoubleArray;Format:TFloatFormat;Precision,Digits:
 Procedure ToStrings(Values1,Values2:TDynDoubleArray;Delimiter:String;Format:TFloatFormat;Precision,Digits:Integer;Strings:TStringList);
 Function  ToStrings(Values1,Values2:TDynDoubleArray;Delimiter:String;Format:TFloatFormat;Precision,Digits:Integer) : TStringList;
 
+Function ToString(A:TDynByteArray):String;
+
 Function Find(Needle:String;Haystack:TDynStringArray) : Integer;
 Function Find(Needle:String;Haystack:TDynStringArray;Msg:String) : Integer;
 Function Count(Needle:Char;Heystack:String):Integer;
@@ -152,6 +154,13 @@ Function ToStrings(Values1,Values2:TDynDoubleArray;Delimiter:String;Format:TFloa
 Begin
   Result := TStringList.Create;
   ToStrings(Values1, Values2, Delimiter, Format, Precision, Digits, Result);
+End;
+
+/// Helper Function to convert TAgilentMSOX3000A.Screen for use with EncodeStringBase64
+Function ToString(A:TDynByteArray):String;
+Begin
+  SetLength(Result, Length(A));
+  Move(A[0], Result[1], Length(A));
 End;
 
 (**
