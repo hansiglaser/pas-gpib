@@ -24,3 +24,5 @@ serial-*.csv
 serial-i2c-lex.pas
 serial-i2c-parser.pas
 y.tab.c
+agilentmsox3000a-screenshot
+screenshot-*.png
