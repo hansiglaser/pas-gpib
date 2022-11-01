@@ -33,9 +33,11 @@ Function Count(Needle:Char;Heystack:String):Integer;
 Function Select(B:Boolean;T,F:String):String;
 Function Select(I : Integer; Const S:Array of String) : String;
 
+{$IFDEF UNIX}
 Function SigPending(SigNo:Integer) : Boolean;
 
 Function SelectRead(AHandle:Integer;ATimeout:Integer { in us }) : Integer;
+{$ENDIF}
 
 Function WaitTimeout(Initial,Period,Max:Integer;Checker:TWaitCheckerFunc;Data:Pointer) : Integer;
 
@@ -75,7 +77,11 @@ Function GetSIPrefix(Value:Double) : TSIPrefix;
 Function FloatToStrSI(Value:Double;Const FormatSettings:TFormatSettings;Unicode:Boolean=True;Format:TFloatFormat=ffGeneral;Precision:Integer=15;Digits:Integer=0) : String;
 
 Implementation
-Uses BaseUnix, StrUtils, Math, DateUtils;
+Uses
+{$IFDEF UNIX}
+  BaseUnix,
+{$ENDIF}
+  StrUtils, Math, DateUtils;
 
 Function SplitStr(Delimiter:String;St:String) : TDynStringArray;
 Var S,E : Integer;
@@ -205,6 +211,7 @@ Begin
   Result := S[I];
 End;
 
+{$IFDEF UNIX}
 Function SigPending(SigNo:Integer) : Boolean;
 Var SigSet : TSigSet;
 Begin
@@ -223,6 +230,7 @@ Begin
   T.tv_sec  := ATimeout div 1000000;
   Result := fpSelect(AHandle+1,@FD,Nil,Nil,@T);
 End;
+{$ENDIF}
 
 Procedure WriteData(Filename : String; Data : TDynByteArray);
 Var F : File;
