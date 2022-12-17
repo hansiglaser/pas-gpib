@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="12"/>
+    <General>
+      <SessionStorage Value="InProjectDir"/>
+      <Title Value="comparisonmgr"/>
+      <Scaled Value="True"/>
+      <ResourceType Value="res"/>
+      <UseXPManifest Value="True"/>
+      <XPManifest>
+        <DpiAware Value="True"/>
+      </XPManifest>
+      <Icon Value="0"/>
+    </General>
+    <BuildModes>
+      <Item Name="Default" Default="True"/>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+      <UseFileFilters Value="True"/>
+    </PublishOptions>
+    <RunParams>
+      <FormatVersion Value="2"/>
+    </RunParams>
+    <RequiredPackages>
+      <Item>
+        <PackageName Value="fpvectorialpkg"/>
+      </Item>
+      <Item>
+        <PackageName Value="LCL"/>
+      </Item>
+    </RequiredPackages>
+    <Units>
+      <Unit>
+        <Filename Value="comparisonmgr.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="ComparisonMgr"/>
+      </Unit>
+      <Unit>
+        <Filename Value="mainform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FormMain"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="MainForm"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../instruments/instrument.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Instrument"/>
+      </Unit>
+      <Unit>
+        <Filename Value="vectorialdiagram.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="VectorialDiagram"/>
+      </Unit>
+      <Unit>
+        <Filename Value="comparison.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Comparison"/>
+      </Unit>
+    </Units>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <Target>
+      <Filename Value="comparisonmgr"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="../../base;../../devcom;../../usb;../../pas-libusb/src;../../gpib;../../instruments;../../instruments/keithley;../../instruments/lecroy;../../instruments/rohdeschwarz;../../instruments/agilent"/>
+      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+      <SrcPath Value="/usr/lib/lazarus/2.2.0/components/fpvectorial/"/>
+    </SearchPaths>
+    <Linking>
+      <Options>
+        <Win32>
+          <GraphicApplication Value="True"/>
+        </Win32>
+      </Options>
+    </Linking>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions>
+      <Item>
+        <Name Value="EAbort"/>
+      </Item>
+      <Item>
+        <Name Value="ECodetoolError"/>
+      </Item>
+      <Item>
+        <Name Value="EFOpenError"/>
+      </Item>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

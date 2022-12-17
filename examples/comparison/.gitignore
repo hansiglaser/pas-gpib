@@ -1,0 +1,12 @@
+backup/
+lib/
+*.res
+*.o
+*.ppu
+*.compiled
+*.lps
+instcmp-lex.pas
+instcmp-parser.pas
+*.InstCmp
+measurement
+comparisonmgr

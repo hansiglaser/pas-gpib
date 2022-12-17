@@ -44,6 +44,8 @@ Function WaitTimeout(Initial,Period,Max:Integer;Checker:TWaitCheckerFunc;Data:Po
 Procedure WriteData(Filename:String;Data:TDynByteArray);
 
 Procedure Dump(Const Buf;Size:LongInt);
+Function  EncodeDataHex(Const Buf;Size:LongInt) : String;
+Procedure DecodeDataHex(St:String; Const Buf;Size:LongInt);
 
 Type
   TSIPrefix = (
@@ -280,6 +282,42 @@ Begin
   if I and $F <> $F then
     Begin
       WriteLn(StringOfChar(' ',3*(15-(I and $F))),'  ',S);
+    End;
+End;
+
+Function EncodeDataHex(Const Buf; Size : LongInt) : String;
+Var I : Integer;
+    B : Byte;
+Const HexChars = '0123456789ABCDEF';
+Begin
+  SetLength(Result, Size*2);
+  For I := 0 to Size-1 do
+    Begin
+      B := PByte(PtrUInt(@Buf)+I)^;
+      Result[I*2+1] := HexChars[((B shr 4) and $0F)+1];
+      Result[I*2+2] := HexChars[( B        and $0F)+1];
+    End;
+End;
+
+Procedure DecodeDataHex(St : String; Const Buf; Size : LongInt);
+
+  Function HexChar2Byte(Ch:Char):Byte;
+  Begin
+    Result := Ord(Ch) - Ord('0');
+    if Result > 9 then Result := Result - Ord('A') + Ord('0') + $0A;
+    if Result and $F0 <> 0 then
+      raise Exception.Create('Invalid hex character '''+Ch+'''');
+  End;
+
+Var I : Integer;
+    B : Byte;
+Begin
+  if Length(St) <> 2*Size then
+    raise Exception.Create('Length of string '+IntToStr(Length(St))+' must be exactly double the data size '+IntToStr(Size));
+  For I := 0 to Size-1 do
+    Begin
+      B := (HexChar2Byte(St[I*2+1]) shl 4) or HexChar2Byte(St[I*2+2]);
+      PByte(PtrUInt(@Buf)+I)^ := B;
     End;
 End;
 
