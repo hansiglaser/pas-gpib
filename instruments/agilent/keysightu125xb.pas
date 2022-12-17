@@ -16,7 +16,7 @@ Interface
 Uses
   Classes, SysUtils,
   RegExpr,
-  PasGpibUtils, DevCom, RemoteInstrument;
+  PasGpibUtils, DevCom, Instrument, RemoteInstrument;
 
 Type
   TRotarySwitch      = (rsOff,rsVAC,rsVDCAC,rsmVDCAC,rsResistance,rsDiodeFrequency,rsCapacitanceTemperature,rsuADCAC,rsmAADCAC,rsOut);
@@ -103,6 +103,7 @@ Type
     class Function MeasureStatusString2Record(ASt : String; Out AMeasureStatus : TMeasureStatus) : Boolean;
   public
     class Procedure TestMeasureConfigString2Record;
+    class Function GetRanges(AInstrument:String) : TRangesQuantity; override;
   End;
 
 Implementation
@@ -469,6 +470,27 @@ Begin
   Result := MeasureConfigString2Record('"CURR:ACDC +5.00000000E-04,+1.00000000E-08"',    MeasureConfig);
   Result := MeasureConfigString2Record('"CURR +5.00000000E-02,+1.00000000E-06"',         MeasureConfig);
   Result := MeasureConfigString2Record('"CPER:4-20mA +5.00000000E-02,+1.00000000E-06"',  MeasureConfig);
+End;
+
+class Function TKeysightU125xB.GetRanges(AInstrument : String) : TRangesQuantity;
+Begin
+  Case AInstrument of
+    'KeysightU1253B' : Begin
+      SetLength(Result[qtDCV], 7);
+      // with rotary switch at rsmVDCAC
+      Result[qtDCV][0] := TMeasureRangeAccuracy.Create(   0.05, true,   1E-6); Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.050*0.01, 50*  1E-6));  // improve to 10 digits with Null function
+      Result[qtDCV][1] := TMeasureRangeAccuracy.Create(   0.5,  true,  10E-6); Result[qtDCV][1].AddAccuracy(TAccuracyGainOffset.Create(0.025*0.01,  5* 10E-6));
+      Result[qtDCV][2] := TMeasureRangeAccuracy.Create(   1.0,  true, 100E-6); Result[qtDCV][2].AddAccuracy(TAccuracyGainOffset.Create(0.025*0.01,  5*100E-6));
+      // with rotary switch at rsVDCAC
+      Result[qtDCV][3] := TMeasureRangeAccuracy.Create(   5.0,  true, 100E-6); Result[qtDCV][3].AddAccuracy(TAccuracyGainOffset.Create(0.025*0.01,  5*100E-6));
+      Result[qtDCV][4] := TMeasureRangeAccuracy.Create(  50.0,  true,   1E-3); Result[qtDCV][4].AddAccuracy(TAccuracyGainOffset.Create(0.025*0.01,  5*  1E-3));
+      Result[qtDCV][5] := TMeasureRangeAccuracy.Create( 500.0,  true,  10E-3); Result[qtDCV][5].AddAccuracy(TAccuracyGainOffset.Create(0.030*0.01,  5* 10E-3));
+      Result[qtDCV][6] := TMeasureRangeAccuracy.Create(1000.0,  true, 100E-3); Result[qtDCV][6].AddAccuracy(TAccuracyGainOffset.Create(0.030*0.01,  5*100E-3));
+      WriteLn('Warning: TODO: Implement for other accuracy cases and for other quantities');
+    End
+  else
+    raise Exception.Create('TODO: Implement instrument '''+AInstrument+'''');
+  End;
 End;
 
 { TMeasureStatus }

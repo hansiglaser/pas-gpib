@@ -8,6 +8,7 @@ Interface
 Uses
   Classes, SysUtils,
   PasGpibUtils,
+  Instrument,
   DevCom;
 
 Type
@@ -21,7 +22,7 @@ Type
    * measurement instruments. It holds an instance for a IDeviceCommunicator
    * and provides one GPIB/SCPI function Identify which sends '*IDN?'.
    *)
-  TRemoteInstrument = class
+  TRemoteInstrument = class(TInstrument)
   protected
     FDeviceCommunicator : IDeviceCommunicator;
     Function QueryLong  (Cmd : String) : String;

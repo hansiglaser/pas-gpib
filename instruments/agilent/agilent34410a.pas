@@ -15,7 +15,7 @@ Interface
 
 Uses
   Classes, SysUtils,
-  PasGpibUtils, DevCom, RemoteInstrument;
+  PasGpibUtils, DevCom, Instrument, RemoteInstrument;
 
 Type
 
@@ -97,6 +97,7 @@ Type
     Function  GetNumDataPoints : Integer;
     Function  DataRemove(Count : Integer) : TDynDoubleArray;
     Procedure StartMeasurements(Count:Integer);
+    class Function GetRanges(AInstrument:String) : TRangesQuantity; override;
   End;
 
 Implementation
@@ -607,6 +608,23 @@ Begin
   SetSampleCount(1);
   Initiate;
   Result := Fetch;
+End;
+
+class Function TAgilent34410A.GetRanges(AInstrument : String) : TRangesQuantity;
+Begin
+  Case AInstrument of
+    'Agilent34461A' : Begin
+      SetLength(Result[qtDCV], 5);          // 1 year within calibration
+      Result[qtDCV][0] := TMeasureRangeAccuracy.Create(   0.1, true, 100E-9); Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.0050*0.01, 0.0035*0.01*   0.1));
+      Result[qtDCV][1] := TMeasureRangeAccuracy.Create(   1.0, true,   1E-6); Result[qtDCV][1].AddAccuracy(TAccuracyGainOffset.Create(0.0040*0.01, 0.0007*0.01*   1.0));
+      Result[qtDCV][2] := TMeasureRangeAccuracy.Create(  10.0, true,  10E-6); Result[qtDCV][2].AddAccuracy(TAccuracyGainOffset.Create(0.0035*0.01, 0.0005*0.01*  10.0));
+      Result[qtDCV][3] := TMeasureRangeAccuracy.Create( 100.0, true, 100E-6); Result[qtDCV][3].AddAccuracy(TAccuracyGainOffset.Create(0.0045*0.01, 0.0006*0.01* 100.0));
+      Result[qtDCV][4] := TMeasureRangeAccuracy.Create(1000.0, true,   1E-3); Result[qtDCV][4].AddAccuracy(TAccuracyGainOffset.Create(0.0045*0.01, 0.0010*0.01*1000.0));
+      WriteLn('Warning: TODO: Implement for other accuracy cases and for other quantities');
+    End
+  else
+    raise Exception.Create('TODO: Implement instrument '''+AInstrument+'''');
+  End;
 End;
 
 { private methods }

@@ -6,7 +6,7 @@ Interface
 
 Uses
   Classes, SysUtils,
-  PasGpibUtils, DevCom, RemoteInstrument;
+  PasGpibUtils, DevCom, Instrument, RemoteInstrument;
 
 Type
   TChannel    = 1..3;
@@ -53,6 +53,11 @@ Type
     Procedure SetCurrentLimit(Ch : TChannelSet; Current : Double);
     Function  GetSenseMode(Ch : TChannel) : TSenseMode;
     Procedure SetSenseMode(Ch : TChannelSet; SenseMode : TSenseMode);
+    class Function GetRanges(AInstrument:String) : TRangesQuantity; override;
+  Const
+    AccIdxV = 0;
+    AccIdxI = 1;
+    AccIdxIlow = 2;
   End;
 
 Implementation
@@ -312,6 +317,53 @@ End;
 Procedure TKeysightE3631xA.SetSenseMode(Ch : TChannelSet; SenseMode : TSenseMode);
 Begin
   FDeviceCommunicator.Send('SOURCE:VOLTAGE:SENSE '+CSenseMode[SenseMode]+', '+GetChannelList(Ch));
+End;
+
+Class Function TKeysightE3631xA.GetRanges(AInstrument : String) : TRangesQuantity;
+Begin
+  SetLength(Result[qtDCV], 1);
+  Case AInstrument of
+    'KeysightE36313A:S:Ch1' : Begin       // source programming Ch1
+      Result[qtDCV][0] := TMeasureRangeAccuracy.Create(   6.0, false, 0.36E-3); Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.03*0.01, 3E-3));   // AccIdxV
+                                                                                Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.05*0.01, 4E-3));   // AccIdxI
+    End;
+    'KeysightE36313A:S:Ch2',
+    'KeysightE36313A:S:Ch3' : Begin       // source programming Ch2, Ch3
+      Result[qtDCV][0] := TMeasureRangeAccuracy.Create(  25.0, false, 1.50E-3); Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.03*0.01, 5E-3));   // AccIdxV
+                                                                                Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.04*0.01, 3E-3));   // AccIdxI
+    End;
+    'KeysightE36313A:S:Ch2||3' : Begin    // source programming Ch2 || Ch3 (parallel)
+      Result[qtDCV][0] := TMeasureRangeAccuracy.Create(  25.0, false, 1.50E-3); Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.03*0.01, 5E-3));   // AccIdxV
+                                                                                Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.04*0.01, 3E-3));   // AccIdxI
+    End;
+    'KeysightE36313A:S:Ch2+3' : Begin    // source programming Ch2 + Ch3 (series)
+      Result[qtDCV][0] := TMeasureRangeAccuracy.Create(  50.0, false, 3.00E-3); Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.03*0.01,10E-3));   // AccIdxV
+                                                                                Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.04*0.01, 6E-3));   // AccIdxI
+    End;
+    'KeysightE36313A:M:Ch1' : Begin
+      Result[qtDCV][0] := TMeasureRangeAccuracy.Create(   6.0, false, 0.24E-3); Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.04*0.01, 3E-3));   // AccIdxV
+                                                                                Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.05*0.01, 5E-3));   // AccIdxI
+                                                                                Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.25*0.01,80E-6));   // AccIdxIlow < 20mA
+    End;
+    'KeysightE36313A:M:Ch2',
+    'KeysightE36313A:M:Ch3' : Begin
+      Result[qtDCV][0] := TMeasureRangeAccuracy.Create(  25.0, false, 1.00E-3); Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.04*0.01, 5E-3));   // AccIdxV
+                                                                                Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.04*0.01, 3E-3));   // AccIdxI
+                                                                                Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.25*0.01,80E-6));   // AccIdxIlow < 10mA
+    End;
+    'KeysightE36313A:M:Ch2||3' : Begin
+      Result[qtDCV][0] := TMeasureRangeAccuracy.Create(  25.0, false, 1.00E-3); Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.04*0.01, 5E-3));   // AccIdxV
+                                                                                Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.04*0.01, 3E-3));   // AccIdxI
+                                                                                Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.25*0.01,80E-6));   // AccIdxIlow < 10mA
+    End;
+    'KeysightE36313A:M:Ch2+3' : Begin
+      Result[qtDCV][0] := TMeasureRangeAccuracy.Create(  50.0, false, 2.00E-3); Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.04*0.01,10E-3));   // AccIdxV
+                                                                                Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.04*0.01, 6E-3));   // AccIdxI
+                                                                                Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.25*0.01,80E-6));   // AccIdxIlow < 10mA
+    End;
+  else
+    raise Exception.Create('TODO: Implement instrument '''+AInstrument+'''');
+  End;
 End;
 
 End.
