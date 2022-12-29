@@ -46,6 +46,7 @@ Type
     FOffsetError : Double;     ///< offset error independent of measurement value
     Constructor Create(AGainError,AOffsetError:Double);
     Function Apply(AValue:Double) : TValueAccuracyBase; override;
+    Function ToString : String; override;
   End;
 
   { TMeasureRangeBase }
@@ -134,6 +135,11 @@ Var Error : Double;
 Begin
   Error := FOffsetError + abs(AValue)*FGainError;
   Result := TValueAccuracyMinMax.Create(AValue, AValue - Error, AValue + Error);
+End;
+
+Function TAccuracyGainOffset.ToString : String;
+Begin
+  Result := '±('+FloatToStr(FOffsetError)+'+'+FloatToStr(FGainError*100.0)+'%)';
 End;
 
 { TMeasureRangeBase }
