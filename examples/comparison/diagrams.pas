@@ -35,12 +35,12 @@ Type
     FResultPenColor       : TFPColor;
     FResultPenWidth       : Double;
     FResultLenDrw         : Double;
-    FOvlpOkPenColor       : TFPColor;
-    FOvlpOkPenWidth       : Double;
-    FOvlpOkBrushColor     : TFPColor;
-    FOvlpNOkPenColor      : TFPColor;
-    FOvlpNOkPenWidth      : Double;
-    FOvlpNOkBrushColor    : TFPColor;
+    FOvlpPassPenColor     : TFPColor;
+    FOvlpPassPenWidth     : Double;
+    FOvlpPassBrushColor   : TFPColor;
+    FOvlpFailPenColor     : TFPColor;
+    FOvlpFailPenWidth     : Double;
+    FOvlpFailBrushColor   : TFPColor;
     Constructor Create(AComparison:TComparisonBase);
     Destructor  Destroy; override;
     Procedure DrawRanges   (AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
@@ -98,12 +98,12 @@ Begin
   FResultPenWidth       := 1.0;
   FResultLenDrw         := 4.0;
   FTestPointRefPenColor := colDkGreen;
-  FOvlpOkPenColor       := colGreen;
-  FOvlpOkPenWidth       := 1.0;
-  FOvlpOkBrushColor     := colLtGreen;
-  FOvlpNOkPenColor      := colRed;
-  FOvlpNOkPenWidth      := 1.0;
-  FOvlpNOkBrushColor    := colLtRed;
+  FOvlpPassPenColor     := colGreen;
+  FOvlpPassPenWidth     := 1.0;
+  FOvlpPassBrushColor   := colLtGreen;
+  FOvlpFailPenColor     := colRed;
+  FOvlpFailPenWidth     := 1.0;
+  FOvlpFailBrushColor   := colLtRed;
 End;
 
 Destructor TComparisonDiagrams.Destroy;
@@ -264,10 +264,10 @@ Begin
           Begin
             if TPMins[NP] < TPMaxs[NP] then
               FDiagram.DrawRect(TPMins[NP], TPMaxs[NP], Y-0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
-                FOvlpOkPenColor, psSolid, Round(FOvlpOkPenWidth), FOvlpOkBrushColor, bsSolid)
+                FOvlpPassPenColor, psSolid, Round(FOvlpPassPenWidth), FOvlpPassBrushColor, bsSolid)
             else
               FDiagram.DrawRect(TPMaxs[NP], TPMins[NP], Y+0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
-                FOvlpNOkPenColor, psSolid, Round(FOvlpNOkPenWidth), FOvlpNOkBrushColor, bsSolid);
+                FOvlpFailPenColor, psSolid, Round(FOvlpFailPenWidth), FOvlpFailBrushColor, bsSolid);
           End;
         // draw measurement results
         For NI := 0 to Length(FComparison.FInstruments)-1 do
