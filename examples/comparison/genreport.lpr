@@ -29,7 +29,7 @@ Begin
       FComparison.FProcedure.PrintMeasurementsByTestPoint;
     End;
 
-  FReport := TComparisonReport.Create(FComparison);
+  FReport := TComparisonReport.Create(FFilename, FComparison);
   FReport.WriteReport('testreport2.tex');
   // then run $ pdflatex --shell-escape testreport2.tex
 End.
