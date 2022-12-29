@@ -60,6 +60,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="Comparison"/>
       </Unit>
+      <Unit>
+        <Filename Value="diagrams.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Diagrams"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

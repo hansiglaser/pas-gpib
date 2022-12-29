@@ -10,7 +10,7 @@ Uses
   athreads,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, MainForm, fpvectorialpkg
+  Forms, MainForm, fpvectorialpkg    // fpvectorialpkg is required to register the default renderer
   { you can add units after this };
 
 {$R *.res}

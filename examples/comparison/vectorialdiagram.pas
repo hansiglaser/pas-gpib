@@ -6,7 +6,7 @@ Interface
 
 Uses
   Classes, SysUtils, Math,
-  Graphics, FPImage, FPCanvas, ExtCtrls, FPVectorial, svgvectorialwriter;
+  FPImage, FPCanvas, FPVectorial;
 
 Type
 
@@ -55,9 +55,26 @@ Type
     FVecDoc  : TvVectorialDocument;
     FVecPage : TvVectorialPage;
     FDiagBox : TRectDouble;
-    FImage   : TImage;
-    Constructor Create(ACoord : TCoordBase; AImage : TImage);
-    Procedure Resize;
+    FWidth   : Integer;
+    FHeight  : Integer;
+    FBoxPenColor    : TFPColor;
+    FBoxPenWidth    : Integer;
+    FXGridPenColor  : TFPColor;
+    FXGridPenWidth  : Integer;
+    FXTickPenColor  : TFPColor;
+    FXTickPenWidth  : Integer;
+    FXTickFontName  : String;
+    FXTickFontSize  : Double;
+    FTickLenDrw     : Double;    // extension above and below axis in drawing units
+    FXBreakPenColor : TFPColor;
+    FXBreakPenWidth : Integer;
+    FXBreakExtDrw   : Double;    // extension above and below axis
+    FXBreakSlantDrw : Double;    // how much slanted (actually half of that)
+    FXBreakSpaceDrw : Double;    // space between the two lines (actually half of that space)
+
+    Constructor Create(ACoord : TCoordBase);
+    Procedure Resize(AWidth, AHeight:Integer);
+    Procedure Resize(AWidth, AHeight:Integer;ACanvas:TFPCustomCanvas);
     // drawing coordinate functions
     Procedure Line(X1,Y1,X2,Y2:Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
     Procedure Rectangle(Left, Bottom, Right, Top : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer; BrushColor : TFPColor; BrushStyle : TFPBrushStyle);
@@ -71,7 +88,9 @@ Type
     Procedure DrawSymPlus(ValX, ValY, DrwSize : Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
     Procedure DrawRange(ValXMin,ValXMax,ValY,ValWidth:Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer; BrushColor : TFPColor; BrushStyle : TFPBrushStyle);
     Procedure DrawAxes;
-    Procedure Update;
+    // output functions
+    Procedure Paint(ACanvas:TFPCustomCanvas);
+    Procedure WriteSVG(AFilename:String);
   End;
 
 Implementation
@@ -86,8 +105,8 @@ End;
 { TBipolarSemiLogXBase }
 
 (*
-  "Value"  : data value
-  "Dawing" : drawing coordinate
+  "Value"   : data value
+  "Drawing" : drawing coordinate
 *)
 
 Constructor TBipolarSemiLogXBase.Create;
@@ -145,25 +164,56 @@ End;
 
 { TVectorialDiagram }
 
-Constructor TVectorialDiagram.Create(ACoord:TCoordBase; AImage : TImage);
+Constructor TVectorialDiagram.Create(ACoord:TCoordBase);
 Begin
   inherited Create;
   FVecDoc  := TvVectorialDocument.Create;
   FVecPage := FVecDoc.AddPage;
   FCoord   := ACoord;
-  FImage   := AImage;
+  FBoxPenColor    := colBlack;
+  FBoxPenWidth    := 1;
+  FXGridPenColor  := colLtGray;
+  FXGridPenWidth  := 1;
+  FXTickPenColor  := colBlack;
+  FXTickPenWidth  := 1;
+  FXTickFontName  := 'Arial';
+  FXTickFontSize  := 10.0;
+  FTickLenDrw     := 5.0;
+  FXBreakPenColor := FPColor($4000, $4000, $FFFF);
+  FXBreakPenWidth := 1;
+  FXBreakExtDrw   := 6.0;
+  FXBreakSlantDrw := 2.0;
+  FXBreakSpaceDrw := 2.0;
 End;
 
-Procedure TVectorialDiagram.Resize;
+Procedure TVectorialDiagram.Resize(AWidth, AHeight : Integer);
 Begin
-  FDiagBox.Left     := 20.0;
+  // image size in pixel or mm
+  FWidth  := AWidth;
+  FHeight := AHeight;
+  // diagram box itself
+  FDiagBox.Left     := 3.0;
   FDiagBox.Bottom   := 20.0;
-  FDiagBox.Right    := FImage.Width  - 3;
-  FDiagBox.Top      := FImage.Height - 3;
+  FDiagBox.Right    := FWidth  - 3;
+  FDiagBox.Top      := FHeight - 3;
   FCoord.FDrwWidth  := FDiagBox.Right-FDiagBox.Left;
   FCoord.FDrwHeight := FDiagBox.Top-FDiagBox.Bottom;
   FVecDoc.Width     := FCoord.FDrwWidth;
   FVecDoc.Height    := FCoord.FDrwHeight;
+  FVecPage.Width    := FVecDoc.Width;
+  FVecPage.Height   := FVecDoc.Height;
+  // clear page
+  FVecPage.Clear;
+End;
+
+Procedure TVectorialDiagram.Resize(AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
+Begin
+  Resize(AWidth, AHeight);
+  // initialize renderer and provide canvas (but without drawing) so that bounding box calculations (e.g., for text width) and so on are working
+  FVecPage.Render(ACanvas,
+    0, FHeight,
+    1.0, -1 * 1.0,
+    False);
 End;
 
 Procedure TVectorialDiagram.Line(X1, Y1, X2, Y2 : Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
@@ -205,7 +255,7 @@ End;
 Procedure TVectorialDiagram.DrawBox;
 Begin
   Rectangle(FDiagBox.Left, FDiagBox.Bottom, FDiagBox.Right, FDiagBox.Top,
-    colBlack, psSolid, 1);
+    FBoxPenColor, psSolid, FBoxPenWidth);
 End;
 
 Procedure TVectorialDiagram.DrawSemiLogXAxis;
@@ -221,14 +271,13 @@ Var Coord  : TBipolarSemiLogXBase;
     if Solid then Style := psSolid
     else          Style := psDot;
     Line(FDiagBox.Left + XDrw, FDiagBox.Bottom, FDiagBox.Left + XDrw, FDiagBox.Top,
-      FPColor($C000, $C000, $C000), Style, 1);
+      FXGridPenColor, Style, FXGridPenWidth);
   End;
 
   Procedure DrawXTick;
-  Const DrwTickExt = 5.0;    // extension above and below axis
   Begin
-    Line(FDiagBox.Left + XDrw, FDiagBox.Bottom + DrwTickExt, FDiagBox.Left + XDrw, FDiagBox.Bottom - DrwTickExt,
-      colBlack, psSolid, 1);
+    Line(FDiagBox.Left + XDrw, FDiagBox.Bottom + FTickLenDrw, FDiagBox.Left + XDrw, FDiagBox.Bottom - FTickLenDrw,
+      FXTickPenColor, psSolid, FXTickPenWidth);
   End;
 
   Procedure DrawXValue(Base,Exponent:Integer);
@@ -251,21 +300,18 @@ Var Coord  : TBipolarSemiLogXBase;
     FVecPage.AddEntity(F);
     // this doesn't raise the exponent, it is written in the same line and same height as the base
 {$ELSE}
-    T1 := FVecPage.AddText(FDiagBox.Left + XDrw-9.0, FDiagBox.Bottom-18.0, 0.0, 'Arial', 10, IntToStr(Base));
+    T1 := FVecPage.AddText(FDiagBox.Left + XDrw-9.0, FDiagBox.Bottom-FXTickFontSize-8.0, 0.0, FXTickFontName, Round(FXTickFontSize), IntToStr(Base));
     W  := T1.GetWidth(FVecPage.RenderInfo);
-    FVecPage.AddText(FDiagBox.Left + XDrw-9.0+W, FDiagBox.Bottom-12.0, 0.0, 'Arial',  6, IntToStr(Exponent));
+    FVecPage.AddText(FDiagBox.Left + XDrw-9.0+W, FDiagBox.Bottom-FXTickFontSize-2.0, 0.0, FXTickFontName, Round(FXTickFontSize*0.6), IntToStr(Exponent));
 {$ENDIF}
   End;
 
   Procedure DrawXAxisBreak(X:Double);
-  Const DrwBreakExt   = 6.0;    // extension above and below axis
-        DrwBreakSlant = 2.0;    // how much slanted (actually half of that)
-        DrwBreakSpace = 2.0;    // space between the two lines (actually half of that space)
   Begin
-    Line(X-DrwBreakSlant-DrwBreakSpace, FDiagBox.Bottom - DrwBreakExt, X+DrwBreakSlant-DrwBreakSpace, FDiagBox.Bottom + DrwBreakExt,
-      FPColor($4000, $4000, $FFFF), psSolid, 1);
-    Line(X-DrwBreakSlant+DrwBreakSpace, FDiagBox.Bottom - DrwBreakExt, X+DrwBreakSlant+DrwBreakSpace, FDiagBox.Bottom + DrwBreakExt,
-      FPColor($4000, $4000, $FFFF), psSolid, 1);
+    Line(X-FXBreakSlantDrw-FXBreakSpaceDrw, FDiagBox.Bottom - FXBreakExtDrw, X+FXBreakSlantDrw-FXBreakSpaceDrw, FDiagBox.Bottom + FXBreakExtDrw,
+      FXBreakPenColor, psSolid, FXBreakPenWidth);
+    Line(X-FXBreakSlantDrw+FXBreakSpaceDrw, FDiagBox.Bottom - FXBreakExtDrw, X+FXBreakSlantDrw+FXBreakSpaceDrw, FDiagBox.Bottom + FXBreakExtDrw,
+      FXBreakPenColor, psSolid, FXBreakPenWidth);
   End;
 
 Begin
@@ -295,7 +341,7 @@ Begin
       XDrw := FCoord.ValX2Drw(0.0);
       DrawXGrid(true);
       DrawXTick;
-      FVecPage.AddText(FDiagBox.Left + XDrw-4.0, FDiagBox.Bottom-18.0, 0.0, 'Arial', 10, '0');
+      FVecPage.AddText(FDiagBox.Left + XDrw-4.0, FDiagBox.Bottom-FXTickFontSize-8.0, 0.0, FXTickFontName, Round(FXTickFontSize), '0');
       DrawXAxisBreak(FDiagBox.Left + XDrw + Coord.FDrwZeroWidth*0.5);
       if Coord.FValXNegMax <> Coord.FValXNegMin then
         DrawXAxisBreak(FDiagBox.Left + XDrw - Coord.FDrwZeroWidth*0.5);
@@ -348,30 +394,27 @@ End;
 
 Procedure TVectorialDiagram.DrawAxes;
 Begin
-  // initialize renderer without drawing so that bounding box calculations and so on are working
-  FVecPage.Clear;
-  FVecPage.Render(FImage.Canvas,
-    0, FImage.Height,
-    1.0, -1 * 1.0,
-    False);
-  // DrawAxes diagram
+  // draw empty diagram
   DrawSemiLogXAxis;
   DrawYAxis;
   DrawBox;   // box last for nicer looking image
 End;
 
-Procedure TVectorialDiagram.Update;
+Procedure TVectorialDiagram.Paint(ACanvas : TFPCustomCanvas);
 Begin
-  FImage.Canvas.Clear;
-  FImage.Canvas.Brush.Color := clWhite;
-  FImage.Canvas.Brush.Style := bsSolid;
-  FImage.Canvas.FillRect(0, 0, FImage.Width, FImage.Height);
+  ACanvas.Clear;
+  ACanvas.Brush.FPColor := colWhite;
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.FillRect(0, 0, FWidth, FHeight);
 
-  FVecPage.Render(FImage.Canvas,
-    0, FImage.Height,
+  FVecPage.Render(ACanvas,
+    0, FHeight,
     1.0, -1 * 1.0);
-  FImage.Invalidate;
-//  FVecDoc.WriteToFile('test.svg', vfSVG);
+End;
+
+Procedure TVectorialDiagram.WriteSVG(AFilename : String);
+Begin
+  FVecDoc.WriteToFile(AFilename, vfSVG);
 End;
 
 End.
