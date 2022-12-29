@@ -22,7 +22,7 @@ Type
     Destructor  Destroy; override;
     Procedure WriteReport(AFilename : String);
   Private
-    Function ExcapeLaTeX(St : String) : String;
+    Function EscapeLaTeX(St : String) : String;
   End;
 
 Implementation
@@ -41,7 +41,7 @@ Begin
   inherited Destroy;
 End;
 
-Function TComparisonReport.ExcapeLaTeX(St:String):String;
+Function TComparisonReport.EscapeLaTeX(St:String):String;
 Begin
   Result := St;
   Result := StringReplace(Result, '\', '\\', [rfReplaceAll]);
@@ -83,9 +83,13 @@ Begin
   S.Add('\usepackage[latin1]{inputenc}');
   S.Add('\usepackage[T1]{fontenc}');
   S.Add('\usepackage[inkscapelatex=false]{svg}');
+  S.Add('\usepackage[a4paper,hmargin={2.5cm,2.5cm},vmargin={2.5cm}]{geometry}');
+  S.Add('\usepackage{hyperref}');
   S.Add('');
   S.Add('\setlength{\parindent}{0mm}');
   S.Add('\setlength{\parskip}{2ex}');
+  S.Add('');
+  S.Add('\newcommand{\TODO}[1]{\setlength{\fboxrule}{1mm}\fcolorbox{red}{yellow}{\textcolor{blue}{TODO: #1}}}');
   S.Add('');
   S.Add('\title{'+'Test Report'+'}');
   S.Add('');
@@ -96,7 +100,7 @@ Begin
 
   S.Add('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('\section{Summary}');
-  S.Add('Filename: \textbf{'+ExcapeLaTeX(FFilename)+'}');
+  S.Add('Filename: \textbf{'+EscapeLaTeX(FFilename)+'}');
   S.Add('');
   S.Add('Quantity: \textbf{'+CQuantityStr[FComparison.FQuantity]+'}');
   S.Add('');
@@ -108,7 +112,7 @@ Begin
     End;
   S.Add('\end{itemize}');
   S.Add('');
-  S.Add('Result: \textbf{'+'TODO'+'}');
+  S.Add('Result: \textbf{\TODO{pass or fail}}');
   S.Add('');
   S.Add('');
   S.Add('');
@@ -122,12 +126,12 @@ Begin
   S.Add('\begin{description}');
   For NI := 0 to Length(FComparison.FInstruments)-1 do
     Begin
-      S.Add('  \item['+ExcapeLaTeX(FComparison.FInstruments[NI].FName)+':] '+
-        ExcapeLaTeX(FComparison.FInstruments[NI].FWrapperName) +
-        ', \texttt{'+ExcapeLaTeX(StringReplace(FComparison.FInstruments[NI].GetParams.ToSyntax, ',', ', ', [rfReplaceAll]))+'}');
+      S.Add('  \item['+EscapeLaTeX(FComparison.FInstruments[NI].FName)+':] '+
+        EscapeLaTeX(FComparison.FInstruments[NI].FWrapperName) +
+        ', \texttt{'+EscapeLaTeX(StringReplace(FComparison.FInstruments[NI].GetParams.ToSyntax, ',', ', ', [rfReplaceAll]))+'}');
     End;
   S.Add('\end{description}');
-  S.Add('\textbf{TODO:} serial numbers');
+  S.Add('\TODO{serial numbers}');
   S.Add('');
   S.Add('\subsection{Ranges} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
@@ -137,14 +141,14 @@ Begin
   InstTypes := FComparison.GetInstrumentTypes;
   For NT := 0 to Length(InstTypes)-1 do
     Begin
-      S.Add('  \item['+ExcapeLaTeX(InstTypes[NT].FInstruments[0].FWrapperName)+':]');
+      S.Add('  \item['+EscapeLaTeX(InstTypes[NT].FInstruments[0].FWrapperName)+':]');
       St := '';
       IdxMeas   := -1;
       IdxSource := -1;
       For NI := 0 to Length(InstTypes[NT].FInstruments)-1 do
         Begin
           if NI > 0 then St := St + ', ';
-          St := St + ExcapeLaTeX(InstTypes[NT].FInstruments[NI].FName);
+          St := St + EscapeLaTeX(InstTypes[NT].FInstruments[NI].FName);
           if      InstTypes[NT].FInstruments[NI].FFunction = ifMeasure then       IdxMeas   := NI
           else if InstTypes[NT].FInstruments[NI].FFunction = ifSource  then Begin IdxSource := NI; St := St + ' (Source)'; End
           else raise Exception.Create('Unknown value for instrument function');
@@ -156,10 +160,10 @@ Begin
           St := '      \item '+FloatToStr(InstTypes[NT].FInstruments[0].FRanges[FComparison.FQuantity][NR].FMaxValue);
           if (IdxMeas >= 0) and (InstTypes[NT].FInstruments[IdxMeas].FRanges[FComparison.FQuantity][NR] is TMeasureRangeAccuracy) then
             with InstTypes[NT].FInstruments[IdxMeas].FRanges[FComparison.FQuantity][NR] as TMeasureRangeAccuracy do
-              St := St + ': Measure ' + ExcapeLaTeX(FAccuracy[{TODO: FInstrument.AccIdxV}0].ToString);
+              St := St + ': Measure ' + EscapeLaTeX(FAccuracy[{TODO: FInstrument.AccIdxV}0].ToString);
           if (IdxSource >= 0) and (InstTypes[NT].FInstruments[IdxSource].FRanges[FComparison.FQuantity][NR] is TMeasureRangeAccuracy) then
             with InstTypes[NT].FInstruments[IdxSource].FRanges[FComparison.FQuantity][NR] as TMeasureRangeAccuracy do
-              St := St + ', Source '  + ExcapeLaTeX(FAccuracy[{TODO: FInstrument.AccIdxV}0].ToString);
+              St := St + ', Source '  + EscapeLaTeX(FAccuracy[{TODO: FInstrument.AccIdxV}0].ToString);
           S.Add(St);
         End;
       S.Add('    \end{itemize}');
@@ -187,8 +191,8 @@ Begin
   S.Add('\begin{description}');
   For NI := 0 to Length(FComparison.FInstruments)-1 do
     Begin
-      S.Add('  \item['+ExcapeLaTeX(FComparison.FInstruments[NI].FName)+':] '+
-        ExcapeLaTeX(FComparison.FInstruments[NI].FWrapperName));
+      S.Add('  \item['+EscapeLaTeX(FComparison.FInstruments[NI].FName)+':] '+
+        EscapeLaTeX(FComparison.FInstruments[NI].FWrapperName));
       S.Add('    \begin{itemize}');
       For NR := 0 to Length(FComparison.FInstruments[NI].FRanges[FComparison.FQuantity])-1 do
         Begin
@@ -209,21 +213,21 @@ Begin
   S.Add('Comparison procedure (see Fig.~\ref{fig:procedure-gen}).');
   S.Add('');
 
-  S.Add('\begin{enumerate}');
+  S.Add('\begin{itemize}');
   For NS := 0 to Length(FComparison.FProcedure.FSets)-1 do
     Begin
-      S.Add('  \item['+IntToStr(NS)+'.] Set \#'+IntToStr(NS)+' of Ranges up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal));
+      S.Add('  \item'{['+IntToStr(NS)+'.]}+' Set \#'+IntToStr(NS)+' of Ranges up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal));
       S.Add('    \begin{itemize}');
       For NR := 0 to Length(FComparison.FProcedure.FSets[NS].FRanges)-1 do
         Begin
           if not assigned(FComparison.FProcedure.FSets[NS].FRanges[NR]) then continue;
-          S.Add('      \item '+ExcapeLaTeX(FComparison.FInstruments[NR].FName)+IfThen(FComparison.FInstruments[NR].FFunction=ifMeasure,' measure ',' source ')+' range '+FloatToStr(FComparison.FProcedure.FSets[NS].FRanges[NR].FMaxValue));
+          S.Add('      \item '+EscapeLaTeX(FComparison.FInstruments[NR].FName)+IfThen(FComparison.FInstruments[NR].FFunction=ifMeasure,' measure ',' source ')+' range '+FloatToStr(FComparison.FProcedure.FSets[NS].FRanges[NR].FMaxValue));
         End;
       S.Add('      \item Testpoints: '+            StringReplace(FComparison.FProcedure.FSets[NS].FTestPoints.ToString, ' ', ', ', [rfReplaceAll]));
       S.Add('    \end{itemize}');
       S.Add('');
     End;
-  S.Add('\end{enumerate}');
+  S.Add('\end{itemize}');
 
   Diag.DrawProcedure(140, 120, Nil);
   Diag.FDiagram.WriteSVG('test-procedure-gen.svg');
@@ -246,7 +250,7 @@ Begin
   Diag.DrawResults(140, 180, Nil);
   Diag.FDiagram.WriteSVG('test-results-gen.svg');
 
-  S.Add('\begin{figure}[htb]');
+  S.Add('\begin{figure}[htbp]');
   S.Add('  \centering');
   S.Add('  \includesvg{test-results-gen.svg}');
   S.Add('  \caption{My figure}');
@@ -260,15 +264,104 @@ Begin
   S.Add('\subsection{Results by Instrument} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
   S.Add('Measurement results by instrument');
-  // TODO: see TComparisonProcedure.PrintMeasurementsByInstrument
+  S.Add('');
+  S.Add('\begin{itemize}');
+  For NS := 0 to Length(FComparison.FProcedure.FSets)-1 do
+    Begin
+      S.Add('  \item'{['+IntToStr(NS)+'.]}+' Set \#'+IntToStr(NS)+' of Ranges up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal));
+      if Length(FComparison.FProcedure.FSets[NS].FMeasurements) <> Length(FComparison.FInstruments) then
+        Begin
+          S.Add('    No measurements');
+          Continue;
+        End;
+      // determine all active ranges
+      AllRanges := FComparison.FProcedure.FSets[NS].GetAllRanges;
+      // print results
+      S.Add('    \begin{itemize}');
+      For NI := 0 to Length(FComparison.FProcedure.FSets[NS].FRanges)-1 do
+        Begin
+          if not assigned(AllRanges[NI]) then continue;
+          Instrument := FComparison.FInstruments[NI];
+          Range      := AllRanges[NI];
+          S.Add('      \item '+EscapeLaTeX(FComparison.FInstruments[NI].FName)+IfThen(FComparison.FInstruments[NI].FFunction=ifMeasure,' measure ',' source ')+' range '+FloatToStr(AllRanges[NI].FMaxValue)+':');
+          if Length(FComparison.FProcedure.FSets[NS].FMeasurements[NI]) <> Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues) then
+            Begin
+              S.Add('    Different number of measurements '+IntToStr(Length(FComparison.FProcedure.FSets[NS].FMeasurements[NI]))+' than testpoints '+IntToStr(Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)));
+              Continue;
+            End;
+          S.Add('        \begin{itemize}');
+          For NP := 0 to Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)-1 do
+            Begin
+              if not assigned(FComparison.FProcedure.FSets[NS].FMeasurements[NI][NP]) then
+                Begin
+                  S.Add('          \item No measurement');
+                  Continue;
+                End;
+              S.Add('        \item Testpoint '+FloatToStr(FComparison.FProcedure.FSets[NS].FTestPoints.FValues[NP])+': '+EscapeLaTeX(FComparison.FProcedure.FSets[NS].FMeasurements[NI][NP].ToString));
+            End;
+          S.Add('        \end{itemize}');
+        End;
+      S.Add('    \end{itemize}');
+    End;
+  S.Add('\end{itemize}');
   S.Add('');
   S.Add('');
   S.Add('');
   S.Add('\subsection{Results by Testpoint} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
   S.Add('Measurement results by testpoint');
-  // TODO: see TComparisonProcedure.PrintMeasurementsByTestPoint
   S.Add('');
+  S.Add('\begin{itemize}');
+  For NS := 0 to Length(FComparison.FProcedure.FSets)-1 do
+    Begin
+      S.Add('  \item'{['+IntToStr(NS)+'.]}+' Set \#'+IntToStr(NS)+' of Ranges up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal));
+      if Length(FComparison.FProcedure.FSets[NS].FMeasurements) <> Length(FComparison.FInstruments) then
+        Begin
+          S.Add('    No measurements');
+          Continue;
+        End;
+      // determine all active ranges
+      AllRanges := FComparison.FProcedure.FSets[NS].GetAllRanges;
+      // print results
+      S.Add('    \begin{itemize}');
+      // instrument ranges
+      S.Add('      \item Ranges');
+      S.Add('        \begin{itemize}');
+      For NI := 0 to Length(AllRanges)-1 do
+        Begin
+          Instrument := FComparison.FInstruments[NI];
+          Range      := AllRanges[NI];
+          S.Add('          \item '+EscapeLaTeX(Instrument.FName)+IfThen(Instrument.FFunction=ifMeasure,' measure ',' source ')+' range '+FloatToStr(Range.FMaxValue));
+        End;
+      S.Add('        \end{itemize}');
+      // results
+      For NP := 0 to Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)-1 do
+        Begin
+          S.Add('      \item Testpoint '+FloatToStr(FComparison.FProcedure.FSets[NS].FTestPoints.FValues[NP]));
+          S.Add('        \begin{itemize}');
+          For NI := 0 to Length(AllRanges)-1 do
+            Begin
+              if not assigned(AllRanges[NI]) then continue;
+              if not assigned(FComparison.FProcedure.FSets[NS].FMeasurements[NI][NP]) then
+                Begin
+                  S.Add('        \item No measurement');
+                  Continue;
+                End;
+              if Length(FComparison.FProcedure.FSets[NS].FMeasurements[NI]) <> Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues) then
+                Begin
+                  S.Add('          \item Different number of measurements '+IntToStr(Length(FComparison.FProcedure.FSets[NS].FMeasurements[NI]))+' than testpoints '+IntToStr(Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)));
+                  Continue;
+                End;
+              Instrument := FComparison.FInstruments[NI];
+              Range      := AllRanges[NI];
+              S.Add('          \item '+EscapeLaTeX(Instrument.FName)+': '+EscapeLaTeX(FComparison.FProcedure.FSets[NS].FMeasurements[NI][NP].ToString));
+            End;
+          S.Add('          \item \TODO{pass or fail?}');
+          S.Add('        \end{itemize}');
+        End;
+      S.Add('    \end{itemize}');
+    End;
+  S.Add('\end{itemize}');
   S.Add('');
   S.Add('');
   S.Add('');
