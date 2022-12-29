@@ -155,6 +155,11 @@ Type
   TInstrumentWrapperBase = class;
   TInstrumentWrapperClass = class of TInstrumentWrapperBase;
   TInstrumentWrapperRegistry = specialize TFPGMap<String,TInstrumentWrapperClass>;
+  TInstrumentTypeItem = record
+    FInstrumentType : TInstrumentWrapperClass;
+    FInstruments    : Array of TInstrumentWrapperBase;
+  End;
+  TInstrumentTypes = Array of TInstrumentTypeItem;
 
   { TInstrumentWrapperFactory }
 
@@ -458,6 +463,7 @@ Type
     Function GetInstrumentIndex(AName:String) : Integer;   // returns -1 if not found
     Function GetInstrumentRangeIdx(AInstrumentIdx : Integer; ARange : Double) : Integer;             // returns -1 if not founds
     Function GetInstrumentRange   (AInstrumentIdx : Integer; ARange : Double) : TMeasureRangeBase;   // returns Nil if not found
+    Function GetInstrumentTypes : TInstrumentTypes;
 {$IFDEF CreateMeasureDefinitionFirstAttempt}
     Procedure CreateMeasureDefinitionFirstAttempt;
 {$ENDIF} // CreateMeasureDefinitionFirstAttempt
@@ -1864,7 +1870,7 @@ Begin
   // print results
   For NP := 0 to Length(FTestPoints.FValues)-1 do
     Begin
-      WriteLn('  ',FloatToStr(FTestPoints.FValues[NP]));
+      WriteLn('  Testpoint ',FloatToStr(FTestPoints.FValues[NP]));
       For NI := 0 to Length(FRanges)-1 do
         Begin
           if not assigned(AllRanges[NI]) then continue;
@@ -2054,6 +2060,42 @@ Begin
   if NR < 0 then
     Exit;
   Result := FInstruments[AInstrumentIdx].FRanges[FQuantity][NR];
+End;
+
+Function TComparisonBase.GetInstrumentTypes : TInstrumentTypes;
+Var NI,NT : Integer;
+    Same  : Boolean;
+Begin
+  SetLength(Result, 0);
+  if Length(FInstruments) = 0 then Exit;
+  // first entry
+  SetLength(Result, 1);
+  Result[0].FInstrumentType := TInstrumentWrapperClass(FInstruments[NI].ClassType);
+  SetLength(Result[0].FInstruments, 1);
+  Result[0].FInstruments[0] := FInstruments[NI];
+  For NI := 1 to Length(FInstruments)-1 do
+    Begin
+      Same := False;
+      For NT := 0 to Length(Result)-1 do
+        Begin
+          if Result[NT].FInstrumentType = TInstrumentWrapperClass(FInstruments[NI].ClassType) then
+            Begin
+              // same type: add to instruments list
+              SetLength(Result[NT].FInstruments, Length(Result[NT].FInstruments)+1);
+              Result[NT].FInstruments[Length(Result[NT].FInstruments)-1] := FInstruments[NI];
+              Same := True;
+              break;
+            End;
+        End;
+      if not Same then
+        Begin
+          // new type: add to types list
+          SetLength(Result, Length(Result)+1);
+          Result[Length(Result)-1].FInstrumentType := TInstrumentWrapperClass(FInstruments[NI].ClassType);
+          SetLength(Result[Length(Result)-1].FInstruments, 1);
+          Result[Length(Result)-1].FInstruments[0] := FInstruments[NI];
+        End;
+    End;
 End;
 
 {$IFDEF CreateMeasureDefinitionFirstAttempt}
