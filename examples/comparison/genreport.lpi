@@ -48,7 +48,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../../base;../../devcom;../../usb;../../pas-libusb/src;../../gpib;../../instruments;../../instruments/keithley;../../instruments/lecroy;../../instruments/rohdeschwarz;../../instruments/agilent;delphi-templeng-code/TemplateEngine/Auxiliar;delphi-templeng-code/TemplateEngine/Container;delphi-templeng-code/TemplateEngine/Context;delphi-templeng-code/TemplateEngine/Engine;delphi-templeng-code/TemplateEngine/Exception;delphi-templeng-code/TemplateEngine/Template;delphi-templeng-code/TemplateEngine/TemplateAnalyser"/>
+      <OtherUnitFiles Value="../../base;../../devcom;../../usb;../../pas-libusb/src;../../gpib;../../instruments;../../instruments/keithley;../../instruments/lecroy;../../instruments/rohdeschwarz;../../instruments/agilent"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
   </CompilerOptions>
