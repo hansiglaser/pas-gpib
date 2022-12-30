@@ -10,6 +10,11 @@ Uses
 
 Type
 
+(*
+  "Value"   : data value
+  "Drawing" : drawing coordinate
+*)
+
   { TCoordBase }
 
   TCoordBase = class
@@ -22,13 +27,23 @@ Type
     Function DrwY2Val(Drw:Double):Double; virtual; abstract;
   End;
 
-  { TBipolarSemiLogXBase }
+  { TLinearCoord }
 
-  TBipolarSemiLogXBase = class(TCoordBase)
-    (* TODO: would be better design, if we have a base class for any kind of
-     * coordinate transformation, with virtual methods, and this class is
-     * derived from it, and there could be a linear class too.
-     *)
+  TLinearCoord = class(TCoordBase)
+    FValXMin : Double;
+    FValXMax : Double;
+    FValYMin : Double;
+    FValYMax : Double;
+    Constructor Create;
+    Function ValX2Drw(Val:Double):Double; override;
+    Function ValY2Drw(Val:Double):Double; override;
+    Function DrwX2Val(Drw:Double):Double; override;
+    Function DrwY2Val(Drw:Double):Double; override;
+  End;
+
+  { TBipolarSemiLogXCoord }
+
+  TBipolarSemiLogXCoord = class(TCoordBase)
     FValXNegMax   : Double;   // use absolute value
     FValXNegMin   : Double;   // use absolute value
     FValXPosMin   : Double;
@@ -82,6 +97,7 @@ Type
     Procedure SymPlus(X, Y, Size : Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
     // diagram functions
     Procedure DrawBox;
+    Procedure DrawLinearXAxis;
     Procedure DrawSemiLogXAxis;
     Procedure DrawYAxis;
     Procedure DrawRect(ValXMin,ValXMax,ValYMin,ValYMax:Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer; BrushColor : TFPColor; BrushStyle : TFPBrushStyle);
@@ -102,19 +118,41 @@ Begin
   inherited Create;
 End;
 
-{ TBipolarSemiLogXBase }
+{ TLinearCoord }
 
-(*
-  "Value"   : data value
-  "Drawing" : drawing coordinate
-*)
-
-Constructor TBipolarSemiLogXBase.Create;
+Constructor TLinearCoord.Create;
 Begin
   inherited Create;
 End;
 
-Function TBipolarSemiLogXBase.ValX2Drw(Val : Double) : Double;
+Function TLinearCoord.ValX2Drw(Val : Double) : Double;
+Begin
+  Result := (Val-FValXMin) / (FValXMax-FValXMin) * FDrwWidth;
+End;
+
+Function TLinearCoord.ValY2Drw(Val : Double) : Double;
+Begin
+  Result := (Val-FValYMin) / (FValYMax-FValYMin) * FDrwHeight;
+End;
+
+Function TLinearCoord.DrwX2Val(Drw : Double) : Double;
+Begin
+  Result := Drw/FDrwWidth * (FValXMax-FValXMin) + FValXMin;
+End;
+
+Function TLinearCoord.DrwY2Val(Drw : Double) : Double;
+Begin
+  Result := Drw/FDrwHeight * (FValYMax-FValYMin) + FValYMin;
+End;
+
+{ TBipolarSemiLogXCoord }
+
+Constructor TBipolarSemiLogXCoord.Create;
+Begin
+  inherited Create;
+End;
+
+Function TBipolarSemiLogXCoord.ValX2Drw(Val : Double) : Double;
 Var LogScale : Double;
 Begin
   if Val > FValXPosMax then WriteLn('Warning: Value ',Val,' is larger than the largest value ',FValXPosMax);
@@ -147,17 +185,17 @@ Begin
     End;
 End;
 
-Function TBipolarSemiLogXBase.ValY2Drw(Val : Double) : Double;
+Function TBipolarSemiLogXCoord.ValY2Drw(Val : Double) : Double;
 Begin
   Result := (Val - FValYMin) / (FValYMax-FValYMin) * FDrwHeight;
 End;
 
-Function TBipolarSemiLogXBase.DrwX2Val(Drw : Double) : Double;
+Function TBipolarSemiLogXCoord.DrwX2Val(Drw : Double) : Double;
 Begin
   raise Exception.Create('TODO: implement');
 End;
 
-Function TBipolarSemiLogXBase.DrwY2Val(Drw : Double) : Double;
+Function TBipolarSemiLogXCoord.DrwY2Val(Drw : Double) : Double;
 Begin
   Result := Drw/FDrwHeight * (FValYMax-FValYMin) + FValYMin;
 End;
@@ -258,8 +296,52 @@ Begin
     FBoxPenColor, psSolid, FBoxPenWidth);
 End;
 
+Procedure TVectorialDiagram.DrawLinearXAxis;
+Var Coord    : TLinearCoord;
+
+  Procedure DrawXTick(XDrw:Double);
+  Begin
+    Line(FDiagBox.Left + XDrw, FDiagBox.Bottom + FTickLenDrw, FDiagBox.Left + XDrw, FDiagBox.Bottom - FTickLenDrw,
+      FXTickPenColor, psSolid, FXTickPenWidth);
+  End;
+
+  Procedure DrawXValue(XDrw:Double;St:String);
+  Begin
+    FVecPage.AddText(FDiagBox.Left + XDrw - Length(St)*FXTickFontSize*0.5*0.5, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*1.3, 0.0, FXTickFontName, Round(FXTickFontSize), St);
+    // centering and estimating approx. 50% width compared to height
+  End;
+
+Var ValWidth : Double;
+    TickDist : Double;
+    TickExp  : Double;
+    TickMag  : Double;
+    TickIdx  : Double;
+    TickVal  : Double;
+    TickDrw  : Double;
+Begin
+  Coord := FCoord as TLinearCoord;
+  ValWidth := Coord.FValXMax - Coord.FValXMin;
+  // we want between 5 and 10 ticks
+  TickDist := ValWidth * 0.1;
+  TickExp := Floor(Log10(TickDist));
+  TickMag := TickDist / Power(10.0, TickExp);
+  if TickMag <= 2.0 then TickMag := 2.0
+  else if TickMag <= 5.0 then TickMag := 5.0
+  else TickMag := 10.0;
+  TickDist := TickMag * Power(10.0, TickExp);
+  TickIdx := Ceil(Coord.FValXMin / TickDist);
+  repeat
+    TickVal := TickIdx*TickDist;
+    if TickVal > Coord.FValXMax then break;
+    TickDrw := Coord.ValX2Drw(TickVal);
+    DrawXTick(TickDrw);
+    DrawXValue(TickDrw, FloatToStr(TickVal));
+    TickIdx := TickIdx + 1.0;
+  until false;
+End;
+
 Procedure TVectorialDiagram.DrawSemiLogXAxis;
-Var Coord  : TBipolarSemiLogXBase;
+Var Coord  : TBipolarSemiLogXCoord;
     Decade : Integer;
     Step   : Integer;
     Value  : Double;
@@ -315,7 +397,7 @@ Var Coord  : TBipolarSemiLogXBase;
   End;
 
 Begin
-  Coord := TBipolarSemiLogXBase(FCoord);
+  Coord := FCoord as TBipolarSemiLogXCoord;
   // negative values
   if Coord.FValXNegMax <> Coord.FValXNegMin then
     Begin
@@ -395,7 +477,12 @@ End;
 Procedure TVectorialDiagram.DrawAxes;
 Begin
   // draw empty diagram
-  DrawSemiLogXAxis;
+  if FCoord is TBipolarSemiLogXCoord then
+    DrawSemiLogXAxis
+  else if FCoord is TLinearCoord then
+    DrawLinearXAxis
+  else
+    raise Exception.Create('Unsupported type of FCoord = '+FCoord.ClassName);
   DrawYAxis;
   DrawBox;   // box last for nicer looking image
 End;
