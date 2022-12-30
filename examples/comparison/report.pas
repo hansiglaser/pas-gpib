@@ -138,8 +138,18 @@ Begin
   S.Add('Filename: \textbf{\texttt{'+EscapeLaTeX(FInFilename)+'}}');
   // TODO: by default, LaTeX doesn't support bold typewriter font, we would need LuxiMono or another special font
   S.Add('');
+  if not assigned(FComparison) then
+    Begin
+      S.Add('No instrument comparison loaded.');
+      Exit(S);
+    End;
   S.Add('Quantity: \textbf{'+CQuantityStr[FComparison.FQuantity]+'}');
   S.Add('');
+  if Length(FComparison.FInstruments) = 0 then     // list instruments only if a comparison with instruments is loaded
+    Begin
+      S.Add('No instruments defined');
+      Exit(S);
+    End;
   S.Add('Instruments:');
   S.Add('\begin{itemize}');
   For NI := 0 to Length(FComparison.FInstruments)-1 do
@@ -172,6 +182,11 @@ Begin
   S := TStringList.Create;
   S.Add('\subsection{Instruments} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
+  if not assigned(FComparison) or (Length(FComparison.FInstruments) = 0) then     // list instruments only if a comparison with instruments is loaded
+    Begin
+      S.Add('No instruments defined');
+      Exit(S);
+    End;
   S.Add('\begin{description}');
   For NI := 0 to Length(FComparison.FInstruments)-1 do
     Begin
@@ -195,6 +210,11 @@ Begin
   S := TStringList.Create;
   S.Add('\subsection{Ranges} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
+  if not assigned(FComparison) or (Length(FComparison.FInstruments) = 0) then     // list instruments only if a comparison with instruments is loaded
+    Begin
+      S.Add('No instruments defined');
+      Exit(S);
+    End;
   S.Add('Instrument ranges and their accuracy according to the datasheets (see Fig.~\ref{fig:ranges-gen}).');
   S.Add('');
   S.Add('\begin{description}');
@@ -233,7 +253,7 @@ Begin
 
   // TODO: size of diagram should depend on number of rows
   St := ChangeFileExt(FOutFilename, '-ranges.svg');
-  FSummDiag.DrawRanges(140, 120, Nil);
+  FSummDiag.DrawRanges(140, 120, Nil);    // also draws the testpoints, but only if they are defined
   FSummDiag.FDiagram.WriteSVG(St);
 
   S.Add('\begin{figure}[htb]');
@@ -254,6 +274,21 @@ Begin
   S.Add('');
   S.Add('\subsection{Testpoints} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
+  if not assigned(FComparison) or (Length(FComparison.FInstruments) = 0) then     // list instruments only if a comparison with instruments is loaded
+    Begin
+      S.Add('No instruments defined');
+      Exit(S);
+    End;
+  // count number of testpoints
+  NR := 0;
+  For NI := 0 to Length(FComparison.FInstruments)-1 do
+    NR := NR + Length(FComparison.FInstruments[NI].FTestpoints);
+  if NR = 0 then
+    Begin   // report testpoints only if they were generated
+      S.Add('No testpoints defined');
+      Exit(S);
+    End;
+
   S.Add('Testpoints for each range of each instrument. See also Fig.~\ref{fig:ranges-gen}.');
   S.Add('');
   S.Add('\begin{description}');
@@ -262,6 +297,11 @@ Begin
       S.Add('  \item['+EscapeLaTeX(FComparison.FInstruments[NI].FName)+':] '+
         EscapeLaTeX(FComparison.FInstruments[NI].FWrapperName)+
         IfThen(FComparison.FInstruments[NI].FFunction=ifMeasure,' (measure)',' (source)'));
+      if Length(FComparison.FInstruments[NI].FTestpoints) = 0 then
+        Begin
+          S.Add('    \\ No testpoints defined');   // for this instrument range
+          Continue;
+        End;
       S.Add('    \begin{itemize}');
       For NR := 0 to Length(FComparison.FInstruments[NI].FRanges[FComparison.FQuantity])-1 do
         Begin
@@ -285,6 +325,12 @@ Begin
   S.Add('');
   S.Add('\subsection{Comparison Procedure} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
+  if not assigned(FComparison) or not assigned(FComparison.FProcedure) then     // report procedure only if it exists
+    Begin
+      S.Add('No procedure defined.');
+      Exit(S);
+    End;
+
   S.Add('Comparison procedure (see Fig.~\ref{fig:procedure-gen}).');
   S.Add('');
 
@@ -325,6 +371,12 @@ Begin
   S := TStringList.Create;
   S.Add('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('\section{Results Overview}');
+  if not assigned(FComparison) or not assigned(FComparison.FProcedure) or (Length(FComparison.FProcedure.FSets[0].FMeasurements) = 0) then     // report results only if it exists
+    Begin
+      S.Add('No results available.');
+      Exit(S);
+    End;
+
   S.Add('');
   S.Add('Measurement results overview (see Fig.~\ref{fig:results-gen}).');
   S.Add('');
@@ -364,6 +416,11 @@ Begin
   S.Add('');
   S.Add('\subsection{Results by Instrument} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
+  if not assigned(FComparison) or not assigned(FComparison.FProcedure) or (Length(FComparison.FProcedure.FSets[0].FMeasurements) = 0) then     // report results only if it exists
+    Begin
+      S.Add('No results available.');
+      Exit(S);
+    End;
   S.Add('Measurement results by instrument');
   S.Add('');
   S.Add('\begin{itemize}');
@@ -422,6 +479,11 @@ Begin
   S.Add('');
   S.Add('\subsection{Results by Testpoint} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
+  if not assigned(FComparison) or not assigned(FComparison.FProcedure) or (Length(FComparison.FProcedure.FSets[0].FMeasurements) = 0) then     // report results only if it exists
+    Begin
+      S.Add('No results available.');
+      Exit(S);
+    End;
   S.Add('Measurement results by testpoint');
   S.Add('');
   S.Add('\begin{itemize}');
