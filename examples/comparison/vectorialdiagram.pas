@@ -499,30 +499,8 @@ Begin
     1.0, -1 * 1.0);
 End;
 
-type
-
-  { TDebugger }
-
-  TDebugger = class
-      function DebugAddItem (AStr: string; AParent: Pointer): Pointer;
-  End;
-
-  { TDebugger }
-
-  Function TDebugger.DebugAddItem(AStr : string; AParent : Pointer) : Pointer;
-  Begin
-    WriteLn(AStr);
-    Result := AParent;
-  End;
-
-
 Procedure TVectorialDiagram.WriteSVG(AFilename : String);
-Var Debugger : TDebugger;
 Begin
-  Debugger := TDebugger.Create;
-  FVecDoc.GenerateDebugTree(@Debugger.DebugAddItem);
-  Debugger.Free;
-
   FVecDoc.WriteToFile(AFilename, vfSVG);
 End;
 
