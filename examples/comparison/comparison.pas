@@ -181,6 +181,7 @@ Type
     FFunction       : TInstrumentFunction;       // source or measure
     FRanges         : TRangesQuantity;           // set by SetupRanges
     FTestPoints     : Array of TTestPoints;      // set by CreateTestPoints
+    FIdentifier     : String;                    // result of *IDN?, set by Initialize
   private
     Constructor Create(AComparisonBase:TComparisonBase;AWrapperName,AName:String;AParams:TInstrumentWrapperParams;AFunction:TInstrumentFunction);
   public
@@ -1097,8 +1098,9 @@ End;
 
 Procedure TInstrumentWrapperFluke177.Initialize;
 Begin
-  Write(FName+'.Initialize: Please set to ',CQuantityStr[FComparisonBase.FQuantity],' and confirm with Enter. ');
-  ReadLn;
+  WriteLn(FName+'.Initialize: Please set to ',CQuantityStr[FComparisonBase.FQuantity],', enter instrument identifier (serial number),');
+  Write('and confirm with Enter. ');
+  ReadLn(FIdentifier);
 End;
 
 Procedure TInstrumentWrapperFluke177.Disconnect;
@@ -1165,6 +1167,7 @@ Begin
 
   FInstrument := TKeysightU125xB.Create(FComm);
   WriteLn('Connected to device ',FInstrument.Identify);
+  FIdentifier := FInstrument.Identify;
 
   MeasureStatus := FInstrument.GetMeasureStatus;
   WriteLn(MeasureStatus.ToString);
@@ -1260,6 +1263,7 @@ End;
 Procedure TInstrumentWrapperAgilent34410A.Initialize;
 Begin
   WriteLn(FName+'.Initialize');
+  //FIdentifier := FInstrument.Identify;
 End;
 
 Procedure TInstrumentWrapperAgilent34410A.Disconnect;
@@ -1310,6 +1314,7 @@ End;
 Procedure TInstrumentWrapperKeithleyDMM6500.Initialize;
 Begin
   WriteLn(FName+'.Initialize');
+  //FIdentifier := FInstrument.Identify;
 End;
 
 Procedure TInstrumentWrapperKeithleyDMM6500.Disconnect;
@@ -1361,6 +1366,7 @@ End;
 Procedure TInstrumentWrapperKeithley2450.Initialize;
 Begin
   WriteLn(FName+'.Initialize');
+  //FIdentifier := FInstrument.Identify;
 End;
 
 Procedure TInstrumentWrapperKeithley2450.Disconnect;
@@ -1496,6 +1502,7 @@ Begin
   if assigned(FSource) and assigned(FMeasure) and (FFunction = ifMeasure) then
     Begin
       FInstrument := FSource.FInstrument;
+      FIdentifier := FInstrument.Identify;
       Exit;  // only source is initialized
     End;
   FComm       := DevComOpen(FVISA);
@@ -1504,6 +1511,7 @@ Begin
   //FComm.ErrorHandler := @USBTMCErrorHandler;
   // TODO: like in Create, check that the device is the same type as FWrapperName
   WriteLn('Connected to power supply ',FInstrument.Identify);
+  FIdentifier := FInstrument.Identify;
   WriteLn('Reset to default settings');
   FInstrument.Reset;
   WriteLn('Disable the beeper');
@@ -2404,6 +2412,12 @@ Begin
   if assigned(FProcedure) and (Length(FProcedure.FSets[0].FMeasurements) > 0) then
     Begin
       S.Add('[Results]');
+      // instrument information
+      For NI := 0 to Length(FInstruments)-1 do
+        Begin
+          S.Add(FInstruments[NI].FName+'.Identifier = '''+FInstruments[NI].FIdentifier+'''');
+        End;
+      // measurement results
       For NS := 0 to Length(FProcedure.FSets)-1 do
         Begin
           // the results are in FMeasurements[InstrumentIdx][TestPointIdx]

@@ -217,6 +217,7 @@ setting:
 subsetting:
   TOK_ID '.' TOK_ID '=' param_value EOL {
     //WriteLn('Subsetting ',$1,'.',$3,' = ',NewParamValue.ToSyntax);
+    //WriteLn('NewSection = ',NewSection,', NewSubSection = ',NewSubSection);
     if (NewSection = 'Procedure') and (NewSubSection = 'Set') then
       Begin
         if $3 <> 'Range' then
@@ -230,6 +231,18 @@ subsetting:
         NewCompSet.FRanges[TmpInstIdx] := NewComparison.GetInstrumentRange(TmpInstIdx, TmpDouble);
         if NewCompSet.FRanges[TmpInstIdx] = Nil then
           raise Exception.Create('Invalid range '+FloatToStr(TmpDouble)+' of instrument '+$1);
+      End
+    else if (NewSection = 'Results') and (NewSubSection = '') then
+      Begin
+        if $3 <> 'Identifier' then
+          raise Exception.Create('Invalid subsetting '+$3);
+        TmpInstIdx := NewComparison.GetInstrumentIndex($1);
+        if TmpInstIdx < 0 then
+          raise Exception.Create('Invalid instrument '+$1);
+        if not (NewParamValue is TParamValueString) then
+          raise Exception.Create('Invalid value type '+NewParamValue.ClassName+' for setting '+$1+'.'+$3);
+        NewComparison.FInstruments[TmpInstIdx].FIdentifier := (NewParamValue as TParamValueString).FValue;
+        FreeAndNil(NewParamValue);
       End
     else
       raise Exception.Create('Subsetting can only be declared in section ''Procedure''');

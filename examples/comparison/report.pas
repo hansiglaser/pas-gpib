@@ -178,6 +178,7 @@ End;
 Function TComparisonReport.GenSubSecInstruments : TStringList;
 Var S  : TStringList;
     NI : Integer;
+    St : String;
 Begin
   S := TStringList.Create;
   S.Add('\subsection{Instruments} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
@@ -191,11 +192,16 @@ Begin
   For NI := 0 to Length(FComparison.FInstruments)-1 do
     Begin
       S.Add('  \item['+EscapeLaTeX(FComparison.FInstruments[NI].FName)+':] '+
-        EscapeLaTeX(FComparison.FInstruments[NI].FWrapperName) +
-        ', \texttt{'+EscapeLaTeX(StringReplace(FComparison.FInstruments[NI].GetParams.ToSyntax, ',', ', ', [rfReplaceAll]))+'}');
+        EscapeLaTeX(FComparison.FInstruments[NI].FWrapperName) + '\\');
+      St := FComparison.FInstruments[NI].GetParams.ToSyntax;
+      St := StringReplace(St, ',', ', ', [rfReplaceAll]);   // beautify: spaces between commas
+      St := EscapeLaTeX(St);
+      St := StringReplace(St, '::', '\-::\-', [rfReplaceAll]);   // make VISA hyphenatable, but after EscapeLaTeX
+      S.Add('    \texttt{'+St+'}');
+      if FComparison.FInstruments[NI].FIdentifier > '' then
+        S.Add('    \\ \texttt{*IDN? = '+EscapeLaTeX(FComparison.FInstruments[NI].FIdentifier)+'}');
     End;
   S.Add('\end{description}');
-  S.Add('\TODO{serial numbers}');
   S.Add('');
   Result := S;
 End;
