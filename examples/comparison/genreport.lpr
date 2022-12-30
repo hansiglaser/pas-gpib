@@ -20,7 +20,10 @@ Begin
   SetupMeasurementResultFactory;
   SetupObjectFactory;
 
-  FFilename   := 'E36313A_Ch2s3-U1253B-DCV-out.InstCmp';
+  if ParamCount = 1 then
+    FFilename := ParamStr(1)
+  else
+    FFilename   := 'E36313A_Ch2s3-U1253B-DCV-out.InstCmp';
   FComparison := TComparisonBase.Load(FFilename);
   FComparison.SetupRanges;
   FComparison.FQuantity := qtDCV;
