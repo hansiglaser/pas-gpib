@@ -311,7 +311,7 @@ Begin
   // save results
   WriteLn('Saving to ',ComparisonMeasurement.FOutFilename);
   ComparisonMeasurement.Save;
-  ComparisonMeasurement.FComparison.FProcedure.PrintMeasurements;
+  ComparisonMeasurement.FComparison.FProcedure.PrintMeasurementsByTestPoint;
 
   // cleanup
   ComparisonMeasurement.Free;
