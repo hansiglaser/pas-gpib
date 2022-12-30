@@ -117,6 +117,8 @@ Begin
   S.Add('');
   S.Add('\newcommand{\TODO}[1]{\setlength{\fboxrule}{1mm}\fcolorbox{red}{yellow}{\textcolor{blue}{TODO: #1}}}');
   S.Add('');
+  S.Add('\definecolor{darkgreen}{rgb}{0.0,0.5,0}');
+  S.Add('');
   S.Add('\title{'+'Instrument Comparison Report \\ '+EscapeLaTeX(FInFilename)+'}');
   if FAuthor > '' then
     S.Add('\author{'+EscapeLaTeX(FAuthor)+'}');
@@ -131,6 +133,7 @@ End;
 Function TComparisonReport.GenSecSummary : TStringList;
 Var S  : TStringList;
     NI : Integer;
+    St : String;
 Begin
   S := TStringList.Create;
   S.Add('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
@@ -154,11 +157,17 @@ Begin
   S.Add('\begin{itemize}');
   For NI := 0 to Length(FComparison.FInstruments)-1 do
     Begin
-      S.Add('  \item '+FComparison.FInstruments[NI].FWrapperName+IfThen(FComparison.FInstruments[NI].FFunction=ifSource,' (Source)',''));
+      St := '  \item '+FComparison.FInstruments[NI].FWrapperName;
+      if FComparison.FInstruments[NI].FIdentifier > '' then
+        St := St + ' ' + FComparison.FInstruments[NI].FIdentifier;
+      if FComparison.FInstruments[NI].FFunction = ifSource then
+        St := St + ' (Source)';
+      S.Add(St);
     End;
   S.Add('\end{itemize}');
   S.Add('');
-  S.Add('Result: \textbf{\TODO{pass or fail}}');
+  if assigned(FComparison.FProcedure) and (Length(FComparison.FProcedure.FSets) > 0) and (Length(FComparison.FProcedure.FSets[0].FAnalyses) > 0) then
+    S.Add('Result: \textbf{' + IfThen(FComparison.FProcedure.FPass, '\textcolor{darkgreen}{PASS}', '\textcolor{red}{FAIL}')+'}');
   S.Add('');
   S.Add('');
   Result := S;
@@ -496,6 +505,7 @@ Begin
   For NS := 0 to Length(FComparison.FProcedure.FSets)-1 do
     Begin
       S.Add('  \item'{['+IntToStr(NS)+'.]}+' Set \#'+IntToStr(NS)+' of Ranges up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal));
+      // TODO: actually FMaxVal is the highest testpoint, not the highest range!
       if Length(FComparison.FProcedure.FSets[NS].FMeasurements) <> Length(FComparison.FInstruments) then
         Begin
           S.Add('    No measurements');
@@ -505,6 +515,8 @@ Begin
       AllRanges := FComparison.FProcedure.FSets[NS].GetAllRanges;
       // print results
       S.Add('    \begin{itemize}');
+      // analysis
+      S.Add('      \item Result: \textbf{' + IfThen(FComparison.FProcedure.FSets[NS].FPass, '\textcolor{darkgreen}{PASS}', '\textcolor{red}{FAIL}')+'}');
       // instrument ranges
       S.Add('      \item Ranges');
       S.Add('        \begin{itemize}');
@@ -533,6 +545,11 @@ Begin
                   S.Add('          \item Different number of measurements '+IntToStr(Length(FComparison.FProcedure.FSets[NS].FMeasurements[NI]))+' than testpoints '+IntToStr(Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)));
                   Continue;
                 End;
+              if (Length(FComparison.FProcedure.FSets[NS].FAnalyses) = 0) or not assigned(FComparison.FProcedure.FSets[NS].FAnalyses[NP]) or not assigned(FComparison.FProcedure.FSets[NS].FAnalyses[NP].FResults[NI]) then
+                Begin
+                  S.Add('        \item No analyses, did you call Analyze()?');
+                  Continue;
+                End;
               Instrument := FComparison.FInstruments[NI];
               S.Add('          \item '+EscapeLaTeX(Instrument.FName)+': '+EscapeLaTeX(FComparison.FProcedure.FSets[NS].FMeasurements[NI][NP].ToString));
             End;
@@ -540,7 +557,7 @@ Begin
           FCompDiag.DrawResultComparison(NS, NP, 90, 40, Nil);
           FCompDiag.FDiagram.WriteSVG(St);
           S.Add('          \item \includesvg{'+St+'}');
-          S.Add('          \item \TODO{pass or fail?}');
+          S.Add('          \item Result: \textbf{' + IfThen(FComparison.FProcedure.FSets[NS].FAnalyses[NP].FPass, '\textcolor{darkgreen}{PASS}', '\textcolor{red}{FAIL}')+'}');
           S.Add('        \end{itemize}');
         End;
       S.Add('    \end{itemize}');

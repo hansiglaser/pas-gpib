@@ -389,7 +389,7 @@ Type
 
   { TMeasurementResultBase }
 
-  TMeasurementResultBase = class{(TPersistent)}
+  TMeasurementResultBase = class
   public
     FValue : TValueAccuracyBase;
     Constructor Create(AValue:TValueAccuracyBase);
@@ -414,6 +414,22 @@ Type
     property Current : TValueAccuracyBase read FCurrent write FCurrent;
   End;
 
+  // Measurement Result Analyses ///////////////////////////////////////////////
+
+  { TMeasurementAnalysis }
+
+  TMeasurementAnalysis = class
+    FResults : Array of TMeasurementResultBase;   // pointers to referenced results, index is the instrument
+    FMinMin  : Double;   // lowest bound of all ranges
+    FMaxMin  : Double;   // highest case of lower bound of all ranges
+    FMinMax  : Double;   // lowest case of higher bound of all ranges
+    FMaxMax  : Double;   // higest bound of all ranges
+    FPass    : Boolean;
+    Constructor Create;
+    Procedure Analyze;
+  End;
+  TMeasurementAnalyses = array of TMeasurementAnalysis;
+
   // Comparision ///////////////////////////////////////////////////////////////
 
   TInstrumentRanges = Array of TMeasureRangeBase;
@@ -427,18 +443,22 @@ Type
     FMaxVal       : Double;              // maximum value of all current active ranges, as well as max. value in FTestPoints
     FTestPoints   : TTestPoints;
     FMeasurements : TMeasurementResults; // FMeasurements[InstrumentIdx][TestPointIdx]
+    FAnalyses     : TMeasurementAnalyses;// FAnalyses[TestPointIdx]
+    FPass         : Boolean;
     Constructor Create(AComparison:TComparisonBase; APrev:TComparisonSet);
     Destructor Destroy; override;
     Procedure PrintRanges(AWithPrev:Boolean);
     Procedure PrintMeasurementsByInstrument;
     Procedure PrintMeasurementsByTestPoint;
     Function GetAllRanges : TInstrumentRanges;
+    Procedure Analyze;
   End;
 
   { TComparisonProcedure }
 
   TComparisonProcedure = class     // holds complete sequence/procedure for testpoints in all ranges
     FSets : Array of TComparisonSet;
+    FPass : Boolean;
     Constructor Create;
     Destructor Destroy; override;
     Procedure AddSet(ASet:TComparisonSet);
@@ -447,6 +467,7 @@ Type
     Procedure PrintMeasurementsByTestPoint;
     Function GetNumSets : Integer;
     Function GetNumTestpoints : Integer;
+    Procedure Analyze;
   End;
 
   { TComparisonBase }
@@ -1783,6 +1804,37 @@ Begin
   FCurrent := ObjectFactory.DecodeObject(Copy(St, I+1, Length(St))) as TValueAccuracyBase;
 End;
 
+{ TMeasurementAnalysis }
+
+Constructor TMeasurementAnalysis.Create;
+Begin
+  inherited Create;
+  FMinMin := +MaxDouble;
+  FMaxMin := -MaxDouble;
+  FMinMax := +MaxDouble;
+  FMaxMax := -MaxDouble;
+  FPass := False;
+End;
+
+Procedure TMeasurementAnalysis.Analyze;
+Var NI : Integer;
+    A  : TValueAccuracyMinMax;
+Begin
+  FMinMin := +MaxDouble;
+  FMaxMin := -MaxDouble;
+  FMinMax := +MaxDouble;
+  FMaxMax := -MaxDouble;
+  For NI := 0 to Length(FResults)-1 do
+    Begin
+      A := FResults[NI].FValue as TValueAccuracyMinMax;
+      FMinMin := min(FMinMin, A.FMin);   // lowest bound of all ranges
+      FMaxMin := max(FMaxMin, A.FMin);   // highest case of lower bound of all ranges
+      FMinMax := min(FMinMax, A.FMax);   // lowest case of higher bound of all ranges
+      FMaxMax := max(FMaxMax, A.FMax);   // higest bound of all ranges
+    End;
+  FPass := FMaxMin < FMinMax;
+End;
+
 { TComparisonSet }
 
 Constructor TComparisonSet.Create(AComparison : TComparisonBase; APrev : TComparisonSet);
@@ -1916,6 +1968,29 @@ Begin
     End;
 End;
 
+Procedure TComparisonSet.Analyze;
+Var NP, NI : Integer;
+Begin
+  if Length(FAnalyses) <> 0 then
+    raise Exception.Create('Analyze can only be called once.');
+  if Length(FMeasurements) = 0 then
+    Exit;   // no measurements --> nothing to analyze
+  FPass := True;
+  SetLength(FAnalyses, Length(FTestPoints.FValues));
+  For NP := 0 to Length(FTestPoints.FValues)-1 do
+    Begin
+      FAnalyses[NP] := TMeasurementAnalysis.Create;
+      SetLength(FAnalyses[NP].FResults, Length(FComparison.FInstruments));
+      For NI := 0 to Length(FComparison.FInstruments)-1 do
+        Begin
+          FAnalyses[NP].FResults[NI] := FMeasurements[NI][NP];
+        End;
+      FAnalyses[NP].Analyze;
+      if not FAnalyses[NP].FPass then
+        FPass := False;
+    End;
+End;
+
 { TComparisonProcedure }
 
 Constructor TComparisonProcedure.Create;
@@ -1976,6 +2051,20 @@ Begin
   Result := 0;
   For I := 0 to Length(FSets)-1 do
     Result := Result + Length(FSets[I].FTestPoints.FValues);
+End;
+
+Procedure TComparisonProcedure.Analyze;
+Var NS : Integer;
+Begin
+  if Length(FSets) = 0 then
+    Exit;
+  FPass := True;
+  For NS := 0 to Length(FSets)-1 do
+    Begin
+      FSets[NS].Analyze;
+      if not FSets[NS].FPass then
+        FPass := False;
+    End;
 End;
 
 { TComparisonBase }
@@ -2528,6 +2617,8 @@ Begin
   ParseInstCmp(AFilename);  // this will fill everyting into NewComparison
   //if assigned(FProcedure) then
   //  FProcedure.PrintRanges;
+  if assigned(FProcedure) then
+    FProcedure.Analyze;
 End;
 
 // helper function for parser: find maximum value in an array of doubles

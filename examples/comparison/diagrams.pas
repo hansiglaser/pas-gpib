@@ -310,41 +310,20 @@ Begin
 End;
 
 Procedure TComparisonDiagrams.DrawResultComparison(ASetIdx, ATestPointIdx : Integer; AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
-Var NI : Integer;
-    MinMin, MaxMin, MinMax, MaxMax : Double;
-    A         : TValueAccuracyMinMax;
-    Y         : Double;
+Var NI       : Integer;
+    Analysis : TMeasurementAnalysis;
+    MinMin,
+    MaxMax   : Double;
+    A        : TValueAccuracyMinMax;
+    Y        : Double;
 Begin
   // setup diagram
   (FCoord as TLinearCoord).FValYMin := 0.0;
   (FCoord as TLinearCoord).FValYMax := Length(FComparison.FInstruments) + 1.0;
-  MinMin := +MaxDouble;
-  MaxMin := -MaxDouble;
-  MinMax := +MaxDouble;
-  MaxMax := -MaxDouble;
-  For NI := 0 to Length(FComparison.FInstruments)-1 do
-    Begin
-      A := FComparison.FProcedure.FSets[ASetIdx].FMeasurements[NI][ATestPointIdx].FValue as TValueAccuracyMinMax;
-      MinMin := min(MinMin, A.FMin);   // lowest bound of all ranges
-      MaxMin := max(MaxMin, A.FMin);   // highest case of lower bound of all ranges
-      MinMax := min(MinMax, A.FMax);   // lowest case of higher bound of all ranges
-      MaxMax := max(MaxMax, A.FMax);   // higest bound of all ranges
-    End;
+  Analysis := FComparison.FProcedure.FSets[ASetIdx].FAnalyses[ATestPointIdx];
   // ensure the nominal testpoint is included
-  MinMin := min(MinMin, FComparison.FProcedure.FSets[ASetIdx].FTestPoints.FValues[ATestPointIdx]);
-  MaxMax := max(MaxMax, FComparison.FProcedure.FSets[ASetIdx].FTestPoints.FValues[ATestPointIdx]);
-(*  if MinMin > 0.0 then
-    Begin   // all values > 0.0
-
-    End
-  else if MaxMax < 0.0 then
-    Begin   // all values < 0.0
-
-    End
-  else
-    Begin  // values cross 0.0
-
-    End;*)
+  MinMin := min(Analysis.FMinMin, FComparison.FProcedure.FSets[ASetIdx].FTestPoints.FValues[ATestPointIdx]);
+  MaxMax := max(Analysis.FMaxMax, FComparison.FProcedure.FSets[ASetIdx].FTestPoints.FValues[ATestPointIdx]);
   (FCoord as TLinearCoord).FValXMin := MinMin - (MaxMax-MinMin)*0.25;
   (FCoord as TLinearCoord).FValXMax := MaxMax + (MaxMax-MinMin)*0.05;
   FDiagram.Resize(AWidth, AHeight, ACanvas);
@@ -352,11 +331,11 @@ Begin
   FDiagram.DrawAxes;
   Y := 1.0;
   // draw overlap region
-  if MaxMin < MinMax then
-    FDiagram.DrawRect(MaxMin, MinMax, Y-0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
+  if Analysis.FPass then
+    FDiagram.DrawRect(Analysis.FMaxMin, Analysis.FMinMax, Y-0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
       FOvlpPassPenColor, psSolid, Round(FOvlpPassPenWidth), FOvlpPassBrushColor, bsSolid)
   else
-    FDiagram.DrawRect(MinMax, MaxMin, Y+0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
+    FDiagram.DrawRect(Analysis.FMinMax, Analysis.FMaxMin, Y+0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
       FOvlpFailPenColor, psSolid, Round(FOvlpFailPenWidth), FOvlpFailBrushColor, bsSolid);
   // draw comparison procedure
   For NI := 0 to Length(FComparison.FInstruments)-1 do
