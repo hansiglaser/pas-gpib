@@ -30,7 +30,7 @@ Begin
     End;
 
   FReport := TComparisonReport.Create(FFilename, FComparison);
-  FReport.WriteReport('testreport2.tex');
-  // then run $ pdflatex --shell-escape testreport2.tex
+  FReport.FAuthor := 'Me & Myself';
+  FReport.WriteReport;
 End.
 

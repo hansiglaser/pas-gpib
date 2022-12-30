@@ -10,3 +10,9 @@ instcmp-parser.pas
 *.InstCmp
 measurement
 comparisonmgr
+*.svg
+*.tex
+*.out
+*.pdf
+*.aux
+*.log
