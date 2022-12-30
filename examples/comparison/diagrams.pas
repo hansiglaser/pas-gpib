@@ -16,7 +16,7 @@ Type
 
   TComparisonDiagrams = class
     FComparison           : TComparisonBase;
-    FCoord                : TBipolarSemiLogXBase;
+    FCoord                : TCoordBase;
     FDiagram              : TVectorialDiagram;
     FLabelFontName        : String;
     FLabelFontSize        : Double;
@@ -43,9 +43,11 @@ Type
     FOvlpFailBrushColor   : TFPColor;
     Constructor Create(AComparison:TComparisonBase);
     Destructor  Destroy; override;
+    Procedure SetCoord(ACoord : TCoordBase);
     Procedure DrawRanges   (AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
     Procedure DrawProcedure(AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
     Procedure DrawResults  (AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
+    Procedure DrawResultComparison(ASetIdx,ATestPointIdx:Integer; AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
   End;
 
 Const
@@ -59,26 +61,25 @@ Implementation
 { TComparisonDiagrams }
 
 Constructor TComparisonDiagrams.Create(AComparison : TComparisonBase);
+Var Coord : TBipolarSemiLogXCoord;
 Begin
   inherited Create;
   FComparison := AComparison;
 
-  // prepare coordinates
-  FCoord := TBipolarSemiLogXBase.Create;
-  FCoord.FValXNegMax   := 1E1 * 2.0;
-  FCoord.FValXNegMin   := 1E-1 * 0.5;
-  //FCoord.FValXNegMax   := 0.0;
-  //FCoord.FValXNegMin   := 0.0;
-  FCoord.FValXPosMin   := 1E-8 * 0.5;
-  FCoord.FValXPosMax   := 1E3 * 2.0;
-  FCoord.FValXWithZero := True;
-  FCoord.FValYMin      := 0.0;
-  FCoord.FValYMax      := 47.0;
-  FCoord.FDrwZeroWidth := 20.0;
+  // prepare default coordinates
+  Coord := TBipolarSemiLogXCoord.Create;
+  FCoord := Coord;
+  Coord.FValXNegMax   := 1E1 * 2.0;
+  Coord.FValXNegMin   := 1E-1 * 0.5;
+  //Coord.FValXNegMax   := 0.0;
+  //Coord.FValXNegMin   := 0.0;
+  Coord.FValXPosMin   := 1E-8 * 0.5;
+  Coord.FValXPosMax   := 1E3 * 2.0;
+  Coord.FValXWithZero := True;
+  Coord.FValYMin      := 0.0;
+  Coord.FValYMax      := 47.0;
+  Coord.FDrwZeroWidth := 20.0;
   FDiagram := TVectorialDiagram.Create(FCoord);
-  // TODO: how to make FCoord changable to linear or so?
-  //  - TVectorialDiagram would be ok if it is changed later on but before the actual drawing happens
-  //  - perhaps make a setter method SetCoord, which Free()s the existing one, and also updates it in FDiagram
 
   // defaults for drawing parameters
   FLabelFontName        := 'Arial';
@@ -113,6 +114,15 @@ Begin
   inherited Destroy;
 End;
 
+Procedure TComparisonDiagrams.SetCoord(ACoord : TCoordBase);
+Begin
+  FCoord.Free;
+  FCoord := ACoord;
+  FDiagram.FCoord := ACoord;
+  // TVectorialDiagram is ok if the coordinates are changed later on but before
+  // the actual drawing happens.
+End;
+
 Procedure TComparisonDiagrams.DrawRanges(AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
 Var NI,NR,NP : Integer;
     Y        : Double;
@@ -125,7 +135,7 @@ Begin
     For NI := 0 to Length(FComparison.FInstruments)-1 do
       Y := Y + Length(FComparison.FInstruments[NI].FRanges[qtDCV])*1.0 + 1.0;  // +1 for instrument name and visual separation
   // setup diagram
-  FCoord.FValYMax := Y;
+  (FCoord as TBipolarSemiLogXCoord).FValYMax := Y;
   FDiagram.Resize(AWidth, AHeight, ACanvas);
   // draw axes
   FDiagram.DrawAxes;
@@ -145,7 +155,7 @@ Begin
                 For NP := 0 to Length(TP.FValues)-1 do
                   Begin
                     A := TValueAccuracyMinMax(FComparison.FInstruments[NI].FRanges[qtDCV][NR].FAccuracy[0].Apply(TP.FValues[NP]));
-                    if (TP.FValues[NP] <> 0.0) and (A.FMin > TBipolarSemiLogXBase(FDiagram.FCoord).FValXPosMin) then
+                    if (TP.FValues[NP] <> 0.0) and (A.FMin > TBipolarSemiLogXCoord(FDiagram.FCoord).FValXPosMin) then
                       FDiagram.DrawRange(A.FMin,A.FMax,Y, 0.5, FAccuracyPenColor, psSolid, Round(FAccuracyPenWidth), FAccuracyBrushColor, bsSolid);
                       // some min/max values are smaller than the smallest decade in the SemiLogY diagram
                     A.Free;
@@ -178,7 +188,7 @@ Begin
         Y := Y + 1.0;
       End;
   // setup diagram
-  FCoord.FValYMax := Y;
+  (FCoord as TBipolarSemiLogXCoord).FValYMax := Y;
   FDiagram.Resize(AWidth, AHeight, ACanvas);
   // draw axes
   FDiagram.DrawAxes;
@@ -225,7 +235,7 @@ Begin
     For NS := 0 to Length(FComparison.FProcedure.FSets)-1  do
       Y := Y + Length(FComparison.FInstruments)*1.0 + 1.0;  // +1 for instrument name and visual separation
   // setup diagram
-  FCoord.FValYMax := Y;
+  (FCoord as TBipolarSemiLogXCoord).FValYMax := Y;
   FDiagram.Resize(AWidth, AHeight, ACanvas);
   // draw axes
   FDiagram.DrawAxes;
@@ -276,7 +286,7 @@ Begin
             For NP := 0 to Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)-1 do
               Begin
                 A := FComparison.FProcedure.FSets[NS].FMeasurements[NI][NP].FValue as TValueAccuracyMinMax;
-                //if (FComparison.FProcedure.FSets[NS].FTestPoints.FValues[NP] <> 0.0) {and (A.FMin > TBipolarSemiLogXBase(FResultsDiagram.FCoord).FValXPosMin)} then
+                //if (FComparison.FProcedure.FSets[NS].FTestPoints.FValues[NP] <> 0.0) {and (A.FMin > TBipolarSemiLogXCoord(FResultsDiagram.FCoord).FValXPosMin)} then
                   FDiagram.DrawRange(A.FMin,A.FMax,Y, 0.5, FAccuracyPenColor, psSolid, Round(FAccuracyPenWidth), FAccuracyBrushColor, bsSolid);
                   // some min/max values are smaller than the smallest decade in the SemiLogY diagram
                 FDiagram.DrawSymPlus(A.FValue, Y, FResultLenDrw, FResultPenColor, psSolid, Round(FResultPenWidth));
@@ -297,6 +307,69 @@ Begin
       FComparison.FProcedure.PrintMeasurementsByInstrument;
       FComparison.FProcedure.PrintMeasurementsByTestPoint;
     End;
+End;
+
+Procedure TComparisonDiagrams.DrawResultComparison(ASetIdx, ATestPointIdx : Integer; AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
+Var NI : Integer;
+    MinMin, MaxMin, MinMax, MaxMax : Double;
+    A         : TValueAccuracyMinMax;
+    Y         : Double;
+Begin
+  // setup diagram
+  (FCoord as TLinearCoord).FValYMin := 0.0;
+  (FCoord as TLinearCoord).FValYMax := Length(FComparison.FInstruments) + 1.0;
+  MinMin := +MaxDouble;
+  MaxMin := -MaxDouble;
+  MinMax := +MaxDouble;
+  MaxMax := -MaxDouble;
+  For NI := 0 to Length(FComparison.FInstruments)-1 do
+    Begin
+      A := FComparison.FProcedure.FSets[ASetIdx].FMeasurements[NI][ATestPointIdx].FValue as TValueAccuracyMinMax;
+      MinMin := min(MinMin, A.FMin);   // lowest bound of all ranges
+      MaxMin := max(MaxMin, A.FMin);   // highest case of lower bound of all ranges
+      MinMax := min(MinMax, A.FMax);   // lowest case of higher bound of all ranges
+      MaxMax := max(MaxMax, A.FMax);   // higest bound of all ranges
+    End;
+  // ensure the nominal testpoint is included
+  MinMin := min(MinMin, FComparison.FProcedure.FSets[ASetIdx].FTestPoints.FValues[ATestPointIdx]);
+  MaxMax := max(MaxMax, FComparison.FProcedure.FSets[ASetIdx].FTestPoints.FValues[ATestPointIdx]);
+(*  if MinMin > 0.0 then
+    Begin   // all values > 0.0
+
+    End
+  else if MaxMax < 0.0 then
+    Begin   // all values < 0.0
+
+    End
+  else
+    Begin  // values cross 0.0
+
+    End;*)
+  (FCoord as TLinearCoord).FValXMin := MinMin - (MaxMax-MinMin)*0.25;
+  (FCoord as TLinearCoord).FValXMax := MaxMax + (MaxMax-MinMin)*0.05;
+  FDiagram.Resize(AWidth, AHeight, ACanvas);
+  // draw axes
+  FDiagram.DrawAxes;
+  Y := 1.0;
+  // draw overlap region
+  if MaxMin < MinMax then
+    FDiagram.DrawRect(MaxMin, MinMax, Y-0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
+      FOvlpPassPenColor, psSolid, Round(FOvlpPassPenWidth), FOvlpPassBrushColor, bsSolid)
+  else
+    FDiagram.DrawRect(MinMax, MaxMin, Y+0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
+      FOvlpFailPenColor, psSolid, Round(FOvlpFailPenWidth), FOvlpFailBrushColor, bsSolid);
+  // draw comparison procedure
+  For NI := 0 to Length(FComparison.FInstruments)-1 do
+    Begin
+      A := FComparison.FProcedure.FSets[ASetIdx].FMeasurements[NI][ATestPointIdx].FValue as TValueAccuracyMinMax;
+      FDiagram.DrawRange(A.FMin,A.FMax,Y, 0.5, FAccuracyPenColor, psSolid, Round(FAccuracyPenWidth), FAccuracyBrushColor, bsSolid);
+      FDiagram.DrawSymPlus(A.FValue, Y, FResultLenDrw, FResultPenColor, psSolid, Round(FResultPenWidth));
+      FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel1Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0,
+              FLabelFontName, Round(FLabelFontSize), FComparison.FInstruments[NI].FName);
+      Y := Y + 1.0;
+    End;
+  // draw testpoints in green as reference in the top row
+  FDiagram.DrawSymPlus(FComparison.FProcedure.FSets[ASetIdx].FTestPoints.FValues[ATestPointIdx], Y - 1.0, FTestPointLenDrw, FTestPointRefPenColor, psSolid, Round(FTestPointPenWidth));
 End;
 
 End.
