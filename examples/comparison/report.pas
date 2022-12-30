@@ -18,13 +18,25 @@ Type
     FOutFilename       : String;
     FComparison        : TComparisonBase;
     FAuthor            : String;
-//    FCoord             : TBipolarSemiLogXBase;
-//    FDiagram           : TVectorialDiagram;
+    FSummDiag          : TComparisonDiagrams;
+    FCompDiag          : TComparisonDiagrams;
     Constructor Create(AFilename:String; AComparison:TComparisonBase);
     Destructor  Destroy; override;
-    Procedure WriteReport;
+    Function GenReport : TStringList;
   Private
     Function EscapeLaTeX(St : String) : String;
+    Function GenReportHead                : TStringList;
+    Function GenSecSummary                : TStringList;
+    Function GenSecSetupDescription       : TStringList;
+    Function GenSubSecInstruments         : TStringList;
+    Function GenSubSecRanges              : TStringList;
+    Function GenSubSecTestpoints          : TStringList;
+    Function GenSubSecComparisonProcedure : TStringList;
+    Function GenSecResultsOverview        : TStringList;
+    Function GenSecDetailedResults        : TStringList;
+    Function GenSubSecResultsByInstrument : TStringList;
+    Function GenSubSecResultsByTestPoint  : TStringList;
+    Function GenReportFoot                : TStringList;
   End;
 
 Implementation
@@ -57,39 +69,31 @@ Begin
   Result := StringReplace(Result, '±', '$\pm$', [rfReplaceAll]);
 End;
 
-Procedure TComparisonReport.WriteReport;
-Var S              : TStringList;
-    NI,NT,NR,NS,NP : Integer;
-    St             : String;
-    IdxMeas,IdxSrc : Integer;
-    InstTypes      : TInstrumentTypes;
-    AllRanges      : TInstrumentRanges;
-    Instrument     : TInstrumentWrapperBase;
-    Range          : TMeasureRangeBase;
-    Diag           : TComparisonDiagrams;
-    CompDiag       : TComparisonDiagrams;
+Function TComparisonReport.GenReportHead : TStringList;
+Var S : TStringList;
 Begin
-  Diag := TComparisonDiagrams.Create(FComparison);
-  Diag.FLabel1Indent            :=  3.0;
-  Diag.FLabel2Indent            :=  7.0;
-  Diag.FLabelFontSize           := 10.0/72.0*25.4;
-  Diag.FDiagram.FXTickFontSize  := 10.0/72.0*25.4;
-  Diag.FDiagram.FTickLenDrw     := 1.2;
-  Diag.FDiagram.FXBreakExtDrw   := 1.7;
-  Diag.FDiagram.FXBreakSlantDrw := 0.5;
-  Diag.FDiagram.FXBreakSpaceDrw := 0.5;
-  Diag.FTestPointLenDrw         := 1.2;
-  Diag.FResultLenDrw            := 1.2;
+  // perparation
+  FSummDiag := TComparisonDiagrams.Create(FComparison);
+  FSummDiag.FLabel1Indent            :=  3.0;
+  FSummDiag.FLabel2Indent            :=  7.0;
+  FSummDiag.FLabelFontSize           := 10.0/72.0*25.4;
+  FSummDiag.FDiagram.FXTickFontSize  := 10.0/72.0*25.4;
+  FSummDiag.FDiagram.FTickLenDrw     := 1.2;
+  FSummDiag.FDiagram.FXBreakExtDrw   := 1.7;
+  FSummDiag.FDiagram.FXBreakSlantDrw := 0.5;
+  FSummDiag.FDiagram.FXBreakSpaceDrw := 0.5;
+  FSummDiag.FTestPointLenDrw         := 1.2;
+  FSummDiag.FResultLenDrw            := 1.2;
 
-  CompDiag := TComparisonDiagrams.Create(FComparison);
-  CompDiag.SetCoord(TLinearCoord.Create);
-  CompDiag.FLabel1Indent            :=  1.0;
-  CompDiag.FLabel2Indent            :=  7.0;
-  CompDiag.FLabelFontSize           := 6.0/72.0*25.4;
-  CompDiag.FDiagram.FXTickFontSize  := 6.0/72.0*25.4;
-  CompDiag.FDiagram.FTickLenDrw     := 1.2;
-  CompDiag.FTestPointLenDrw         := 1.2;
-  CompDiag.FResultLenDrw            := 1.2;
+  FCompDiag := TComparisonDiagrams.Create(FComparison);
+  FCompDiag.SetCoord(TLinearCoord.Create);
+  FCompDiag.FLabel1Indent            :=  1.0;
+  FCompDiag.FLabel2Indent            :=  7.0;
+  FCompDiag.FLabelFontSize           := 6.0/72.0*25.4;
+  FCompDiag.FDiagram.FXTickFontSize  := 6.0/72.0*25.4;
+  FCompDiag.FDiagram.FTickLenDrw     := 1.2;
+  FCompDiag.FTestPointLenDrw         := 1.2;
+  FCompDiag.FResultLenDrw            := 1.2;
 
   S := TStringList.Create;
   S.Add('%%');
@@ -121,7 +125,14 @@ Begin
   S.Add('');
   S.Add('\maketitle');
   S.Add('');
+  Result := S;
+End;
 
+Function TComparisonReport.GenSecSummary : TStringList;
+Var S  : TStringList;
+    NI : Integer;
+Begin
+  S := TStringList.Create;
   S.Add('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('\section{Summary}');
   S.Add('Filename: \textbf{\texttt{'+EscapeLaTeX(FInFilename)+'}}');
@@ -140,11 +151,25 @@ Begin
   S.Add('Result: \textbf{\TODO{pass or fail}}');
   S.Add('');
   S.Add('');
+  Result := S;
+End;
 
+Function TComparisonReport.GenSecSetupDescription : TStringList;
+Var S : TStringList;
+Begin
+  S := TStringList.Create;
   S.Add('');
   S.Add('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('\section{Setup Description}');
   S.Add('');
+  Result := S;
+End;
+
+Function TComparisonReport.GenSubSecInstruments : TStringList;
+Var S  : TStringList;
+    NI : Integer;
+Begin
+  S := TStringList.Create;
   S.Add('\subsection{Instruments} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
   S.Add('\begin{description}');
@@ -157,6 +182,17 @@ Begin
   S.Add('\end{description}');
   S.Add('\TODO{serial numbers}');
   S.Add('');
+  Result := S;
+End;
+
+Function TComparisonReport.GenSubSecRanges : TStringList;
+Var S              : TStringList;
+    NI,NT,NR       : Integer;
+    St             : String;
+    IdxMeas,IdxSrc : Integer;
+    InstTypes      : TInstrumentTypes;
+Begin
+  S := TStringList.Create;
   S.Add('\subsection{Ranges} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
   S.Add('Instrument ranges and their accuracy according to the datasheets (see Fig.~\ref{fig:ranges-gen}).');
@@ -197,8 +233,8 @@ Begin
 
   // TODO: size of diagram should depend on number of rows
   St := ChangeFileExt(FOutFilename, '-ranges.svg');
-  Diag.DrawRanges(140, 120, Nil);
-  Diag.FDiagram.WriteSVG(St);
+  FSummDiag.DrawRanges(140, 120, Nil);
+  FSummDiag.FDiagram.WriteSVG(St);
 
   S.Add('\begin{figure}[htb]');
   S.Add('  \centering');
@@ -207,7 +243,14 @@ Begin
   S.Add('  \label{fig:ranges-gen}');
   S.Add('\end{figure}');
   S.Add('');
+  Result := S;
+End;
 
+Function TComparisonReport.GenSubSecTestpoints : TStringList;
+Var S     : TStringList;
+    NI,NR : Integer;
+Begin
+  S := TStringList.Create;
   S.Add('');
   S.Add('\subsection{Testpoints} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
@@ -230,7 +273,15 @@ Begin
   S.Add('\end{description}');
   S.Add('');
   S.Add('');
+  Result := S;
+End;
 
+Function TComparisonReport.GenSubSecComparisonProcedure : TStringList;
+Var S     : TStringList;
+    NR,NS : Integer;
+    St    : String;
+Begin
+  S := TStringList.Create;
   S.Add('');
   S.Add('\subsection{Comparison Procedure} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
@@ -254,8 +305,8 @@ Begin
   S.Add('\end{itemize}');
 
   St := ChangeFileExt(FOutFilename, '-procedure.svg');
-  Diag.DrawProcedure(140, 120, Nil);
-  Diag.FDiagram.WriteSVG(St);
+  FSummDiag.DrawProcedure(140, 120, Nil);
+  FSummDiag.FDiagram.WriteSVG(St);
 
   S.Add('\begin{figure}[htb]');
   S.Add('  \centering');
@@ -264,7 +315,14 @@ Begin
   S.Add('  \label{fig:procedure-gen}');
   S.Add('\end{figure}');
   S.Add('');
+  Result := S;
+End;
 
+Function TComparisonReport.GenSecResultsOverview : TStringList;
+Var S  : TStringList;
+    St : String;
+Begin
+  S := TStringList.Create;
   S.Add('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('\section{Results Overview}');
   S.Add('');
@@ -273,8 +331,8 @@ Begin
   S.Add('');
 
   St := ChangeFileExt(FOutFilename, '-results.svg');
-  Diag.DrawResults(140, 180, Nil);
-  Diag.FDiagram.WriteSVG(St);
+  FSummDiag.DrawResults(140, 180, Nil);
+  FSummDiag.FDiagram.WriteSVG(St);
 
   S.Add('\begin{figure}[htbp]');
   S.Add('  \centering');
@@ -283,9 +341,26 @@ Begin
   S.Add('  \label{fig:results-gen}');
   S.Add('\end{figure}');
   S.Add('');
+  Result := S;
+End;
 
+Function TComparisonReport.GenSecDetailedResults : TStringList;
+Var S : TStringList;
+Begin
+  S := TStringList.Create;
   S.Add('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('\section{Detailed Results}');
+  Result := S;
+End;
+
+Function TComparisonReport.GenSubSecResultsByInstrument : TStringList;
+Var S          : TStringList;
+    NI,NS,NP   : Integer;
+    AllRanges  : TInstrumentRanges;
+    Instrument : TInstrumentWrapperBase;
+    Range      : TMeasureRangeBase;
+Begin
+  S := TStringList.Create;
   S.Add('');
   S.Add('\subsection{Results by Instrument} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
@@ -309,7 +384,7 @@ Begin
           if not assigned(AllRanges[NI]) then continue;
           Instrument := FComparison.FInstruments[NI];
           Range      := AllRanges[NI];
-          S.Add('      \item '+EscapeLaTeX(FComparison.FInstruments[NI].FName)+IfThen(FComparison.FInstruments[NI].FFunction=ifMeasure,' measure ',' source ')+' range '+FloatToStr(AllRanges[NI].FMaxValue)+':');
+          S.Add('      \item '+EscapeLaTeX(Instrument.FName)+IfThen(Instrument.FFunction=ifMeasure,' measure ',' source ')+' range '+FloatToStr(Range.FMaxValue)+':');
           if Length(FComparison.FProcedure.FSets[NS].FMeasurements[NI]) <> Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues) then
             Begin
               S.Add('    Different number of measurements '+IntToStr(Length(FComparison.FProcedure.FSets[NS].FMeasurements[NI]))+' than testpoints '+IntToStr(Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)));
@@ -332,7 +407,18 @@ Begin
   S.Add('\end{itemize}');
   S.Add('');
   S.Add('');
+  Result := S;
+End;
 
+Function TComparisonReport.GenSubSecResultsByTestPoint : TStringList;
+Var S          : TStringList;
+    NI,NS,NP   : Integer;
+    St         : String;
+    AllRanges  : TInstrumentRanges;
+    Instrument : TInstrumentWrapperBase;
+    Range      : TMeasureRangeBase;
+Begin
+  S := TStringList.Create;
   S.Add('');
   S.Add('\subsection{Results by Testpoint} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
@@ -383,8 +469,8 @@ Begin
               S.Add('          \item '+EscapeLaTeX(Instrument.FName)+': '+EscapeLaTeX(FComparison.FProcedure.FSets[NS].FMeasurements[NI][NP].ToString));
             End;
           St := ChangeFileExt(FOutFilename, '-results-comparison-'+IntToStr(NS)+'-'+IntToStr(NP)+'.svg');
-          CompDiag.DrawResultComparison(NS, NP, 90, 40, Nil);
-          CompDiag.FDiagram.WriteSVG(St);
+          FCompDiag.DrawResultComparison(NS, NP, 90, 40, Nil);
+          FCompDiag.FDiagram.WriteSVG(St);
           S.Add('          \item \includesvg{'+St+'}');
           S.Add('          \item \TODO{pass or fail?}');
           S.Add('        \end{itemize}');
@@ -394,12 +480,37 @@ Begin
   S.Add('\end{itemize}');
   S.Add('');
   S.Add('');
+  Result := S;
+End;
 
+Function TComparisonReport.GenReportFoot : TStringList;
+Var S : TStringList;
+Begin
+  S := TStringList.Create;
   S.Add('\end{document}');
+  Result := S;
 
-  // save
-  S.SaveToFile(FOutFilename);
-  S.Free;
+  // cleanup
+  FSummDiag.Free;
+  FCompDiag.Free;
+End;
+
+Function TComparisonReport.GenReport : TStringList;
+Var S : TStringList;
+Begin
+  S :=         GenReportHead;
+  S.AddStrings(GenSecSummary);
+  S.AddStrings(GenSecSetupDescription);
+  S.AddStrings(GenSubSecInstruments);
+  S.AddStrings(GenSubSecRanges);
+  S.AddStrings(GenSubSecTestpoints);
+  S.AddStrings(GenSubSecComparisonProcedure);
+  S.AddStrings(GenSecResultsOverview);
+  S.AddStrings(GenSecDetailedResults);
+  S.AddStrings(GenSubSecResultsByInstrument);
+  S.AddStrings(GenSubSecResultsByTestPoint);
+  S.AddStrings(GenReportFoot);
+  Result := S;
 End;
 
 End.

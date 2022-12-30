@@ -12,6 +12,7 @@ Uses  SysUtils, Classes, Variants,
 Var FFilename   : String;
     FComparison : TComparisonBase;
     FReport     : TComparisonReport;
+    S           : TStringList;
 
 Begin
   // prepare factories
@@ -31,6 +32,9 @@ Begin
 
   FReport := TComparisonReport.Create(FFilename, FComparison);
   FReport.FAuthor := 'Me & Myself';
-  FReport.WriteReport;
+  S := FReport.GenReport;
+  // save
+  S.SaveToFile(FReport.FOutFilename);
+  S.Free;
 End.
 
