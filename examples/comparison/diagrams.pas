@@ -276,7 +276,7 @@ Begin
               FDiagram.DrawRect(TPMins[NP], TPMaxs[NP], Y-0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
                 FOvlpPassPenColor, psSolid, Round(FOvlpPassPenWidth), FOvlpPassBrushColor, bsSolid)
             else
-              FDiagram.DrawRect(TPMaxs[NP], TPMins[NP], Y+0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
+              FDiagram.DrawRect(TPMaxs[NP], TPMins[NP], Y-0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
                 FOvlpFailPenColor, psSolid, Round(FOvlpFailPenWidth), FOvlpFailBrushColor, bsSolid);
           End;
         // draw measurement results
