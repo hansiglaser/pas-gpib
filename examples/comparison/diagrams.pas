@@ -163,11 +163,11 @@ Begin
                   End;
               End;
             FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel2Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0,
-              FLabelFontName, Round(FLabelFontSize), FloatToStr(FComparison.FInstruments[NI].FRanges[qtDCV][NR].FMaxValue));
+              FLabelFontName, FLabelFontSize, FloatToStr(FComparison.FInstruments[NI].FRanges[qtDCV][NR].FMaxValue));
             Y := Y + 1.0;
           End;
         FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel1Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0,
-          FLabelFontName, Round(FLabelFontSize), FComparison.FInstruments[NI].FName+' '+CInstrumentFunction[FComparison.FInstruments[NI].FFunction]);
+          FLabelFontName, FLabelFontSize, FComparison.FInstruments[NI].FName+' '+CInstrumentFunction[FComparison.FInstruments[NI].FFunction]);
         Y := Y + 1.0;
       End;
 End;
@@ -204,7 +204,7 @@ Begin
               FRangePenColor, psSolid, Round(FRangePenWidth), FRangeBrushColor, bsSolid);
             St := FComparison.FProcedure.FSets[NS].FComparison.FInstruments[NR].FName+' '+FloatToStr(FComparison.FProcedure.FSets[NS].FRanges[NR].FMaxValue);
             FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel2Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0,
-              FLabelFontName, Round(FLabelFontSize), St);
+              FLabelFontName, FLabelFontSize, St);
             Y := Y + 1.0;
           End;
         For NP := 0 to Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)-1 do
@@ -213,7 +213,7 @@ Begin
           End;
         St := 'Set #'+IntToStr(NS)+' to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal);
         FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel1Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0,
-          FLabelFontName, Round(FLabelFontSize), St);
+          FLabelFontName, FLabelFontSize, St);
         Y := Y + 1.0;
       End;
   if assigned(FComparison) and assigned(FComparison.FProcedure) then
@@ -265,7 +265,7 @@ Begin
               FRangePenColor, psSolid, Round(FRangePenWidth), FRangeBrushColor, bsSolid);
             St := FComparison.FInstruments[NI].FName+' '+FloatToStr(AllRanges[NI].FMaxValue);
             FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel2Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0,
-              FLabelFontName, Round(FLabelFontSize), St);
+              FLabelFontName, FLabelFontSize, St);
             Y := Y + 1.0;
           End;
         Y := Y - Length(FComparison.FInstruments)*1.0;
@@ -299,7 +299,7 @@ Begin
             FDiagram.DrawSymPlus(FComparison.FProcedure.FSets[NS].FTestPoints.FValues[NP], Y, FTestPointLenDrw, FTestPointRefPenColor, psSolid, Round(FTestPointPenWidth));
           End;
         St := 'Set #'+IntToStr(NS)+' to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal);
-        FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel1Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0, FLabelFontName, Round(FLabelFontSize), St);
+        FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel1Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0, FLabelFontName, FLabelFontSize, St);
         Y := Y + 1.0;
       End;
   if assigned(FComparison) and assigned(FComparison.FProcedure) and (Length(FComparison.FProcedure.FSets[0].FMeasurements) > 0) then
@@ -365,7 +365,7 @@ Begin
       FDiagram.DrawRange(A.FMin,A.FMax,Y, 0.5, FAccuracyPenColor, psSolid, Round(FAccuracyPenWidth), FAccuracyBrushColor, bsSolid);
       FDiagram.DrawSymPlus(A.FValue, Y, FResultLenDrw, FResultPenColor, psSolid, Round(FResultPenWidth));
       FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel1Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0,
-              FLabelFontName, Round(FLabelFontSize), FComparison.FInstruments[NI].FName);
+              FLabelFontName, FLabelFontSize, FComparison.FInstruments[NI].FName);
       Y := Y + 1.0;
     End;
   // draw testpoints in green as reference in the top row
