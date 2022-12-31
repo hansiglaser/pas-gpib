@@ -369,7 +369,7 @@ Var Coord  : TBipolarSemiLogXCoord;
       E      : TvFormulaElement;
 {$ELSE}
       T1     : TvText;
-      W      : Double;
+      WB,WE  : Double;
 {$ENDIF}
   Begin
 {$IFDEF UseFormula}
@@ -382,9 +382,12 @@ Var Coord  : TBipolarSemiLogXCoord;
     FVecPage.AddEntity(F);
     // this doesn't raise the exponent, it is written in the same line and same height as the base
 {$ELSE}
-    T1 := FVecPage.AddText(FDiagBox.Left + XDrw-9.0, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*1.3, 0.0, FXTickFontName, FXTickFontSize, IntToStr(Base));
-    W  := T1.GetWidth(FVecPage.RenderInfo);
-    FVecPage.AddText(FDiagBox.Left + XDrw-9.0+W, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*0.8, 0.0, FXTickFontName, FXTickFontSize*0.6, IntToStr(Exponent));
+    WB := Length(IntToStr(Base)) *     FXTickFontSize    *0.5;   // estimating approx. 50% width compared to height
+    WE := Length(IntToStr(Exponent)) * FXTickFontSize*0.6*0.5;   // estimating approx. 50% width compared to height
+    WE := (WB+WE)*0.5;   // centering, reuse WE
+    T1 := FVecPage.AddText(FDiagBox.Left + XDrw - WE, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*1.3, 0.0, FXTickFontName, FXTickFontSize, IntToStr(Base));
+    //W  := T1.GetWidth(FVecPage.RenderInfo);         // this needs a Canvas
+    FVecPage.AddText(FDiagBox.Left + XDrw - WE + WB, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*0.8, 0.0, FXTickFontName, FXTickFontSize*0.6, IntToStr(Exponent));
 {$ENDIF}
   End;
 
@@ -423,7 +426,7 @@ Begin
       XDrw := FCoord.ValX2Drw(0.0);
       DrawXGrid(true);
       DrawXTick;
-      FVecPage.AddText(FDiagBox.Left + XDrw-4.0, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*1.3, 0.0, FXTickFontName, FXTickFontSize, '0');
+      FVecPage.AddText(FDiagBox.Left + XDrw - 1.0*FXTickFontSize*0.5*0.5, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*1.3, 0.0, FXTickFontName, FXTickFontSize, '0');     // centering, estimating approx. 50% width compared to height
       DrawXAxisBreak(FDiagBox.Left + XDrw + Coord.FDrwZeroWidth*0.5);
       if Coord.FValXNegMax <> Coord.FValXNegMin then
         DrawXAxisBreak(FDiagBox.Left + XDrw - Coord.FDrwZeroWidth*0.5);
