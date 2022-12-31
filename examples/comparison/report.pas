@@ -404,7 +404,7 @@ Begin
   S.Add('\begin{figure}[htbp]');
   S.Add('  \centering');
   S.Add('  \includesvg{'+St+'}');
-  S.Add('  \caption{My figure}');
+  S.Add('  \caption{Measurement results overview}');
   S.Add('  \label{fig:results-gen}');
   S.Add('\end{figure}');
   S.Add('');
