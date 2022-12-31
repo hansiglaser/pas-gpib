@@ -216,8 +216,8 @@ Begin
           FLabelFontName, FLabelFontSize, St);
         Y := Y + 1.0;
       End;
-  if assigned(FComparison) and assigned(FComparison.FProcedure) then
-    FComparison.FProcedure.PrintRanges;
+//  if assigned(FComparison) and assigned(FComparison.FProcedure) then
+//    FComparison.FProcedure.PrintRanges;
 End;
 
 Procedure TComparisonDiagrams.DrawResults(AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
@@ -302,11 +302,11 @@ Begin
         FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel1Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0, FLabelFontName, FLabelFontSize, St);
         Y := Y + 1.0;
       End;
-  if assigned(FComparison) and assigned(FComparison.FProcedure) and (Length(FComparison.FProcedure.FSets[0].FMeasurements) > 0) then
-    Begin
-      FComparison.FProcedure.PrintMeasurementsByInstrument;
-      FComparison.FProcedure.PrintMeasurementsByTestPoint;
-    End;
+//  if assigned(FComparison) and assigned(FComparison.FProcedure) and (Length(FComparison.FProcedure.FSets[0].FMeasurements) > 0) then
+//    Begin
+//      FComparison.FProcedure.PrintMeasurementsByInstrument;
+//      FComparison.FProcedure.PrintMeasurementsByTestPoint;
+//    End;
 End;
 
 Procedure TComparisonDiagrams.DrawResultComparison(ASetIdx, ATestPointIdx : Integer; AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
