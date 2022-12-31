@@ -251,7 +251,8 @@ Type
 
   TInstrumentWrapperAgilent34410A = class(TInstrumentWrapperBase)
   private
-    // TODO: some variables for the parameters from the file
+    FVISA       : String;
+    FComm       : IDeviceCommunicator;
     FInstrument : TAgilent34410A;          // set in Initialize
     FRange      : TMeasureRangeAccuracy;   // set in SetMeasureRange
   public
@@ -1225,6 +1226,8 @@ End;
 Procedure TInstrumentWrapperKeysightU125xB.Disconnect;
 Begin
   WriteLn(FName+'.Disconnect');
+  FreeAndNil(FInstrument);
+  FreeAndNil(FComm);
 End;
 
 Procedure TInstrumentWrapperKeysightU125xB.SetMeasureRange(ARange : TMeasureRangeBase);
@@ -1289,15 +1292,21 @@ Begin
 End;
 
 Class Function TInstrumentWrapperAgilent34410A.CreateFromParams(AComparisonBase : TComparisonBase; AWrapperName, AName : String; AParams : TInstrumentWrapperParams) : TInstrumentWrapperBase;
+Var St : String;
+    I  : Integer;
 Begin
   Result := TInstrumentWrapperAgilent34410A.Create(AComparisonBase, AWrapperName, AName, AParams, ifMeasure);
+  With TInstrumentWrapperAgilent34410A(Result) do
+    Begin
+      FVISA := AParams.GetString('VISA');
+    End
 End;
 
 Function TInstrumentWrapperAgilent34410A.GetParams : TInstrumentWrapperParams;
 Begin
   if not assigned(FParams) then
     FParams := TInstrumentWrapperParams.Create;
-  // update TODO: FParams.FFunction := FFunction;
+  FParams.SetOrAddString('VISA',   FVISA);
   Result := FParams;
 End;
 
@@ -1309,17 +1318,44 @@ End;
 Procedure TInstrumentWrapperAgilent34410A.Initialize;
 Begin
   WriteLn(FName+'.Initialize');
-  //FIdentifier := FInstrument.Identify;
+  FComm       := DevComOpen(FVISA);
+  FInstrument := TAgilent34410A.Create(FComm);
+  FComm.SetTimeout(2000000{us});
+  //FComm.ErrorHandler := @USBTMCErrorHandler;
+  // TODO: like in Create, check that the device is the same type as FWrapperName
+  WriteLn('Connected to device ',FInstrument.Identify);
+  FIdentifier := FInstrument.Identify;
+  WriteLn('Reset to default settings');
+  FInstrument.Reset;
+  WriteLn('Disable the beeper');
+  FInstrument.SetBeeper(false);
+  // print input terminals setting
+  WriteLn(FName,': Input terminal selection: ',CInputTerminalsSettingNice[FInstrument.GetInputTerminalsSetting]);
+  // setup measurement to DC Volts
+  if FComparisonBase.FQuantity = qtDCV then
+    Begin
+      FInstrument.SetSenseFunction(qtVoltageDC);
+    End
+  else
+    raise Exception.Create('TODO: Implement Quantity '+CQuantityStr[FComparisonBase.FQuantity]);
+  FInstrument.SetNPLC(1.0);
+  FInstrument.AutoZero;
+  // don't wait for any trigger condition
+  FInstrument.SetTriggerSource(tsImmediate);
 End;
 
 Procedure TInstrumentWrapperAgilent34410A.Disconnect;
 Begin
   WriteLn(FName+'.Disconnect');
+  FreeAndNil(FInstrument);
+//  TObject(FComm).Free;     // TODO: is it ok that FComm is not Free()d?
 End;
 
 Procedure TInstrumentWrapperAgilent34410A.SetMeasureRange(ARange : TMeasureRangeBase);
 Begin
   WriteLn(FName+'.SetMeasureRange('+FloatToStr(ARange.FMaxValue)+')');
+  FRange := ARange as TMeasureRangeAccuracy;
+  FInstrument.SetRange(FRange.FMaxValue);
 End;
 
 Procedure TInstrumentWrapperAgilent34410A.StartMeasurement;
@@ -1328,8 +1364,13 @@ Begin
 End;
 
 Function TInstrumentWrapperAgilent34410A.GetResults : TMeasurementResultBase;
+Var D : Double;
 Begin
   WriteLn(FName+'.GetResults');
+  D := FInstrument.GetValue;
+  WriteLn('  V = ',FloatToStr(D));
+  Result := TMeasurementResultBase.Create(FRange.FAccuracy[0].Apply(D));
+  WriteLn('  ',Result.ToString);
 End;
 
 { TInstrumentWrapperKeithleyDMM6500 }
@@ -1571,7 +1612,7 @@ Begin
   WriteLn(FName+'.Disconnect');
   if assigned(FSource) and assigned(FMeasure) and (FFunction = ifMeasure) then
     Exit;  // only source is doing the job
-  FInstrument.Free;
+  FreeAndNil(FInstrument);
 //  TObject(FComm).Free;     // TODO: is it ok that FComm is not Free()d?
 End;
 
@@ -1603,6 +1644,7 @@ Begin
   FInstrument.SetVoltage([FChannelIdx], AValue);
   Sleep(200);
   FInstrument.SetCurrentLimit([FChannelIdx], FCurLim);
+  Sleep(100);
   FSourceValue := AValue;
 End;
 
