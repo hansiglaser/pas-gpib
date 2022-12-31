@@ -8,9 +8,9 @@ Unit MainForm;
 Interface
 
 Uses
-  Classes, SysUtils, Math, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls,
+  Classes, SysUtils, Math, LCLType, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls,
   ComCtrls, Grids, Menus, Spin, FPCanvas, FPImage, Instrument, VectorialDiagram,
-  Comparison, Diagrams;
+  Comparison, Diagrams, Report;
 
 Type
 
@@ -111,7 +111,16 @@ End;
 
 Procedure TFormMain.FormDestroy(Sender : TObject);
 Begin
+  FRangesDiag.Free;
+  FProcedureDiag.Free;
+  FResultsDiag.Free;
 
+  FComparison.Free;
+
+  // free factories
+  FreeInstrumentWrapperFactory;
+  FreeMeasurementResultFactory;
+  FreeObjectFactory;
 End;
 
 Procedure TFormMain.BtnOpenClick(Sender : TObject);
@@ -277,6 +286,8 @@ Begin
   FComparison.AddInstrument(FInstrumentWrapperFactory.CreateWrapper(FComparison, 'Keithley2450',     '2450_0S',       TInstrumentWrapperParams.Create('Function',TParamValueFunction.Create(ifSource ))));
   FComparison.AddInstrument(FInstrumentWrapperFactory.CreateWrapper(FComparison, 'KeysightE36313A',  'E36313A_Ch23M', TInstrumentWrapperParams.Create('Function',TParamValueFunction.Create(ifMeasure))));
   FComparison.AddInstrument(FInstrumentWrapperFactory.CreateWrapper(FComparison, 'KeysightE36313A',  'E36313A_Ch23S', TInstrumentWrapperParams.Create('Function',TParamValueFunction.Create(ifSource ))));*)
+  FComparison.SetupRanges;
+  FComparison.FQuantity := qtDCV;
 {$ELSE}
   try
     FComparison := TComparisonBase.Load(FFilename);
@@ -288,8 +299,6 @@ Begin
       End;
   End;
 {$ENDIF}   // LoadDefaultInstruments
-  FComparison.SetupRanges;
-  FComparison.FQuantity := qtDCV;
 End;
 
 Procedure TFormMain.UpdateGui;
@@ -353,8 +362,25 @@ Begin
 End;
 
 Procedure TFormMain.WriteReport;
+Var Report : TComparisonReport;
+    S      : TStringList;
 Begin
-  WriteLn('TODO: Create report');
+  if not assigned(FComparison) then
+    raise Exception.Create('Can''t create a report without comparison data.');
+
+  // setup report
+  Report := TComparisonReport.Create(FFilename, FComparison);
+//  if FOutFilename > '' then
+//    FReport.FOutFilename := FOutFilename;
+//  FReport.FAuthor := FAuthor;
+  // generate report
+  S := Report.GenReport;
+  // save report, all referenced files were already saved by GenReport
+  S.SaveToFile(Report.FOutFilename);
+  S.Free;
+  Application.MessageBox(PChar('Saved report to '+Report.FOutFilename+'.'+#10+'Compile with'+#10+'  $ pdflatex --shell-escape '+Report.FOutFilename), 'Generate Report', MB_OK or MB_ICONINFORMATION);
+  Report.Free;
+  StatusBar1Resize(Nil);
 End;
 
 End.
