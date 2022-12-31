@@ -94,6 +94,7 @@ Type
     Procedure Line(X1,Y1,X2,Y2:Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
     Procedure Rectangle(Left, Bottom, Right, Top : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer; BrushColor : TFPColor; BrushStyle : TFPBrushStyle);
     Procedure Rectangle(Left, Bottom, Right, Top : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer);
+    Procedure CenterText(AT : Array Of TvText);
     Procedure SymPlus(X, Y, Size : Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
     // diagram functions
     Procedure DrawBox;
@@ -284,6 +285,34 @@ Begin
   Rectangle(Left,Bottom,Right,Top,PenColor,PenStyle,PenWidth,colBlack,bsClear);
 End;
 
+// center text, one or multiple concatenated items
+// place each item at the X center position, they will be moved
+Procedure TVectorialDiagram.CenterText(AT : Array of TvText);
+Var I : Integer;
+    W : Array of Double;
+    S : Double;
+Begin
+  SetLength(W, Length(AT));
+  // calculate text widths
+  if assigned(FVecPage.RenderInfo.Canvas) then
+    Begin
+      For I := 0 to Length(AT)-1 do
+        W[I] := AT[I].GetWidth(FVecPage.RenderInfo); // this needs a Canvas
+    End
+  else
+    Begin
+      For I := 0 to Length(AT)-1 do
+        W[I] := Length(AT[I].Value.Strings[0]) * AT[I].Font.Size * 0.5;  // estimating approx. 50% width compared to height
+    End;
+  S := - Sum(W) * 0.5;
+  //  move to final positions
+  For I := 0 to Length(AT)-1 do
+    Begin
+      AT[I].X := AT[I].X + S;
+      S := S + W[I];
+    End;
+End;
+
 Procedure TVectorialDiagram.SymPlus(X, Y, Size : Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
 Begin
   Line(X-Size, Y,      X+Size, Y,      Color, Style, Width);
@@ -307,8 +336,7 @@ Var Coord    : TLinearCoord;
 
   Procedure DrawXValue(XDrw:Double;St:String);
   Begin
-    FVecPage.AddText(FDiagBox.Left + XDrw - Length(St)*FXTickFontSize*0.5*0.5, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*1.3, 0.0, FXTickFontName, FXTickFontSize, St);
-    // centering and estimating approx. 50% width compared to height
+    CenterText([FVecPage.AddText(FDiagBox.Left + XDrw, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*1.3, 0.0, FXTickFontName, FXTickFontSize, St)]);
   End;
 
 Var ValWidth : Double;
@@ -363,13 +391,10 @@ Var Coord  : TBipolarSemiLogXCoord;
   End;
 
   Procedure DrawXValue(Base,Exponent:Integer);
-  Var
 {$IFDEF UseFormula}
+  Var
       F      : TvFormula;
       E      : TvFormulaElement;
-{$ELSE}
-      T1     : TvText;
-      WB,WE  : Double;
 {$ENDIF}
   Begin
 {$IFDEF UseFormula}
@@ -382,12 +407,10 @@ Var Coord  : TBipolarSemiLogXCoord;
     FVecPage.AddEntity(F);
     // this doesn't raise the exponent, it is written in the same line and same height as the base
 {$ELSE}
-    WB := Length(IntToStr(Base)) *     FXTickFontSize    *0.5;   // estimating approx. 50% width compared to height
-    WE := Length(IntToStr(Exponent)) * FXTickFontSize*0.6*0.5;   // estimating approx. 50% width compared to height
-    WE := (WB+WE)*0.5;   // centering, reuse WE
-    T1 := FVecPage.AddText(FDiagBox.Left + XDrw - WE, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*1.3, 0.0, FXTickFontName, FXTickFontSize, IntToStr(Base));
-    //W  := T1.GetWidth(FVecPage.RenderInfo);         // this needs a Canvas
-    FVecPage.AddText(FDiagBox.Left + XDrw - WE + WB, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*0.8, 0.0, FXTickFontName, FXTickFontSize*0.6, IntToStr(Exponent));
+    CenterText([
+      FVecPage.AddText(FDiagBox.Left + XDrw, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*1.3, 0.0, FXTickFontName, FXTickFontSize,     IntToStr(Base)),
+      FVecPage.AddText(FDiagBox.Left + XDrw, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*0.8, 0.0, FXTickFontName, FXTickFontSize*0.6, IntToStr(Exponent))
+    ]);
 {$ENDIF}
   End;
 
@@ -426,7 +449,7 @@ Begin
       XDrw := FCoord.ValX2Drw(0.0);
       DrawXGrid(true);
       DrawXTick;
-      FVecPage.AddText(FDiagBox.Left + XDrw - 1.0*FXTickFontSize*0.5*0.5, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*1.3, 0.0, FXTickFontName, FXTickFontSize, '0');     // centering, estimating approx. 50% width compared to height
+      CenterText([FVecPage.AddText(FDiagBox.Left + XDrw, FDiagBox.Bottom-FTickLenDrw-FXTickFontSize*1.3, 0.0, FXTickFontName, FXTickFontSize, '0')]);
       DrawXAxisBreak(FDiagBox.Left + XDrw + Coord.FDrwZeroWidth*0.5);
       if Coord.FValXNegMax <> Coord.FValXNegMin then
         DrawXAxisBreak(FDiagBox.Left + XDrw - Coord.FDrwZeroWidth*0.5);
