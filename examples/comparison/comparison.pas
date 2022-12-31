@@ -184,6 +184,7 @@ Type
     FIdentifier     : String;                    // result of *IDN?, set by Initialize
   private
     Constructor Create(AComparisonBase:TComparisonBase;AWrapperName,AName:String;AParams:TInstrumentWrapperParams;AFunction:TInstrumentFunction);
+    Destructor Destroy; override;
   public
     class Procedure RegisterWrapper(AFactory:TInstrumentWrapperFactory); virtual; abstract;   // can also register the same class multiple times, e.g., for E36310A, 12A, and 13A
     class Function CreateFromParams(AComparisonBase:TComparisonBase;AWrapperName,AName:String;AParams:TInstrumentWrapperParams) : TInstrumentWrapperBase; virtual; abstract;
@@ -393,6 +394,7 @@ Type
   public
     FValue : TValueAccuracyBase;
     Constructor Create(AValue:TValueAccuracyBase);
+    Destructor Destroy; override;
     Function ToString : String; override;
     Function Encode : String; virtual;
     Constructor CreateDecode(St:String); virtual;
@@ -407,6 +409,7 @@ Type
   public
     FCurrent : TValueAccuracyBase;
     Constructor Create(AVoltage,ACurrent:TValueAccuracyBase);
+    Destructor Destroy; override;
     Function ToString : String; override;
     Function Encode : String; override;
     Constructor CreateDecode(St:String); override;
@@ -527,6 +530,9 @@ Type
 Procedure SetupInstrumentWrapperFactory;
 Procedure SetupMeasurementResultFactory;
 Procedure SetupObjectFactory;
+Procedure FreeInstrumentWrapperFactory;
+Procedure FreeMeasurementResultFactory;
+Procedure FreeObjectFactory;
 
 Var
   InstrumentWrapperFactory : TInstrumentWrapperFactory;
@@ -1055,6 +1061,11 @@ Begin
   TInstrumentWrapperKeysightE3631xA.RegisterWrapper(InstrumentWrapperFactory);
 End;
 
+Procedure FreeInstrumentWrapperFactory;
+Begin
+  FreeAndNil(InstrumentWrapperFactory);
+End;
+
 { TInstrumentWrapperBase }
 
 Constructor TInstrumentWrapperBase.Create(AComparisonBase : TComparisonBase; AWrapperName, AName : String; AParams : TInstrumentWrapperParams; AFunction : TInstrumentFunction);
@@ -1065,6 +1076,20 @@ Begin
   FName           := AName;
   FParams         := AParams;
   FFunction       := AFunction;
+End;
+
+Destructor TInstrumentWrapperBase.Destroy;
+Var NP : Integer;
+    NQ : TQuantity;
+Begin
+  if Length(FTestPoints) > 0 then
+    For NP := 0 to Length(FTestPoints)-1 do
+      FTestPoints[NP].Free;
+  FParams.Free;
+  For NQ := Low(TQuantity) to High(TQuantity) do
+    For NP := 0 to Length(FRanges[NQ])-1 do
+      FRanges[NQ][NP].Free;
+  inherited Destroy;
 End;
 
 Procedure TInstrumentWrapperBase.CreateTestPoints(ANumLinPoints : Integer);
@@ -1694,6 +1719,11 @@ Begin
   ObjectFactory.RegisterClass(TValueAccuracyMinMax);
 End;
 
+Procedure FreeObjectFactory;
+Begin
+  FreeAndNil(ObjectFactory);
+End;
+
 { TMeasurementResultFactory }
 
 Constructor TMeasurementResultFactory.Create;
@@ -1750,12 +1780,23 @@ Begin
   MeasurementResultFactory.RegisterResultClass(TMeasurementResultVI);
 End;
 
+Procedure FreeMeasurementResultFactory;
+Begin
+  FreeAndNil(MeasurementResultFactory);
+End;
+
 { TMeasurementResultBase }
 
 Constructor TMeasurementResultBase.Create(AValue : TValueAccuracyBase);
 Begin
   inherited Create;
   FValue := AValue;
+End;
+
+Destructor TMeasurementResultBase.Destroy;
+Begin
+  FValue.Free;
+  inherited Destroy;
 End;
 
 Function TMeasurementResultBase.ToString : String;
@@ -1780,6 +1821,12 @@ Constructor TMeasurementResultVI.Create(AVoltage, ACurrent : TValueAccuracyBase)
 Begin
   inherited Create(AVoltage);
   FCurrent := ACurrent;
+End;
+
+Destructor TMeasurementResultVI.Destroy;
+Begin
+  FCurrent.Free;
+  inherited Destroy;
 End;
 
 Function TMeasurementResultVI.ToString : String;
@@ -1846,7 +1893,14 @@ Begin
 End;
 
 Destructor TComparisonSet.Destroy;
+Var NI,NP : Integer;
 Begin
+  For NI := 0 to Length(FAnalyses)-1 do
+    FAnalyses[NI].Free;
+  For NI := 0 to Length(FComparison.FInstruments)-1 do
+    For NP := 0 to Length(FTestPoints.FValues)-1 do
+      FMeasurements[NI][NP].Free;
+  FTestPoints.Free;
   inherited Destroy;
 End;
 
@@ -1999,7 +2053,10 @@ Begin
 End;
 
 Destructor TComparisonProcedure.Destroy;
+Var I : Integer;
 Begin
+  For I := 0 to Length(FSets)-1 do
+    FSets[I].Free;
   inherited Destroy;
 End;
 
@@ -2077,7 +2134,11 @@ Begin
 End;
 
 Destructor TComparisonBase.Destroy;
+Var I : Integer;
 Begin
+  FProcedure.Free;
+  For I := 0 to Length(FInstruments)-1 do
+    FInstruments[I].Free;
   Inherited Destroy;
 End;
 

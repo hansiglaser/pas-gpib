@@ -88,13 +88,14 @@ Type
     FXBreakSpaceDrw : Double;    // space between the two lines (actually half of that space)
 
     Constructor Create(ACoord : TCoordBase);
+    Destructor Destroy; override;
     Procedure Resize(AWidth, AHeight:Integer);
     Procedure Resize(AWidth, AHeight:Integer;ACanvas:TFPCustomCanvas);
     // drawing coordinate functions
     Procedure Line(X1,Y1,X2,Y2:Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
     Procedure Rectangle(Left, Bottom, Right, Top : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer; BrushColor : TFPColor; BrushStyle : TFPBrushStyle);
     Procedure Rectangle(Left, Bottom, Right, Top : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer);
-    Procedure CenterText(AT : Array Of TvText);
+    Procedure CenterText(AT : Array of TvText);
     Procedure SymPlus(X, Y, Size : Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
     // diagram functions
     Procedure DrawBox;
@@ -223,6 +224,12 @@ Begin
   FXBreakExtDrw   := 6.0;
   FXBreakSlantDrw := 2.0;
   FXBreakSpaceDrw := 2.0;
+End;
+
+Destructor TVectorialDiagram.Destroy;
+Begin
+  FVecDoc.Free;
+  inherited Destroy;
 End;
 
 Procedure TVectorialDiagram.Resize(AWidth, AHeight : Integer);

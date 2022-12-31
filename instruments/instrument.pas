@@ -69,6 +69,7 @@ Type
 
   TMeasureRangeAccuracy = class(TMeasureRangeBase)
     FAccuracy : Array of TAccuracyBase;   // index is instrument-specific accuracy rating, e.g., time since last calibration
+    Destructor Destroy; override;
     Procedure AddAccuracy(AAccuracy:TAccuracyBase);
   End;
   TRangesArray = Array of TMeasureRangeAccuracy;
@@ -152,6 +153,14 @@ Begin
 End;
 
 { TMeasureRangeAccuracy }
+
+Destructor TMeasureRangeAccuracy.Destroy;
+Var I : Integer;
+Begin
+  For I := 0 to Length(FAccuracy)-1 do
+    FAccuracy[I].Free;
+  inherited Destroy;
+End;
 
 Procedure TMeasureRangeAccuracy.AddAccuracy(AAccuracy : TAccuracyBase);
 Begin

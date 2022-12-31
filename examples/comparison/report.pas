@@ -582,19 +582,24 @@ End;
 
 Function TComparisonReport.GenReport : TStringList;
 Var S : TStringList;
+  Procedure AddAndFree(ASL:TStringList);
+  Begin
+    S.AddStrings(ASL);
+    ASL.Free;
+  End;
 Begin
-  S :=         GenReportHead;
-  S.AddStrings(GenSecSummary);
-  S.AddStrings(GenSecSetupDescription);
-  S.AddStrings(GenSubSecInstruments);
-  S.AddStrings(GenSubSecRanges);
-  S.AddStrings(GenSubSecTestpoints);
-  S.AddStrings(GenSubSecComparisonProcedure);
-  S.AddStrings(GenSecResultsOverview);
-  S.AddStrings(GenSecDetailedResults);
-  S.AddStrings(GenSubSecResultsByInstrument);
-  S.AddStrings(GenSubSecResultsByTestPoint);
-  S.AddStrings(GenReportFoot);
+  S :=       GenReportHead;
+  AddAndFree(GenSecSummary);
+  AddAndFree(GenSecSetupDescription);
+  AddAndFree(GenSubSecInstruments);
+  AddAndFree(GenSubSecRanges);
+  AddAndFree(GenSubSecTestpoints);
+  AddAndFree(GenSubSecComparisonProcedure);
+  AddAndFree(GenSecResultsOverview);
+  AddAndFree(GenSecDetailedResults);
+  AddAndFree(GenSubSecResultsByInstrument);
+  AddAndFree(GenSubSecResultsByTestPoint);
+  AddAndFree(GenReportFoot);
   Result := S;
 End;
 

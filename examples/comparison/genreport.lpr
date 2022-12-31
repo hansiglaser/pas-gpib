@@ -94,5 +94,13 @@ Begin
   S.Free;
   WriteLn('Saved report to ',FReport.FOutFilename,'. Compile with');
   WriteLn('  $ pdflatex --shell-escape ',FReport.FOutFilename);
+  FReport.Free;
+
+  FComparison.Free;
+
+  // free factories
+  FreeInstrumentWrapperFactory;
+  FreeMeasurementResultFactory;
+  FreeObjectFactory;
 End.
 
