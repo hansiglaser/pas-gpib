@@ -347,6 +347,7 @@ Begin
     End;
 
   S.Add('Comparison procedure (see Fig.~\ref{fig:procedure-gen}).');
+  S.Add('Total '+IntToStr(FComparison.FProcedure.GetNumSets)+' sets with '+IntToStr(FComparison.FProcedure.GetNumTestpoints)+' testpoints.');
   S.Add('');
 
   S.Add('\begin{itemize}');
