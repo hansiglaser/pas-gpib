@@ -13,7 +13,7 @@ Uses
   fpjson, TypInfo, fpjsonrtti,
 {$ENDIF}
   DevCom, DevComVisa, DevComRS232, Serial, PasGpibUtils,
-  Agilent34410A, KeysightU125xB, KeysightE3631xA, AgilentMSOX3000A,
+  Agilent34410A, KeysightU125xB, KeithleyDMM6500, KeysightE3631xA, AgilentMSOX3000A,
   Instrument, RemoteInstrument;
 
 Type
@@ -23,12 +23,6 @@ Type
   { TFluke177 }
 
   TFluke177 = class(TRemoteInstrument)
-    class Function GetRanges(AInstrument:String) : TRangesQuantity; override;
-  End;
-
-  { TKeithleyDMM6500 }
-
-  TKeithleyDMM6500 = class(TRemoteInstrument)
     class Function GetRanges(AInstrument:String) : TRangesQuantity; override;
   End;
 
@@ -253,6 +247,7 @@ Type
   private
     FVISA       : String;
     FComm       : IDeviceCommunicator;
+    FCommObj    : TObject;
     FInstrument : TAgilent34410A;          // set in Initialize
     FRange      : TMeasureRangeAccuracy;   // set in SetMeasureRange
   public
@@ -329,6 +324,7 @@ Type
     FSource       : TInstrumentWrapperKeysightE3631xA;   // first Nil, set for both as soon as the 2nd is created
     FMeasure      : TInstrumentWrapperKeysightE3631xA;   // first Nil, set for both as soon as the 2nd is created
     FComm         : IDeviceCommunicator;
+    FCommObj      : TObject;
     FInstrument   : TKeysightE3631xA;        // set in Initialize
     FSourceRange  : TMeasureRangeAccuracy;   // set in SetSourceRange
     FMeasureRange : TMeasureRangeAccuracy;   // set in SetMeasureRange
@@ -555,25 +551,6 @@ Begin
       Result[qtDCV][2] := TMeasureRangeAccuracy.Create(  60.0, true,  10E-3); Result[qtDCV][2].AddAccuracy(TAccuracyGainOffset.Create(0.09*0.01, 2* 10E-3));
       Result[qtDCV][3] := TMeasureRangeAccuracy.Create( 600.0, true, 100E-3); Result[qtDCV][3].AddAccuracy(TAccuracyGainOffset.Create(0.09*0.01, 2*100E-3));
       Result[qtDCV][4] := TMeasureRangeAccuracy.Create(1000.0, true,   1E-0); Result[qtDCV][4].AddAccuracy(TAccuracyGainOffset.Create(0.15*0.01, 2*  1E-0));
-      WriteLn('Warning: TODO: Implement for other accuracy cases and for other quantities');
-    End;
-  Else
-    raise Exception.Create('TODO: Implement instrument '''+AInstrument+'''');
-  End;
-End;
-
-{ TKeithleyDMM6500 }
-
-Class Function TKeithleyDMM6500.GetRanges(AInstrument : String) : TRangesQuantity;
-Begin
-  Case AInstrument of
-    'KeithleyDMM6500' : Begin
-      SetLength(Result[qtDCV], 5);          // 1 year within calibration
-      Result[qtDCV][0] := TMeasureRangeAccuracy.Create(   0.1, true, 100E-9); Result[qtDCV][0].AddAccuracy(TAccuracyGainOffset.Create(0.0030*0.01, 0.0035*0.01*   0.1));
-      Result[qtDCV][1] := TMeasureRangeAccuracy.Create(   1.0, true,   1E-6); Result[qtDCV][1].AddAccuracy(TAccuracyGainOffset.Create(0.0025*0.01, 0.0006*0.01*   1.0));
-      Result[qtDCV][2] := TMeasureRangeAccuracy.Create(  10.0, true,  10E-6); Result[qtDCV][2].AddAccuracy(TAccuracyGainOffset.Create(0.0025*0.01, 0.0005*0.01*  10.0));
-      Result[qtDCV][3] := TMeasureRangeAccuracy.Create( 100.0, true, 100E-6); Result[qtDCV][3].AddAccuracy(TAccuracyGainOffset.Create(0.0040*0.01, 0.0006*0.01* 100.0));
-      Result[qtDCV][4] := TMeasureRangeAccuracy.Create(1000.0, true,   1E-3); Result[qtDCV][4].AddAccuracy(TAccuracyGainOffset.Create(0.0040*0.01, 0.0006*0.01*1000.0));
       WriteLn('Warning: TODO: Implement for other accuracy cases and for other quantities');
     End;
   Else
@@ -1318,10 +1295,11 @@ End;
 Procedure TInstrumentWrapperAgilent34410A.Initialize;
 Begin
   WriteLn(FName+'.Initialize');
-  FComm       := DevComOpen(FVISA);
+  FComm       := DevComOpen(FVISA, FCommObj);
   FInstrument := TAgilent34410A.Create(FComm);
   FComm.SetTimeout(2000000{us});
-  //FComm.ErrorHandler := @USBTMCErrorHandler;
+//  if FCommObj is TUSBTMCCommunicator then
+//    (FCommObj as TUSBTMCCommunicator).ErrorHandler := @USBTMCErrorHandler;
   // TODO: like in Create, check that the device is the same type as FWrapperName
   WriteLn('Connected to device ',FInstrument.Identify);
   FIdentifier := FInstrument.Identify;
@@ -1330,7 +1308,7 @@ Begin
   WriteLn('Disable the beeper');
   FInstrument.SetBeeper(false);
   // print input terminals setting
-  WriteLn(FName,': Input terminal selection: ',CInputTerminalsSettingNice[FInstrument.GetInputTerminalsSetting]);
+  WriteLn(FName,': Input terminal selection: ',Agilent34410A.CInputTerminalsSettingNice[FInstrument.GetInputTerminalsSetting]);
   // setup measurement to DC Volts
   if FComparisonBase.FQuantity = qtDCV then
     Begin
@@ -1348,7 +1326,7 @@ Procedure TInstrumentWrapperAgilent34410A.Disconnect;
 Begin
   WriteLn(FName+'.Disconnect');
   FreeAndNil(FInstrument);
-//  TObject(FComm).Free;     // TODO: is it ok that FComm is not Free()d?
+  FreeAndNil(FCommObj);
 End;
 
 Procedure TInstrumentWrapperAgilent34410A.SetMeasureRange(ARange : TMeasureRangeBase);
@@ -1592,7 +1570,7 @@ Begin
       FIdentifier := FInstrument.Identify;
       Exit;  // only source is initialized
     End;
-  FComm       := DevComOpen(FVISA);
+  FComm       := DevComOpen(FVISA, FCommObj);
   FInstrument := TKeysightE3631xA.Create(FComm);
   FComm.SetTimeout(2000000{us});
   //FComm.ErrorHandler := @USBTMCErrorHandler;
@@ -1613,7 +1591,7 @@ Begin
   if assigned(FSource) and assigned(FMeasure) and (FFunction = ifMeasure) then
     Exit;  // only source is doing the job
   FreeAndNil(FInstrument);
-//  TObject(FComm).Free;     // TODO: is it ok that FComm is not Free()d?
+  FreeAndNil(FCommObj);
 End;
 
 Procedure TInstrumentWrapperKeysightE3631xA.SetSourceRange(ARange : TMeasureRangeBase);
