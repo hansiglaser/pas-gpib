@@ -45,6 +45,7 @@ Type
     Procedure CheckErrors(Status : Byte);
     Procedure CheckErrors;
     // (maximum) number of bytes used for DEV_DEP_MSG_IN
+    property Device       : TUSBTMCUSB488 read FDevice;
     property TransferSize : Integer read FTransferSize write FTransferSize;
     property ErrorHandler : TErrorHandler read FErrorHandler write FErrorHandler;
     property LastSend     : String read FLastSend;
@@ -76,6 +77,7 @@ Var Status : Byte;
 Begin
   // wait until a message is available (with FDevice.Timeout, in steps of 10ms)
   Status := WaitMessage(10);
+//  WriteLn('TUSBTMCCommunicator.Receive: ',FDevice.ExplainStatusByte(Status));
   if (Status and IEEE488_StatusByte_MessageAvailable) = 0 then
     Begin
       // no message available, is there an error?
@@ -158,7 +160,9 @@ End;
 Procedure TUSBTMCCommunicator.CheckErrors(Status:Byte);
 Var OldEnableErrorHandler : Boolean;
 Begin
-  if FEnableErrorHandler and assigned(FErrorHandler) and ((Status and IEEE488_StatusByte_ErrorQueue) <> 0) then
+  if (Status and IEEE488_StatusByte_ErrorQueue) = 0 then
+    Exit;
+  if FEnableErrorHandler and assigned(FErrorHandler) then
     Begin
       try
         OldEnableErrorHandler := FEnableErrorHandler;
@@ -167,6 +171,10 @@ Begin
       finally
         FEnableErrorHandler := OldEnableErrorHandler;
       End;
+    End
+  else
+    Begin
+      WriteLn('USB-TMC IEEE 448 Error: '+FDevice.ExplainStatusByte(Status));
     End;
 End;
 
