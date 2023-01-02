@@ -31,7 +31,7 @@ Type
     Constructor Create(ADeviceCommunicator:IDeviceCommunicator);
     /// Destructor; does not free the device communicator object
     Destructor  Destroy; override;
-    Function Identify : String;
+    Function Identify : String; virtual;
   End;
 
 Implementation
@@ -65,6 +65,7 @@ Var St : String;
   Begin
 //    WriteLn('QueryLong at ',Length(St));
     St := St + FDeviceCommunicator.Receive;
+//    WriteLn('  and now ',Length(St));
     Result := (St[Length(St)] = #10);
   End;
 
