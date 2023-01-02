@@ -125,7 +125,8 @@ End;
 Procedure TKeithleyDMM6500.ClearBuffer(ABuffer : String);
 Begin
   if ABuffer = '' then ABuffer := 'defbuffer1';
-  FDeviceCommunicator.Send(FNodePrefix+ABuffer+'.clear()');
+  ABuffer := FNodePrefix+ABuffer;
+  FDeviceCommunicator.Send(ABuffer+'.clear()');
 End;
 
 (**
@@ -136,6 +137,7 @@ End;
 Function TKeithleyDMM6500.GetNumReadings(ABuffer : String) : Integer;
 Begin
   if ABuffer = '' then ABuffer := 'defbuffer1';
+  ABuffer := FNodePrefix+ABuffer;
   Result := StrToInt(FDeviceCommunicator.Query('print('+ABuffer+'.n)'));
 End;
 
@@ -149,7 +151,7 @@ Var EndIndex : String;
     St       : String;
 Begin
   if ABuffer = '' then ABuffer := 'defbuffer1';
-  // TODO: how to use FNodePrefix+ ?
+  ABuffer := FNodePrefix+ABuffer;
   if AEndIndex < 1 then
     EndIndex := ABuffer+'.n'
   else
@@ -224,7 +226,7 @@ End;
  *)
 Procedure TKeithleyDMM6500.EnableAutoRange(AEnable : Boolean);
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'dmm.measure.autorange = dmm.'+IfThen(AEnable,'ON','OFF'));
+  FDeviceCommunicator.Send(FNodePrefix+'dmm.measure.autorange = '+FNodePrefix+'dmm.'+IfThen(AEnable,'ON','OFF'));
 End;
 
 (**
@@ -234,7 +236,7 @@ End;
  *)
 Procedure TKeithleyDMM6500.EnableAutoZero(AEnable : Boolean);
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'dmm.measure.autozero.enable = dmm.'+IfThen(AEnable,'ON','OFF'));
+  FDeviceCommunicator.Send(FNodePrefix+'dmm.measure.autozero.enable = '+FNodePrefix+'dmm.'+IfThen(AEnable,'ON','OFF'));
 End;
 
 (**
@@ -274,7 +276,7 @@ End;
  *)
 Procedure TKeithleyDMM6500.SetDisplayDigits(ADigits : TDigits);
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'dmm.measure.displaydigits = dmm.'+CDigits[ADigits]);
+  FDeviceCommunicator.Send(FNodePrefix+'dmm.measure.displaydigits = '+FNodePrefix+'dmm.'+CDigits[ADigits]);
 End;
 
 (**
@@ -284,7 +286,7 @@ End;
  *)
 Procedure TKeithleyDMM6500.EnableFilter(AEnable : Boolean);
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'dmm.measure.filter.enable = dmm.'+IfThen(AEnable,'ON','OFF'));
+  FDeviceCommunicator.Send(FNodePrefix+'dmm.measure.filter.enable = '+FNodePrefix+'dmm.'+IfThen(AEnable,'ON','OFF'));
 End;
 
 (**
@@ -296,7 +298,7 @@ End;
  *)
 Procedure TKeithleyDMM6500.SetMeasureFunction(AFunction : String);
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'dmm.measure.func = dmm.'+AFunction);
+  FDeviceCommunicator.Send(FNodePrefix+'dmm.measure.func = '+FNodePrefix+'dmm.'+AFunction);
 End;
 
 (**
@@ -357,7 +359,7 @@ End;
 Function TKeithleyDMM6500.GetTerminals : TInputTerminalsSetting;
 Var Terminals : String;
 Begin
-  Terminals := FDeviceCommunicator.Query('print(dmm.terminals)');
+  Terminals := FDeviceCommunicator.Query('print('+FNodePrefix+'dmm.terminals)');
   if      Terminals = 'dmm.TERMINALS_FRONT' then Exit(itFront)
   else if Terminals = 'dmm.TERMINALS_REAR'  then Exit(itRear)
   else
@@ -394,7 +396,7 @@ Var TimeSeconds, TimeNanoSec : Integer;
 Begin
   FDeviceCommunicator.Send('eventNumber, message, severity, nodeID, timeSeconds, timeNanoSeconds = eventlog.next()');
   AEventNumber := StrToInt(FDeviceCommunicator.Query('print(eventNumber)'));
-  AMessage     :=            FDeviceCommunicator.Query('print(message)');
+  AMessage     :=          FDeviceCommunicator.Query('print(message)');
   ASeverity    := StrToInt(FDeviceCommunicator.Query('print(severity)'));
   ANodeID      := StrToInt(FDeviceCommunicator.Query('print(nodeID)'));
   TimeSeconds  := StrToInt(FDeviceCommunicator.Query('print(timeSeconds)'));

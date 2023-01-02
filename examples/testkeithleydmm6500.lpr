@@ -28,6 +28,7 @@ Program TestKeithleyDMM6500;
 {$DEFINE TEST_NPLC}
 {$DEFINE TEST_APERTURE}
 {$DEFINE TEST_RANGE}
+{$DEFINE TEST_TSP_LINK}
 
 Uses
   Classes, SysUtils, Math, PasGpibUtils, DevCom,
@@ -48,6 +49,7 @@ Const
 {$IFDEF TCP}
   Visa = 'TCPIP::10.0.0.212::5025::SOCKET';
 {$ENDIF TCP}
+  TSPNodeID = 3;   // TSP-Link Node ID of the remote instrument
 
 Type
   TSetter = Procedure(ADouble:Double) of object;
@@ -109,6 +111,7 @@ Var
   V             : Double;
   MeasArr       : TDynDoubleArray;
   I             : Integer;
+  St            : String;
 
 {$IFDEF USBTMC}
 Procedure USBTMCErrorHandler;
@@ -157,6 +160,7 @@ Begin
   DMM6500.SetText(1, 'Hello World!');
   DMM6500.SetText(2, 'And a happy new year! \018 \019 \020 \185 \021');
   Sleep(2000);
+  DMM6500.ClearDisplay;
 
   WriteLn('Testing a simple measurement.');
   DMM6500.ChangeScreen('SCREEN_HOME');
@@ -238,6 +242,65 @@ Begin
   // setup measurement to DC Volts
   DMM6500.SetMeasureFunction('FUNC_DC_VOLTAGE');
 {$ENDIF TEST_RANGE}
+{$IFDEF TEST_TSP_LINK}
+  WriteLn;
+  WriteLn('Testing TSP-Link');
+  DMM6500.TSPLinkInitialize;
+  St := DMM6500.GetTSPLinkState;
+  WriteLn('TSP-Link State is ',St);
+  if St = 'online' then
+    Begin
+      // device
+      DMM6500_Slave := TKeithleyDMM6500.Create(DMM6500, TSPNodeID);
+
+      WriteLn('Input terminal selection: ',CInputTerminalsSettingNice[DMM6500_Slave.GetTerminals]);
+
+      WriteLn('Testing display functions on user screen. Watch the display!');
+      DMM6500_Slave.ChangeScreen('SCREEN_USER_SWIPE');
+      DMM6500_Slave.SetText(1, 'Hello Remote World!');
+      DMM6500_Slave.SetText(2, 'Nice to meet you!');
+      Sleep(2000);
+      DMM6500_Slave.ClearDisplay;
+
+      WriteLn('Testing a simple measurement.');
+      DMM6500_Slave.ChangeScreen('SCREEN_HOME');
+      DMM6500_Slave.SetMeasureFunction('FUNC_DC_VOLTAGE');
+      DMM6500_Slave.SetNPLC(1.0);
+      DMM6500_Slave.EnableAutoRange(True);
+      DMM6500_Slave.EnableAutoZero(True);
+      DMM6500_Slave.AutoZero;
+      DMM6500_Slave.SetDisplayDigits(dg6_5);
+      DMM6500_Slave.EnableFilter(False);
+      DMM6500_Slave.SetRange(10.0);
+      V := DMM6500_Slave.Measure;
+      WriteLn('Value = ',FloatToStr(V));
+
+{$IFDEF TEST_SERIES}
+      WriteLn;
+      WriteLn('Starting measurement series with 10 measurements with NPLC=1.0');
+      DMM6500_Slave.SetMeasureCount(10);
+      DMM6500_Slave.ClearBuffer;
+      Sleep(300);
+      V := DMM6500_Slave.Measure;
+      WriteLn('Value = ',FloatToStr(V));
+      WriteLn('  total ',DMM6500_Slave.GetNumReadings);
+      MeasArr := DMM6500_Slave.PrintBuffer;
+      WriteLn('  Num:    ',Length(MeasArr));
+      WriteLn('  Min:    ',FloatToStrSI(MinValue(MeasArr),FormatSettings));
+      WriteLn('  Max:    ',FloatToStrSI(MaxValue(MeasArr),FormatSettings));
+      WriteLn('  Mean:   ',FloatToStrSI(Mean    (MeasArr),FormatSettings));
+      WriteLn('  StdDev: ',FloatToStrSI(StdDev  (MeasArr),FormatSettings));
+      // TODO: the device can do the statistics itself, wee buffer.getstats() [RM] p. 14-15
+{$ENDIF TEST_SERIES}
+
+      FreeAndNil(DMM6500_Slave);
+    End
+  else
+    Begin
+      WriteLn('Skipping test.');
+    End;
+
+{$ENDIF TEST_TSP_LINK}
 
   DMM6500.Free;
   CommObj.Free;
