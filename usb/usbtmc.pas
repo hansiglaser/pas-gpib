@@ -314,6 +314,7 @@ Type
     Procedure Send(St:String);
     Function Recv(MaxLen:Cardinal) : String;
     Function ReadStatusByte : Byte;
+    class Function ExplainStatusByte(AStatusByte:Byte) : String;
     property Usb488BcdVersion  : Word    read GetUsb488BcdVersion; // TUSBTMCUSB488GetCapabilities(FCapabilities).BCDUSB488;
     property CapUSB4882     : Boolean read GetCapUSB4882;
     property CapRenControl  : Boolean read GetCapRenControl;
@@ -1088,6 +1089,26 @@ Begin
     raise Exception.CreateFmt('ReadStatusByte: Received tag = %d differs from sent tag or $80 = %d',[Reply.Tag,Tag or $80]);
 
   Result := IntReply.bNotify2;
+End;
+
+class Function TUSBTMCUSB488.ExplainStatusByte(AStatusByte : Byte) : String;
+  Procedure CheckBit(ABit:Byte;AMsg:String);
+  Begin
+    if (AStatusByte and ABit) <> 0 then
+      Begin
+        Result := Result + LineEnding + '  ' + AMsg;
+        AStatusByte := AStatusByte and not ABit;
+      End;
+  End;
+Begin
+  Result := 'IEEE 488.1 Status Byte = $'+IntToHex(AStatusByte, 2);
+  CheckBit(IEEE488_StatusByte_ErrorQueue,        'One or more errors have been stored in the Error Queue');
+  CheckBit(IEEE488_StatusByte_QuestData,         'One or more bits are set in the Questionable Data Register');
+  CheckBit(IEEE488_StatusByte_MessageAvailable,  'Data is available in the instrument''s output buffer');
+  CheckBit(IEEE488_StatusByte_StandardEvent,     'One or more bits are set in the Standard Event Register');
+  CheckBit(IEEE488_StatusByte_MasterSummary,     'One or more bits are set in the Status Byte Register and may generate a Request for Service (RQS)');
+  CheckBit(IEEE488_StatusByte_StandardOperation, 'One or more bits are set in the Standard Operation Register');
+  CheckBit($FF, 'Unknown bits $'+IntToHex(AStatusByte, 2));
 End;
 
 { getters and setters }
