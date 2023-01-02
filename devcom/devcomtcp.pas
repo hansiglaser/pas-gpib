@@ -63,6 +63,8 @@ End;
 
 Procedure TTCPCommunicator.Send(St: String);
 Begin
+  //WriteLn('Send: ',St);
+  //ReadLn;
   St := St + ^J;
   FSocket.Write(St[1],Length(St));
 End;
@@ -86,6 +88,7 @@ Begin
     Pos := Pos + Len;
   Until Len = 0;
   SetLength(Result,Pos+Len-1);
+  //WriteLn('Receive: ',Result);
 End;
 
 Function TTCPCommunicator.Query(St: String): String;
