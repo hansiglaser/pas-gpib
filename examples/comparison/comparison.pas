@@ -13,7 +13,7 @@ Uses
   fpjson, TypInfo, fpjsonrtti,
 {$ENDIF}
   DevCom, DevComVisa, DevComRS232, Serial, PasGpibUtils,
-  Agilent34410A, KeysightU125xB, KeithleyDMM6500, KeysightE3631xA, AgilentMSOX3000A,
+  Agilent34410A, KeysightU125xB, KeithleyDMM6500, KeithleyTSP, KeysightE3631xA, AgilentMSOX3000A,
   Instrument, RemoteInstrument;
 
 Type
@@ -126,6 +126,7 @@ Type
     Constructor Create(AKey:String;AValue:TParamValueBase);
     Constructor Create(Args : Array of Const);
     Destructor Destroy; override;
+    Function  HasParam   (AKey:String) : TParamValueBase;
     Function  Get        (AKey:String) : TParamValueBase;
     Function  GetInteger (AKey:String) : Integer;
     Function  GetDouble  (AKey:String) : Double;
@@ -267,7 +268,11 @@ Type
 
   TInstrumentWrapperKeithleyDMM6500 = class(TInstrumentWrapperBase)
   private
-    // TODO: some variables for the parameters from the file
+    FVISA       : String;
+    FTSPMaster  : TInstrumentWrapperBase;
+    FTSPNodeID  : Integer;
+    FComm       : IDeviceCommunicator;
+    FCommObj    : TObject;
     FInstrument : TKeithleyDMM6500;        // set in Initialize
     FRange      : TMeasureRangeAccuracy;   // set in SetMeasureRange
   public
@@ -832,6 +837,14 @@ Begin
   Inherited Destroy;
 End;
 
+Function TInstrumentWrapperParams.HasParam(AKey : String) : TParamValueBase;
+Var I : Integer;
+Begin
+  if not FParams.Find(AKey, I) then
+    Exit(Nil);
+  Result := FParams.Data[I];
+End;
+
 Function TInstrumentWrapperParams.Get(AKey : String) : TParamValueBase;
 Var I : Integer;
 Begin
@@ -1359,15 +1372,45 @@ Begin
 End;
 
 Class Function TInstrumentWrapperKeithleyDMM6500.CreateFromParams(AComparisonBase : TComparisonBase; AWrapperName, AName : String; AParams : TInstrumentWrapperParams) : TInstrumentWrapperBase;
+Var Ref : String;
+    I   : Integer;
 Begin
   Result := TInstrumentWrapperKeithleyDMM6500.Create(AComparisonBase, AWrapperName, AName, AParams, ifMeasure);
+  With TInstrumentWrapperKeithleyDMM6500(Result) do
+    Begin
+      if assigned(AParams.HasParam('VISA')) then
+        Begin
+          FVISA := AParams.GetString('VISA');
+        End
+      else
+        Begin
+          Ref := AParams.GetString('Ref');
+          I := AComparisonBase.GetInstrumentIndex(Ref);
+          if I < 0 then
+            raise Exception.Create('Unknown referenced device '''+Ref+'''');
+          // set values of new object
+          FTSPMaster := AComparisonBase.FInstruments[I];
+          FTSPNodeID := AParams.GetInteger('TSPLinkNode');
+        End;
+    End
 End;
 
 Function TInstrumentWrapperKeithleyDMM6500.GetParams : TInstrumentWrapperParams;
 Begin
   if not assigned(FParams) then
     FParams := TInstrumentWrapperParams.Create;
-  // update TODO: FParams.FFunction := FFunction;
+  FParams.SetOrAddFunction('Function', FFunction);
+  if FVISA > '' then
+    Begin
+      FParams.SetOrAddString('VISA',   FVISA);
+    End
+  else if assigned(FTSPMaster) then
+    Begin
+      FParams.SetOrAddString ('Ref',        FTSPMaster.FName);
+      FParams.SetOrAddInteger('TSPLinkNode',FTSPNodeID);
+    End
+  else
+    raise Exception.Create('Neither FVISA nor FTSPMaster are set.');
   Result := FParams;
 End;
 
@@ -1377,19 +1420,63 @@ Begin
 End;
 
 Procedure TInstrumentWrapperKeithleyDMM6500.Initialize;
+Var TSPMaster : TKeithleyTSPNode;
+    St        : String;
 Begin
   WriteLn(FName+'.Initialize');
-  //FIdentifier := FInstrument.Identify;
+  if FVISA > '' then
+    Begin
+      FComm       := DevComOpen(FVISA, FCommObj);
+      FInstrument := TKeithleyDMM6500.Create(FComm);
+      FComm.SetTimeout(2000000{us});
+      //if FCommObj is TUSBTMCCommunicator then
+      //  (FCommObj as TUSBTMCCommunicator).ErrorHandler := @USBTMCErrorHandler;
+    End
+  else if assigned(FTSPMaster) then
+    Begin
+      if FTSPMaster is TInstrumentWrapperKeithleyDMM6500 then
+        TSPMaster := (FTSPMaster as TInstrumentWrapperKeithleyDMM6500).FInstrument
+      else
+        raise Exception.Create('Support '+FTSPMaster.ClassName+' as TSP Master');
+      FInstrument := TKeithleyDMM6500.Create(TSPMaster, FTSPNodeID);
+      TSPMaster.TSPLinkInitialize;
+      St := TSPMaster.GetTSPLinkState;
+      if St <> 'online' then
+        raise Exception.Create('TSP-Link State is '+St);
+    End
+  else
+    raise Exception.Create('Neither FVISA nor FTSPMaster are set.');
+  // common for standalone/master and slaves
+  WriteLn('Connected to device ',FInstrument.Identify);
+  FIdentifier := FInstrument.Identify;
+  WriteLn('Reset to default settings');
+  FInstrument.Reset;
+  // print input terminals setting
+  WriteLn(FName,': Input terminal selection: ',KeithleyDMM6500.CInputTerminalsSettingNice[FInstrument.GetTerminals]);
+  // setup measurement to DC Volts
+  if FComparisonBase.FQuantity = qtDCV then
+    Begin
+      FInstrument.SetMeasureFunction('FUNC_DC_VOLTAGE');
+    End
+  else
+    raise Exception.Create('TODO: Implement Quantity '+CQuantityStr[FComparisonBase.FQuantity]);
+  FInstrument.SetNPLC(1.0);
+  FInstrument.AutoZero;
+  FInstrument.SetMeasureCount(1);
 End;
 
 Procedure TInstrumentWrapperKeithleyDMM6500.Disconnect;
 Begin
   WriteLn(FName+'.Disconnect');
+  FreeAndNil(FInstrument);
+  FreeAndNil(FCommObj);
 End;
 
 Procedure TInstrumentWrapperKeithleyDMM6500.SetMeasureRange(ARange : TMeasureRangeBase);
 Begin
   WriteLn(FName+'.SetMeasureRange('+FloatToStr(ARange.FMaxValue)+')');
+  FRange := ARange as TMeasureRangeAccuracy;
+  FInstrument.SetRange(FRange.FMaxValue);
 End;
 
 Procedure TInstrumentWrapperKeithleyDMM6500.StartMeasurement;
@@ -1398,8 +1485,13 @@ Begin
 End;
 
 Function TInstrumentWrapperKeithleyDMM6500.GetResults : TMeasurementResultBase;
+Var D : Double;
 Begin
   WriteLn(FName+'.GetResults');
+  D := FInstrument.Measure;
+  WriteLn('  V = ',FloatToStr(D));
+  Result := TMeasurementResultBase.Create(FRange.FAccuracy[0].Apply(D));
+  WriteLn('  ',Result.ToString);
 End;
 
 { TInstrumentWrapperKeithley2450 }
