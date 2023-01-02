@@ -23,16 +23,17 @@ Uses
  * TODO:
  *  - the USB function DevComOpenUSB() has memory leaks
  *)
-Function DevComOpen(VisaResource : String) : IDeviceCommunicator;
+Function DevComOpen(VisaResource : String;Out CommObj:TObject) : IDeviceCommunicator;
 
 Implementation
 Uses
   LibUsbOop, UsbTmc, DevComUSBTMC,
   DevComTCP;
 
-Function DevComOpenTCP(VisaResource : String; ResArr : TDynStringArray) : IDeviceCommunicator;
+Function DevComOpenTCP(VisaResource : String; ResArr : TDynStringArray;Out CommObj:TObject) : IDeviceCommunicator;
 Var Host       : String;
     Port       : LongInt;
+    Comm       : TTCPCommunicator;
 Begin
   // TCPIP INSTR:  'TCPIP[board]::host address[::LAN device name][::INSTR]' or
   // TCPIP SOCKET: 'TCPIP[board]::host address::port::SOCKET'
@@ -46,10 +47,12 @@ Begin
   else if (Length(ResArr) <> 4) or (ResArr[Length(ResArr)-1] <> 'SOCKET') then  // 'TCPIP[board]::host address::port::SOCKET'
     raise Exception.Create('Misformed VISA Resource string '''+VisaResource+'''');
   Port := StrToInt(ResArr[2]);
-  Result := TTCPCommunicator.Create(Host,Port);
+  Comm := TTCPCommunicator.Create(Host,Port);
+  CommObj := Comm;
+  Result  := Comm;
 End;
 
-Function DevComOpenUSB(VisaResource : String; ResArr : TDynStringArray) : IDeviceCommunicator;
+Function DevComOpenUSB(VisaResource : String; ResArr : TDynStringArray;Out CommObj:TObject) : IDeviceCommunicator;
 Var Board      : Integer;
     idVendor   : Word;
     idProduct  : Word;
@@ -106,7 +109,10 @@ Begin
       Context.Free;
       raise Exception.Create('Error: No matching USB device for '+VisaResource+' found');
     End;
-  Result := TUSBTMCCommunicator.Create(Tmc);
+
+  Comm := TUSBTMCCommunicator.Create(Tmc);
+  CommObj := Comm;
+  Result  := Comm;
   Result.SetTimeout(2000000{us});
 //      Comm.ErrorHandler := @USBTMCErrorHandler;
 
@@ -114,7 +120,7 @@ Begin
   // TODO: free IntfInfo list
 End;
 
-Function DevComOpen(VisaResource : String) : IDeviceCommunicator;
+Function DevComOpen(VisaResource : String; Out CommObj : TObject) : IDeviceCommunicator;
 Var ResArr : TDynStringArray;
 Begin
   // VisaResource is e.g., 'TCPIP0::1.2.3.4::999::SOCKET' or 'USB::0x1234::125::A22-5::INSTR'
@@ -123,11 +129,11 @@ Begin
   // identify interface
   if Pos('TCPIP', ResArr[0]) = 1 then
     Begin
-      Result := DevComOpenTCP(VisaResource, ResArr);
+      Result := DevComOpenTCP(VisaResource, ResArr, CommObj);
     End
   else if Pos('USB', ResArr[0]) = 1 then
     Begin
-      Result := DevComOpenUSB(VisaResource, ResArr);
+      Result := DevComOpenUSB(VisaResource, ResArr, CommObj);
     End
   else
     raise Exception.Create('Interface type '+ResArr[0]+' is not yet supported');
