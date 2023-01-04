@@ -92,12 +92,13 @@ Type
     Procedure Resize(AWidth, AHeight:Integer);
     Procedure Resize(AWidth, AHeight:Integer;ACanvas:TFPCustomCanvas);
     // drawing coordinate functions
-    Procedure Line(X1,Y1,X2,Y2:Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
-    Procedure Rectangle(Left, Bottom, Right, Top : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer; BrushColor : TFPColor; BrushStyle : TFPBrushStyle);
-    Procedure Rectangle(Left, Bottom, Right, Top : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer);
+    Function  Line(X1,Y1,X2,Y2:Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer) : TPath;
+    Function  Rectangle(Left, Bottom, Right, Top : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer; BrushColor : TFPColor; BrushStyle : TFPBrushStyle) : TPath;
+    Function  Rectangle(Left, Bottom, Right, Top : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer) : TPath;
     Procedure CenterText(AT : Array of TvText);
     Procedure SymPlus(X, Y, Size : Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
     // diagram functions
+    Function  IsVisible(ValX,ValY:Double):Boolean;
     Procedure DrawBox;
     Procedure DrawLinearXAxis;
     Procedure DrawSemiLogXAxis;
@@ -244,8 +245,8 @@ Begin
   FDiagBox.Top      := FHeight - 3;
   FCoord.FDrwWidth  := FDiagBox.Right-FDiagBox.Left;
   FCoord.FDrwHeight := FDiagBox.Top-FDiagBox.Bottom;
-  FVecDoc.Width     := FCoord.FDrwWidth;
-  FVecDoc.Height    := FCoord.FDrwHeight;
+  FVecDoc.Width     := FWidth;
+  FVecDoc.Height    := FHeight;
   FVecPage.Width    := FVecDoc.Width;
   FVecPage.Height   := FVecDoc.Height;
   // clear page
@@ -262,7 +263,7 @@ Begin
     False);
 End;
 
-Procedure TVectorialDiagram.Line(X1, Y1, X2, Y2 : Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
+Function TVectorialDiagram.Line(X1, Y1, X2, Y2 : Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer) : TPath;
 Begin
   FVecPage.StartPath    (X1, Y1);
   FVecPage.SetPenColor  (Color);
@@ -272,7 +273,7 @@ Begin
   FVecPage.EndPath;
 End;
 
-Procedure TVectorialDiagram.Rectangle(Left,Bottom,Right,Top:Double;PenColor:TFPColor;PenStyle:TFPPenStyle;PenWidth:Integer;BrushColor:TFPColor;BrushStyle: TFPBrushStyle);
+Function TVectorialDiagram.Rectangle(Left,Bottom,Right,Top:Double;PenColor:TFPColor;PenStyle:TFPPenStyle;PenWidth:Integer;BrushColor:TFPColor;BrushStyle: TFPBrushStyle) : TPath;
 Begin
   FVecPage.StartPath    (Left,  Bottom);
   FVecPage.SetPenColor  (PenColor);
@@ -284,12 +285,12 @@ Begin
   FVecPage.AddLineToPath(Right, Top);
   FVecPage.AddLineToPath(Left,  Top);
   FVecPage.AddLineToPath(Left,  Bottom);
-  FVecPage.EndPath;
+  Result := FVecPage.EndPath;
 End;
 
-Procedure TVectorialDiagram.Rectangle(Left,Bottom,Right,Top:Double;PenColor:TFPColor;PenStyle:TFPPenStyle;PenWidth:Integer);
+Function TVectorialDiagram.Rectangle(Left,Bottom,Right,Top:Double;PenColor:TFPColor;PenStyle:TFPPenStyle;PenWidth:Integer) : TPath;
 Begin
-  Rectangle(Left,Bottom,Right,Top,PenColor,PenStyle,PenWidth,colBlack,bsClear);
+  Result := Rectangle(Left,Bottom,Right,Top,PenColor,PenStyle,PenWidth,colBlack,bsClear);
 End;
 
 // center text, one or multiple concatenated items
@@ -324,6 +325,15 @@ Procedure TVectorialDiagram.SymPlus(X, Y, Size : Double; Color : TFPColor; Style
 Begin
   Line(X-Size, Y,      X+Size, Y,      Color, Style, Width);
   Line(X,      Y-Size, X,      Y+Size, Color, Style, Width);
+End;
+
+Function TVectorialDiagram.IsVisible(ValX, ValY : Double) : Boolean;
+Begin
+  ValX := FCoord.ValX2Drw(ValX);
+  ValY := FCoord.ValY2Drw(ValY);
+  Result := True;
+  if (ValX < 0.0) or (ValX > FCoord.FDrwWidth) or
+     (ValY < 0.0) or (ValY > FCoord.FDrwHeight) then Result := False;
 End;
 
 Procedure TVectorialDiagram.DrawBox;
@@ -486,14 +496,83 @@ End;
 Procedure TVectorialDiagram.DrawRect(ValXMin, ValXMax, ValYMin,
   ValYMax : Double; PenColor : TFPColor; PenStyle : TFPPenStyle;
   PenWidth : Integer; BrushColor : TFPColor; BrushStyle : TFPBrushStyle);
+
+  Procedure Swap(Var D1,D2:Double);
+  Var T : Double;
+  Begin
+    T  := D1;
+    D1 := D2;
+    D2 := T;
+  End;
+
+Var X1,X2,Y1,Y2 : Double;
+    CN,CE,CS,CW : Boolean;
 Begin
-  Rectangle(FDiagBox.Left + FCoord.ValX2Drw(ValXMin), FDiagBox.Bottom + FCoord.ValY2Drw(ValYMin),
-            FDiagBox.Left + FCoord.ValX2Drw(ValXMax), FDiagBox.Bottom + FCoord.ValY2Drw(ValYMax),
-            PenColor,PenStyle,PenWidth,BrushColor,BrushStyle);
+  // convert value to drawing coordinates
+  X1 := FCoord.ValX2Drw(ValXMin);
+  Y1 := FCoord.ValY2Drw(ValYMin);
+  X2 := FCoord.ValX2Drw(ValXMax);
+  Y2 := FCoord.ValY2Drw(ValYMax);
+  // sort
+  if X1 > X2 then Swap(X1, X2);
+  if Y1 > Y2 then Swap(Y1, Y2);
+  // check if it drawn at all
+  if X1 > FCoord.FDrwWidth  then Exit;
+  if X2 < 0.0               then Exit;
+  if Y1 > FCoord.FDrwHeight then Exit;
+  if Y2 < 0.0               then Exit;
+  // check if clipping happens
+  CN := False; CE := False; CS := False; CW := False;
+  if X1 < 0.0               then Begin X1 := 0.0;               CW := True; End;
+  if X2 > FCoord.FDrwWidth  then Begin X2 := FCoord.FDrwWidth;  CE := True; End;
+  if Y1 < 0.0               then Begin Y1 := 0.0;               CS := True; End;
+  if Y2 > FCoord.FDrwHeight then Begin Y2 := FCoord.FDrwHeight; CN := True; End;
+  // move to diagram box
+  X1 := X1 + FDiagBox.Left;   X2 := X2 + FDiagBox.Left;
+  Y1 := Y1 + FDiagBox.Bottom; Y2 := Y2 + FDiagBox.Bottom;
+  // draw
+  if not CN and not CE and not CS and not CW then
+    Begin  // no clipping, simplest case
+      Rectangle(X1, Y1, X2, Y2, PenColor,PenStyle,PenWidth,BrushColor,BrushStyle);
+      Exit;
+    End;
+  // clipping occured, first draw the filled rectangle without border
+  Rectangle(X1, Y1, X2, Y2, PenColor,psClear,0,BrushColor,BrushStyle);
+  // then draw the border where applicable
+  if not CN and CE and not CS and not CW then
+    Begin  // clipping only east -> draw 3 sides
+      FVecPage.StartPath    (X2, Y2);
+      FVecPage.SetPenColor  (PenColor);
+      FVecPage.SetPenStyle  (PenStyle);
+      FVecPage.SetPenWidth  (PenWidth);
+      FVecPage.AddLineToPath(X1, Y2);
+      FVecPage.AddLineToPath(X1, Y1);
+      FVecPage.AddLineToPath(X2, Y1);
+      FVecPage.EndPath;
+    End
+  else if not CN and not CE and not CS and CW then
+    Begin  // clipping only west -> draw 3 sides
+      FVecPage.StartPath    (X1, Y2);
+      FVecPage.SetPenColor  (PenColor);
+      FVecPage.SetPenStyle  (PenStyle);
+      FVecPage.SetPenWidth  (PenWidth);
+      FVecPage.AddLineToPath(X2, Y2);
+      FVecPage.AddLineToPath(X2, Y1);
+      FVecPage.AddLineToPath(X1, Y1);
+      FVecPage.EndPath;
+    End
+  else if not CN and CE and not CS and CW then
+    Begin  // clipping only east and west -> draw top and bottom
+      Line(X1, Y1, X2, Y1, PenColor, PenStyle, PenWidth);
+      Line(X1, Y2, X2, Y2, PenColor, PenStyle, PenWidth);
+    End
+  else
+    WriteLn('Warning: Clipping for CN=',CN,', CE=',CE,', CS=',CS,', CW=',CW,' not yet implemented');
 End;
 
 Procedure TVectorialDiagram.DrawSymPlus(ValX,ValY,DrwSize:Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
 Begin
+  if not IsVisible(ValX, ValY) then Exit;
   SymPlus(FDiagBox.Left + FCoord.ValX2Drw(ValX), FDiagBox.Bottom + FCoord.ValY2Drw(ValY), DrwSize,
     Color, Style, Width);
 End;
@@ -501,10 +580,28 @@ End;
 Procedure TVectorialDiagram.DrawRange(ValXMin, ValXMax, ValY, ValWidth : Double;
   PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer;
   BrushColor : TFPColor; BrushStyle : TFPBrushStyle);
+//Var Range    : TPath;
+//    ClipPath : TPath;
 Begin
-  Rectangle(FDiagBox.Left + FCoord.ValX2Drw(ValXMin), FDiagBox.Bottom + FCoord.ValY2Drw(ValY-ValWidth*0.5),
-            FDiagBox.Left + FCoord.ValX2Drw(ValXMax), FDiagBox.Bottom + FCoord.ValY2Drw(ValY+ValWidth*0.5),
-            PenColor,PenStyle,PenWidth,BrushColor,BrushStyle);
+  DrawRect(ValXMin, ValXMax, ValY-ValWidth*0.5, ValY+ValWidth*0.5,
+           PenColor,PenStyle,PenWidth,BrushColor,BrushStyle);
+// clipping path doesn't work with SVG :-(
+//  Range := Rectangle(FDiagBox.Left + FCoord.ValX2Drw(ValXMin), FDiagBox.Bottom + FCoord.ValY2Drw(ValY-ValWidth*0.5),
+//                     FDiagBox.Left + FCoord.ValX2Drw(ValXMax), FDiagBox.Bottom + FCoord.ValY2Drw(ValY+ValWidth*0.5),
+//                     PenColor,PenStyle,PenWidth,BrushColor,BrushStyle);
+//  ClipPath := TPath.Create(FVecPage);
+//  ClipPath.Pen.Color := colCyan;
+//  WriteLn('    Left = ',FDiagBox.Left:1:3,', Right = ',FCoord.FDrwWidth:1:3);
+//  WriteLn('    Bottom = ' , FDiagBox.Bottom:1:3,', Top = ',FCoord.FDrwHeight:1:3);
+//  ClipPath.AppendMoveToSegment(FDiagBox.Left,                  FDiagBox.Bottom);
+//  ClipPath.AppendLineToSegment(FDiagBox.Left,                  FDiagBox.Bottom+FCoord.FDrwHeight);
+//  ClipPath.AppendLineToSegment(FDiagBox.Left+FCoord.FDrwWidth, FDiagBox.Bottom+FCoord.FDrwHeight);
+//  ClipPath.AppendLineToSegment(FDiagBox.Left+FCoord.FDrwWidth, FDiagBox.Bottom);
+//  ClipPath.AppendLineToSegment(FDiagBox.Left,                  FDiagBox.Bottom);
+//  FVecPage.AddEntity(ClipPath);
+//  FVecPage.SetClipPath(ClipPath, vcmEvenOddRule);
+////  Range.ClipPath := ClipPath;
+////  Range.ClipMode := vcmEvenOddRule;
 End;
 
 Procedure TVectorialDiagram.DrawAxes;
