@@ -490,6 +490,7 @@ Var S          : TStringList;
     AllRanges  : TInstrumentRanges;
     Instrument : TInstrumentWrapperBase;
     Range      : TMeasureRangeBase;
+    OverlapRatio : Double;
 Begin
   S := TStringList.Create;
   S.Add('');
@@ -555,9 +556,17 @@ Begin
               S.Add('          \item '+EscapeLaTeX(Instrument.FName)+': '+EscapeLaTeX(FComparison.FProcedure.FSets[NS].FMeasurements[NI][NP].ToString));
             End;
           St := ChangeFileExt(FOutFilename, '-results-comparison-'+IntToStr(NS)+'-'+IntToStr(NP)+'.svg');
-          FCompDiag.DrawResultComparison(NS, NP, 90, 40, Nil);
+          FCompDiag.DrawResultComparison(NS, NP, 150, 40, 0.0, Nil, OverlapRatio);
           FCompDiag.FDiagram.WriteSVG(St);
           S.Add('          \item \includesvg{'+St+'}');
+          if OverlapRatio < 0.2 then
+            Begin
+              // if the overlap region is smaller than 20% of the overall range, then create an additional zoomed plot where it is 50%
+              St := ChangeFileExt(FOutFilename, '-results-comparison-'+IntToStr(NS)+'-'+IntToStr(NP)+'-zoom.svg');
+              FCompDiag.DrawResultComparison(NS, NP, 150, 40, 0.5/OverlapRatio, Nil, OverlapRatio);
+              FCompDiag.FDiagram.WriteSVG(St);
+              S.Add('          \item \includesvg{'+St+'}');
+            End;
           S.Add('          \item Result: \textbf{' + IfThen(FComparison.FProcedure.FSets[NS].FAnalyses[NP].FPass, '\textcolor{darkgreen}{PASS}', '\textcolor{red}{FAIL}')+'}');
           S.Add('        \end{itemize}');
         End;

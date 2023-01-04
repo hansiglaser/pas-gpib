@@ -47,7 +47,7 @@ Type
     Procedure DrawRanges   (AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
     Procedure DrawProcedure(AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
     Procedure DrawResults  (AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
-    Procedure DrawResultComparison(ASetIdx,ATestPointIdx:Integer; AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
+    Procedure DrawResultComparison(ASetIdx,ATestPointIdx:Integer; AWidth, AHeight : Integer; AZoom:Double; ACanvas : TFPCustomCanvas; Out AOverlapRatio : Double);
   End;
 
 Const
@@ -309,7 +309,7 @@ Begin
 //    End;
 End;
 
-Procedure TComparisonDiagrams.DrawResultComparison(ASetIdx, ATestPointIdx : Integer; AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
+Procedure TComparisonDiagrams.DrawResultComparison(ASetIdx, ATestPointIdx : Integer; AWidth, AHeight : Integer; AZoom : Double; ACanvas : TFPCustomCanvas; Out AOverlapRatio : Double);
 Var NI       : Integer;
     Analysis : TMeasurementAnalysis;
     MinMin,
@@ -321,11 +321,20 @@ Begin
   (FCoord as TLinearCoord).FValYMin := 0.0;
   (FCoord as TLinearCoord).FValYMax := Length(FComparison.FInstruments) + 1.0;
   Analysis := FComparison.FProcedure.FSets[ASetIdx].FAnalyses[ATestPointIdx];
+  AOverlapRatio := abs(Analysis.FMaxMin-Analysis.FMinMax)/(Analysis.FMaxMax-Analysis.FMinMin);
   // ensure the nominal testpoint is included
   MinMin := min(Analysis.FMinMin, FComparison.FProcedure.FSets[ASetIdx].FTestPoints.FValues[ATestPointIdx]);
   MaxMax := max(Analysis.FMaxMax, FComparison.FProcedure.FSets[ASetIdx].FTestPoints.FValues[ATestPointIdx]);
-  (FCoord as TLinearCoord).FValXMin := MinMin - (MaxMax-MinMin)*0.25;
-  (FCoord as TLinearCoord).FValXMax := MaxMax + (MaxMax-MinMin)*0.05;
+  if AZoom = 0.0 then   // use 0.0 because this is exact, 1.0 would be more difficult to get exact
+    Begin
+      (FCoord as TLinearCoord).FValXMin := MinMin - (MaxMax-MinMin)*0.25;
+      (FCoord as TLinearCoord).FValXMax := MaxMax + (MaxMax-MinMin)*0.05;
+    End
+  else
+    Begin
+      (FCoord as TLinearCoord).FValXMin := (Analysis.FMaxMin+Analysis.FMinMax)*0.5 - 1.0/AZoom*0.5*abs(MaxMax-MinMin);//abs(Analysis.FMaxMin-Analysis.FMinMax);
+      (FCoord as TLinearCoord).FValXMax := (Analysis.FMaxMin+Analysis.FMinMax)*0.5 + 1.0/AZoom*0.5*abs(MaxMax-MinMin);//abs(Analysis.FMaxMin-Analysis.FMinMax);
+    End;
   FDiagram.Resize(AWidth, AHeight, ACanvas);
   // draw axes
   FDiagram.DrawAxes;
