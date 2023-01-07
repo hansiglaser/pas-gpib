@@ -95,6 +95,7 @@ Type
     Function  Line(X1,Y1,X2,Y2:Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer) : TPath;
     Function  Rectangle(Left, Bottom, Right, Top : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer; BrushColor : TFPColor; BrushStyle : TFPBrushStyle) : TPath;
     Function  Rectangle(Left, Bottom, Right, Top : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer) : TPath;
+    Function  EstimateTextWidth(T : TvText) : Double;
     Procedure CenterText(AT : Array of TvText);
     Procedure SymPlus(X, Y, Size : Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
     // diagram functions
@@ -293,6 +294,14 @@ Begin
   Result := Rectangle(Left,Bottom,Right,Top,PenColor,PenStyle,PenWidth,colBlack,bsClear);
 End;
 
+Function TVectorialDiagram.EstimateTextWidth(T:TvText) : Double;
+Begin
+  if assigned(FVecPage.RenderInfo.Canvas) then
+    Result := T.GetWidth(FVecPage.RenderInfo) // this needs a Canvas
+  else
+    Result := Length(T.Value.Strings[0]) * T.Font.Size * 0.58;  // estimating approx. 58% width compared to height
+End;
+
 // center text, one or multiple concatenated items
 // place each item at the X center position, they will be moved
 Procedure TVectorialDiagram.CenterText(AT : Array of TvText);
@@ -302,16 +311,8 @@ Var I : Integer;
 Begin
   SetLength(W, Length(AT));
   // calculate text widths
-  if assigned(FVecPage.RenderInfo.Canvas) then
-    Begin
-      For I := 0 to Length(AT)-1 do
-        W[I] := AT[I].GetWidth(FVecPage.RenderInfo); // this needs a Canvas
-    End
-  else
-    Begin
-      For I := 0 to Length(AT)-1 do
-        W[I] := Length(AT[I].Value.Strings[0]) * AT[I].Font.Size * 0.5;  // estimating approx. 50% width compared to height
-    End;
+  For I := 0 to Length(AT)-1 do
+    W[I] := EstimateTextWidth(AT[I]);
   S := - Sum(W) * 0.5;
   //  move to final positions
   For I := 0 to Length(AT)-1 do
