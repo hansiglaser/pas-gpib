@@ -74,6 +74,7 @@ Var S : TStringList;
 Begin
   // perparation
   FSummDiag := TComparisonDiagrams.Create(FComparison);
+  (FSummDiag.FDiagram.FCoord as TBipolarSemiLogXCoord).FDrwZeroWidth := 5.0;
   FSummDiag.FLabel1Indent            :=  3.0;
   FSummDiag.FLabel2Indent            :=  7.0;
   FSummDiag.FLabelFontSize           := 10.0/72.0*25.4;
@@ -89,8 +90,8 @@ Begin
   FCompDiag.SetCoord(TLinearCoord.Create);
   FCompDiag.FLabel1Indent            :=  1.0;
   FCompDiag.FLabel2Indent            :=  7.0;
-  FCompDiag.FLabelFontSize           := 6.0/72.0*25.4;
-  FCompDiag.FDiagram.FXTickFontSize  := 6.0/72.0*25.4;
+  FCompDiag.FLabelFontSize           := 10.0/72.0*25.4;
+  FCompDiag.FDiagram.FXTickFontSize  := 10.0/72.0*25.4;
   FCompDiag.FDiagram.FTickLenDrw     := 1.2;
   FCompDiag.FTestPointLenDrw         := 1.2;
   FCompDiag.FResultLenDrw            := 1.2;
@@ -268,10 +269,10 @@ Begin
 
   // TODO: size of diagram should depend on number of rows
   St := ChangeFileExt(FOutFilename, '-ranges.svg');
-  FSummDiag.DrawRanges(140, 120, Nil);    // also draws the testpoints, but only if they are defined
+  FSummDiag.DrawRanges(140.0, (FSummDiag.GetRangesRows+2)*5.0, Nil);    // also draws the testpoints, but only if they are defined
   FSummDiag.FDiagram.WriteSVG(St);
 
-  S.Add('\begin{figure}[htb]');
+  S.Add('\begin{figure}[htbp]');
   S.Add('  \centering');
   S.Add('  \includesvg{'+St+'}');
   S.Add('  \caption{Instrument ranges and their accuracy}');
@@ -367,10 +368,10 @@ Begin
   S.Add('\end{itemize}');
 
   St := ChangeFileExt(FOutFilename, '-procedure.svg');
-  FSummDiag.DrawProcedure(140, 120, Nil);
+  FSummDiag.DrawProcedure(140.0, (FSummDiag.GetProcedureRows+2)*5.0, Nil);
   FSummDiag.FDiagram.WriteSVG(St);
 
-  S.Add('\begin{figure}[htb]');
+  S.Add('\begin{figure}[htbp]');
   S.Add('  \centering');
   S.Add('  \includesvg{'+St+'}');
   S.Add('  \caption{Comparison procedure}');
@@ -399,7 +400,7 @@ Begin
   S.Add('');
 
   St := ChangeFileExt(FOutFilename, '-results.svg');
-  FSummDiag.DrawResults(140, 180, Nil);
+  FSummDiag.DrawResults(140.0, (FSummDiag.GetResultsRows+2)*5.0, Nil);
   FSummDiag.FDiagram.WriteSVG(St);
 
   S.Add('\begin{figure}[htbp]');
@@ -556,14 +557,14 @@ Begin
               S.Add('          \item '+EscapeLaTeX(Instrument.FName)+': '+EscapeLaTeX(FComparison.FProcedure.FSets[NS].FMeasurements[NI][NP].ToString));
             End;
           St := ChangeFileExt(FOutFilename, '-results-comparison-'+IntToStr(NS)+'-'+IntToStr(NP)+'.svg');
-          FCompDiag.DrawResultComparison(NS, NP, 150, 40, 0.0, Nil, OverlapRatio);
+          FCompDiag.DrawResultComparison(NS, NP, 150.0, (FCompDiag.GetResultComparisonRows+2)*5.0, 0.0, Nil, OverlapRatio);
           FCompDiag.FDiagram.WriteSVG(St);
           S.Add('          \item \includesvg{'+St+'}');
           if OverlapRatio < 0.2 then
             Begin
               // if the overlap region is smaller than 20% of the overall range, then create an additional zoomed plot where it is 50%
               St := ChangeFileExt(FOutFilename, '-results-comparison-'+IntToStr(NS)+'-'+IntToStr(NP)+'-zoom.svg');
-              FCompDiag.DrawResultComparison(NS, NP, 150, 40, 0.5/OverlapRatio, Nil, OverlapRatio);
+              FCompDiag.DrawResultComparison(NS, NP, 150.0, (FCompDiag.GetResultComparisonRows+2)*5.0, 0.5/OverlapRatio, Nil, OverlapRatio);
               FCompDiag.FDiagram.WriteSVG(St);
               S.Add('          \item \includesvg{'+St+'}');
             End;
