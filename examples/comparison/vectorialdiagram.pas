@@ -70,8 +70,8 @@ Type
     FVecDoc  : TvVectorialDocument;
     FVecPage : TvVectorialPage;
     FDiagBox : TRectDouble;
-    FWidth   : Integer;
-    FHeight  : Integer;
+    FWidth   : Double;
+    FHeight  : Double;
     FBoxPenColor    : TFPColor;
     FBoxPenWidth    : Integer;
     FXGridPenColor  : TFPColor;
@@ -89,8 +89,8 @@ Type
 
     Constructor Create(ACoord : TCoordBase);
     Destructor Destroy; override;
-    Procedure Resize(AWidth, AHeight:Integer);
-    Procedure Resize(AWidth, AHeight:Integer;ACanvas:TFPCustomCanvas);
+    Procedure Resize(AWidth, AHeight:Double);
+    Procedure Resize(AWidth, AHeight:Double;ACanvas:TFPCustomCanvas);
     // drawing coordinate functions
     Function  Line(X1,Y1,X2,Y2:Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer) : TPath;
     Function  Rectangle(Left, Bottom, Right, Top : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer; BrushColor : TFPColor; BrushStyle : TFPBrushStyle) : TPath;
@@ -105,6 +105,7 @@ Type
     Procedure DrawSemiLogXAxis;
     Procedure DrawYAxis;
     Procedure DrawRect(ValXMin,ValXMax,ValYMin,ValYMax:Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer; BrushColor : TFPColor; BrushStyle : TFPBrushStyle);
+    Procedure DrawRect(ValXMin,ValXMax,ValYMin,ValYMax:Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer);
     Procedure DrawSymPlus(ValX, ValY, DrwSize : Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
     Procedure DrawRange(ValXMin,ValXMax,ValY,ValWidth:Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer; BrushColor : TFPColor; BrushStyle : TFPBrushStyle);
     Procedure DrawAxes;
@@ -234,14 +235,14 @@ Begin
   inherited Destroy;
 End;
 
-Procedure TVectorialDiagram.Resize(AWidth, AHeight : Integer);
+Procedure TVectorialDiagram.Resize(AWidth, AHeight : Double);
 Begin
   // image size in pixel or mm
   FWidth  := AWidth;
   FHeight := AHeight;
   // diagram box itself
   FDiagBox.Left     := 3.0;
-  FDiagBox.Bottom   := 20.0;
+  FDiagBox.Bottom   := FXTickFontSize*1.3 + FTickLenDrw + 3.0;
   FDiagBox.Right    := FWidth  - 3;
   FDiagBox.Top      := FHeight - 3;
   FCoord.FDrwWidth  := FDiagBox.Right-FDiagBox.Left;
@@ -254,12 +255,12 @@ Begin
   FVecPage.Clear;
 End;
 
-Procedure TVectorialDiagram.Resize(AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
+Procedure TVectorialDiagram.Resize(AWidth, AHeight : Double; ACanvas : TFPCustomCanvas);
 Begin
   Resize(AWidth, AHeight);
   // initialize renderer and provide canvas (but without drawing) so that bounding box calculations (e.g., for text width) and so on are working
   FVecPage.Render(ACanvas,
-    0, FHeight,
+    0, Round(FHeight),
     1.0, -1 * 1.0,
     False);
 End;
@@ -571,6 +572,11 @@ Begin
     WriteLn('Warning: Clipping for CN=',CN,', CE=',CE,', CS=',CS,', CW=',CW,' not yet implemented');
 End;
 
+Procedure TVectorialDiagram.DrawRect(ValXMin, ValXMax, ValYMin, ValYMax : Double; PenColor : TFPColor; PenStyle : TFPPenStyle; PenWidth : Integer);
+Begin
+  DrawRect(ValXMin, ValXMax, ValYMin, ValYMax, PenColor, PenStyle, PenWidth, colBlack, bsClear);
+End;
+
 Procedure TVectorialDiagram.DrawSymPlus(ValX,ValY,DrwSize:Double; Color : TFPColor; Style : TFPPenStyle; Width : Integer);
 Begin
   if not IsVisible(ValX, ValY) then Exit;
@@ -616,6 +622,18 @@ Begin
     raise Exception.Create('Unsupported type of FCoord = '+FCoord.ClassName);
   DrawYAxis;
   DrawBox;   // box last for nicer looking image
+(*
+  // debugging: draw boxes for whole image and for diagram area
+  Rectangle(0, 0, FWidth, FHeight, colCyan, psSolid, 1);
+  if FCoord is TBipolarSemiLogXCoord then
+    with FCoord as TBipolarSemiLogXCoord do
+      DrawRect(-FValXNegMax, FValXPosMax, FValYMin, FValYMax, colMagenta, psSolid, 1)
+  else if FCoord is TLinearCoord then
+    with FCoord as TLinearCoord do
+      DrawRect(-FValXMin, FValXMax, FValYMin, FValYMax, colMagenta, psSolid, 1)
+  else
+    raise Exception.Create('TODO: Implement for type of FCoord '+FCoord.ClassName);
+*)
 End;
 
 Procedure TVectorialDiagram.Paint(ACanvas : TFPCustomCanvas);
@@ -623,10 +641,10 @@ Begin
   ACanvas.Clear;
   ACanvas.Brush.FPColor := colWhite;
   ACanvas.Brush.Style := bsSolid;
-  ACanvas.FillRect(0, 0, FWidth, FHeight);
+  ACanvas.FillRect(0, 0, Round(FWidth), Round(FHeight));
 
   FVecPage.Render(ACanvas,
-    0, FHeight,
+    0, Round(FHeight),
     1.0, -1 * 1.0);
 End;
 
