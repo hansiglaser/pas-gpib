@@ -44,10 +44,14 @@ Type
     Constructor Create(AComparison:TComparisonBase);
     Destructor  Destroy; override;
     Procedure SetCoord(ACoord : TCoordBase);
-    Procedure DrawRanges   (AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
-    Procedure DrawProcedure(AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
-    Procedure DrawResults  (AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
-    Procedure DrawResultComparison(ASetIdx,ATestPointIdx:Integer; AWidth, AHeight : Integer; AZoom:Double; ACanvas : TFPCustomCanvas; Out AOverlapRatio : Double);
+    Function  GetRangesRows : Integer;
+    Procedure DrawRanges   (AWidth, AHeight : Double; ACanvas : TFPCustomCanvas);
+    Function  GetProcedureRows : Integer;
+    Procedure DrawProcedure(AWidth, AHeight : Double; ACanvas : TFPCustomCanvas);
+    Function  GetResultsRows : Integer;
+    Procedure DrawResults  (AWidth, AHeight : Double; ACanvas : TFPCustomCanvas);
+    Function  GetResultComparisonRows : Integer;
+    Procedure DrawResultComparison(ASetIdx,ATestPointIdx:Integer; AWidth, AHeight : Double; AZoom:Double; ACanvas : TFPCustomCanvas; Out AOverlapRatio : Double);
   End;
 
 Const
@@ -123,19 +127,24 @@ Begin
   // the actual drawing happens.
 End;
 
-Procedure TComparisonDiagrams.DrawRanges(AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
+Function TComparisonDiagrams.GetRangesRows : Integer;
+Var NI : Integer;
+Begin
+  // determine Y-height
+  Result := 1;
+  if assigned(FComparison) and (Length(FComparison.FInstruments) > 0) then     // draw instruments only if a comparison is loaded
+    For NI := 0 to Length(FComparison.FInstruments)-1 do
+      Result := Result + Length(FComparison.FInstruments[NI].FRanges[qtDCV]) + 1;  // +1 for instrument name and visual separation
+End;
+
+Procedure TComparisonDiagrams.DrawRanges(AWidth, AHeight : Double; ACanvas : TFPCustomCanvas);
 Var NI,NR,NP : Integer;
     Y        : Double;
     TP       : TTestPoints;
     A        : TValueAccuracyMinMax;
 Begin
-  // determine Y-height
-  Y := 1.0;
-  if assigned(FComparison) and (Length(FComparison.FInstruments) > 0) then     // draw instruments only if a comparison is loaded
-    For NI := 0 to Length(FComparison.FInstruments)-1 do
-      Y := Y + Length(FComparison.FInstruments[NI].FRanges[qtDCV])*1.0 + 1.0;  // +1 for instrument name and visual separation
   // setup diagram
-  (FCoord as TBipolarSemiLogXCoord).FValYMax := Y;
+  (FCoord as TBipolarSemiLogXCoord).FValYMax := GetRangesRows * 1.0;
   FDiagram.Resize(AWidth, AHeight, ACanvas);
   // draw axes
   FDiagram.DrawAxes;
@@ -172,23 +181,28 @@ Begin
       End;
 End;
 
-Procedure TComparisonDiagrams.DrawProcedure(AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
-Var NS,NR,NP : Integer;
-    Y        : Double;
-    St       : String;
+Function TComparisonDiagrams.GetProcedureRows : Integer;
+Var NS,NR : Integer;
 Begin
   // determine Y-height
-  Y := 1.0;
+  Result := 1;
   if assigned(FComparison) and assigned(FComparison.FProcedure) then     // draw procedure only if it exists
     For NS := 0 to Length(FComparison.FProcedure.FSets)-1  do
       Begin
         For NR := 0 to Length(FComparison.FProcedure.FSets[NS].FRanges)-1 do
           if assigned(FComparison.FProcedure.FSets[NS].FRanges[NR]) then
-            Y := Y + 1.0;
-        Y := Y + 1.0;
+            Inc(Result);
+        Inc(Result);
       End;
+End;
+
+Procedure TComparisonDiagrams.DrawProcedure(AWidth, AHeight : Double; ACanvas : TFPCustomCanvas);
+Var NS,NR,NP : Integer;
+    Y        : Double;
+    St       : String;
+Begin
   // setup diagram
-  (FCoord as TBipolarSemiLogXCoord).FValYMax := Y;
+  (FCoord as TBipolarSemiLogXCoord).FValYMax := GetProcedureRows*1.0;
   FDiagram.Resize(AWidth, AHeight, ACanvas);
   // draw axes
   FDiagram.DrawAxes;
@@ -220,7 +234,17 @@ Begin
 //    FComparison.FProcedure.PrintRanges;
 End;
 
-Procedure TComparisonDiagrams.DrawResults(AWidth, AHeight : Integer; ACanvas : TFPCustomCanvas);
+Function TComparisonDiagrams.GetResultsRows : Integer;
+Var NS : Integer;
+Begin
+  // determine Y-height
+  Result := 1;
+  if assigned(FComparison) and assigned(FComparison.FProcedure) and (Length(FComparison.FProcedure.FSets[0].FMeasurements) > 0) then     // draw results only if it exists
+    For NS := 0 to Length(FComparison.FProcedure.FSets)-1  do
+      Result := Result + Length(FComparison.FInstruments) + 1;  // +1 for instrument name and visual separation
+End;
+
+Procedure TComparisonDiagrams.DrawResults(AWidth, AHeight : Double; ACanvas : TFPCustomCanvas);
 Var NS,NI,NP  : Integer;
     Y         : Double;
     AllRanges : TInstrumentRanges;
@@ -230,13 +254,8 @@ Var NS,NI,NP  : Integer;
     A         : TValueAccuracyMinMax;
     T         : TvText;
 Begin
-  // determine Y-height
-  Y := 1.0;
-  if assigned(FComparison) and assigned(FComparison.FProcedure) and (Length(FComparison.FProcedure.FSets[0].FMeasurements) > 0) then     // draw results only if it exists
-    For NS := 0 to Length(FComparison.FProcedure.FSets)-1  do
-      Y := Y + Length(FComparison.FInstruments)*1.0 + 1.0;  // +1 for instrument name and visual separation
   // setup diagram
-  (FCoord as TBipolarSemiLogXCoord).FValYMax := Y;
+  (FCoord as TBipolarSemiLogXCoord).FValYMax := GetResultsRows;
   FDiagram.Resize(AWidth, AHeight, ACanvas);
   // draw axes
   FDiagram.DrawAxes;
@@ -321,7 +340,12 @@ Begin
 //    End;
 End;
 
-Procedure TComparisonDiagrams.DrawResultComparison(ASetIdx, ATestPointIdx : Integer; AWidth, AHeight : Integer; AZoom : Double; ACanvas : TFPCustomCanvas; Out AOverlapRatio : Double);
+Function TComparisonDiagrams.GetResultComparisonRows : Integer;
+Begin
+  Result := Length(FComparison.FInstruments) + 1;
+End;
+
+Procedure TComparisonDiagrams.DrawResultComparison(ASetIdx, ATestPointIdx : Integer; AWidth, AHeight : Double; AZoom : Double; ACanvas : TFPCustomCanvas; Out AOverlapRatio : Double);
 Var NI       : Integer;
     Analysis : TMeasurementAnalysis;
     MinMin,
@@ -332,7 +356,7 @@ Var NI       : Integer;
 Begin
   // setup diagram
   (FCoord as TLinearCoord).FValYMin := 0.0;
-  (FCoord as TLinearCoord).FValYMax := Length(FComparison.FInstruments) + 1.0;
+  (FCoord as TLinearCoord).FValYMax := GetResultComparisonRows*1.0;
   Analysis := FComparison.FProcedure.FSets[ASetIdx].FAnalyses[ATestPointIdx];
   AOverlapRatio := abs(Analysis.FMaxMin-Analysis.FMinMax)/(Analysis.FMaxMax-Analysis.FMinMin);
   // ensure the nominal testpoint is included
