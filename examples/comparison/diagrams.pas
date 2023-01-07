@@ -228,6 +228,7 @@ Var NS,NI,NP  : Integer;
     TPMins,
     TPMaxs    : TDynDoubleArray;
     A         : TValueAccuracyMinMax;
+    T         : TvText;
 Begin
   // determine Y-height
   Y := 1.0;
@@ -258,14 +259,11 @@ Begin
               TPMins[NP] := max(TPMins[NP], A.FMin);
               TPMaxs[NP] := min(TPMaxs[NP], A.FMax);
             End;
-        // per instrument: range bar and text
+        // per instrument: range bar
         For NI := 0 to Length(FComparison.FInstruments)-1 do
           Begin
             FDiagram.DrawRange(AllRanges[NI].FResolution, AllRanges[NI].FMaxValue, Y, 0.8,
               FRangePenColor, psSolid, Round(FRangePenWidth), FRangeBrushColor, bsSolid);
-            St := FComparison.FInstruments[NI].FName+' '+FloatToStr(AllRanges[NI].FMaxValue);
-            FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel2Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0,
-              FLabelFontName, FLabelFontSize, St);
             Y := Y + 1.0;
           End;
         Y := Y - Length(FComparison.FInstruments)*1.0;
@@ -298,6 +296,20 @@ Begin
           Begin
             FDiagram.DrawSymPlus(FComparison.FProcedure.FSets[NS].FTestPoints.FValues[NP], Y, FTestPointLenDrw, FTestPointRefPenColor, psSolid, Round(FTestPointPenWidth));
           End;
+        Y := Y - Length(FComparison.FInstruments)*1.0;
+        // per instrument: text (on top)
+        For NI := 0 to Length(FComparison.FInstruments)-1 do
+          Begin
+            St := FComparison.FInstruments[NI].FName+' '+FloatToStr(AllRanges[NI].FMaxValue);
+            T := FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel2Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.4, 0.0,
+              FLabelFontName, FLabelFontSize, St, true);  // don't add yet
+            FDiagram.Rectangle(
+              FDiagram.FDiagBox.Left+FLabel2Indent-FLabelFontSize*0.15,                               FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.60,
+              FDiagram.FDiagBox.Left+FLabel2Indent+FLabelFontSize*0.15+FDiagram.EstimateTextWidth(T), FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)+FLabelFontSize*0.45,
+              colBlack, psClear, 1, FPColor($FFFF, $FFFF, $FFFF, $B000), bsSolid);
+            FDiagram.FVecPage.AddEntity(T);
+            Y := Y + 1.0;
+          End;
         St := 'Set #'+IntToStr(NS)+' to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal);
         FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel1Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0, FLabelFontName, FLabelFontSize, St);
         Y := Y + 1.0;
@@ -316,6 +328,7 @@ Var NI       : Integer;
     MaxMax   : Double;
     A        : TValueAccuracyMinMax;
     Y        : Double;
+    T        : TvText;
 Begin
   // setup diagram
   (FCoord as TLinearCoord).FValYMin := 0.0;
@@ -352,8 +365,13 @@ Begin
       A := FComparison.FProcedure.FSets[ASetIdx].FMeasurements[NI][ATestPointIdx].FValue as TValueAccuracyMinMax;
       FDiagram.DrawRange(A.FMin,A.FMax,Y, 0.5, FAccuracyPenColor, psSolid, Round(FAccuracyPenWidth), FAccuracyBrushColor, bsSolid);
       FDiagram.DrawSymPlus(A.FValue, Y, FResultLenDrw, FResultPenColor, psSolid, Round(FResultPenWidth));
-      FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel1Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.5, 0.0,
-              FLabelFontName, FLabelFontSize, FComparison.FInstruments[NI].FName);
+      T := FDiagram.FVecPage.AddText(FDiagram.FDiagBox.Left+FLabel1Indent, FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.4, 0.0,
+              FLabelFontName, FLabelFontSize, FComparison.FInstruments[NI].FName, true);  // don't add yet
+      FDiagram.Rectangle(
+        FDiagram.FDiagBox.Left+FLabel1Indent-FLabelFontSize*0.15,                               FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)-FLabelFontSize*0.60,
+        FDiagram.FDiagBox.Left+FLabel1Indent+FLabelFontSize*0.15+FDiagram.EstimateTextWidth(T), FDiagram.FDiagBox.Bottom+FDiagram.FCoord.ValY2Drw(Y)+FLabelFontSize*0.45,
+        colBlack, psClear, 1, FPColor($FFFF, $FFFF, $FFFF, $B000), bsSolid);
+      FDiagram.FVecPage.AddEntity(T);
       Y := Y + 1.0;
     End;
   // draw testpoints in green as reference in the top row
