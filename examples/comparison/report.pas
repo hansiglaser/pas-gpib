@@ -132,9 +132,11 @@ Begin
 End;
 
 Function TComparisonReport.GenSecSummary : TStringList;
-Var S  : TStringList;
-    NI : Integer;
-    St : String;
+Var S                 : TStringList;
+    NI,NS,NP          : Integer;
+    St                : String;
+    NumPassSets       : Integer;
+    NumPassTestPoints : Integer;
 Begin
   S := TStringList.Create;
   S.Add('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
@@ -167,8 +169,27 @@ Begin
     End;
   S.Add('\end{itemize}');
   S.Add('');
-  if assigned(FComparison.FProcedure) and (Length(FComparison.FProcedure.FSets) > 0) and (Length(FComparison.FProcedure.FSets[0].FAnalyses) > 0) then
-    S.Add('Result: \textbf{' + IfThen(FComparison.FProcedure.FPass, '\textcolor{darkgreen}{PASS}', '\textcolor{red}{FAIL}')+'}');
+  if assigned(FComparison) and assigned(FComparison.FProcedure) and (Length(FComparison.FProcedure.FSets) > 0) and (Length(FComparison.FProcedure.FSets[0].FAnalyses) > 0) then
+    Begin
+      NumPassSets := 0;
+      For NS := 0 to Length(FComparison.FProcedure.FSets)-1 do
+        if FComparison.FProcedure.FSets[NS].FPass then
+          Inc(NumPassSets);
+      S.Add('Result: \textbf{' + IfThen(FComparison.FProcedure.FPass, '\textcolor{darkgreen}{PASS}', '\textcolor{red}{FAIL}')+'}'
+        +' (\textcolor{darkgreen}{'+IntToStr(NumPassSets)+'} / \textcolor{red}{'+IntToStr(Length(FComparison.FProcedure.FSets)-NumPassSets)+'} / '+IntToStr(Length(FComparison.FProcedure.FSets))+')');
+      S.Add('\begin{itemize}');
+      For NS := 0 to Length(FComparison.FProcedure.FSets)-1 do
+        Begin
+          NumPassTestPoints := 0;
+          For NP := 0 to Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)-1 do
+            if FComparison.FProcedure.FSets[NS].FAnalyses[NP].FPass then
+              Inc(NumPassTestPoints);
+          S.Add('  \item Set \#'+IntToStr(NS)+' of Ranges up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxRange)+' with values up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal)+': '
+            +IfThen(FComparison.FProcedure.FSets[NS].FPass, '\textcolor{darkgreen}{PASS}', '\textcolor{red}{FAIL}')
+            +' (\textcolor{darkgreen}{'+IntToStr(NumPassTestPoints)+'} / \textcolor{red}{'+IntToStr(Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)-NumPassTestPoints)+'} / '+IntToStr(Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues))+')');
+        End;
+      S.Add('\end{itemize}');
+    End;
   S.Add('');
   S.Add('');
   Result := S;
@@ -354,7 +375,7 @@ Begin
   S.Add('\begin{itemize}');
   For NS := 0 to Length(FComparison.FProcedure.FSets)-1 do
     Begin
-      S.Add('  \item'{['+IntToStr(NS)+'.]}+' Set \#'+IntToStr(NS)+' of Ranges up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal));
+      S.Add('  \item'{['+IntToStr(NS)+'.]}+' Set \#'+IntToStr(NS)+' of Ranges up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxRange)+' with values up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal));
       S.Add('    \begin{itemize}');
       For NR := 0 to Length(FComparison.FProcedure.FSets[NS].FRanges)-1 do
         Begin
@@ -443,7 +464,7 @@ Begin
   S.Add('\begin{itemize}');
   For NS := 0 to Length(FComparison.FProcedure.FSets)-1 do
     Begin
-      S.Add('  \item'{['+IntToStr(NS)+'.]}+' Set \#'+IntToStr(NS)+' of Ranges up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal));
+      S.Add('  \item'{['+IntToStr(NS)+'.]}+' Set \#'+IntToStr(NS)+' of Ranges up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxRange)+' with values up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal));
       if Length(FComparison.FProcedure.FSets[NS].FMeasurements) <> Length(FComparison.FInstruments) then
         Begin
           S.Add('    No measurements');
@@ -497,7 +518,7 @@ Begin
   S.Add('');
   S.Add('\subsection{Results by Testpoint} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
   S.Add('');
-  if not assigned(FComparison) or not assigned(FComparison.FProcedure) or (Length(FComparison.FProcedure.FSets[0].FMeasurements) = 0) then     // report results only if it exists
+  if not assigned(FComparison) or not assigned(FComparison.FProcedure) or (Length(FComparison.FProcedure.FSets) = 0) or (Length(FComparison.FProcedure.FSets[0].FMeasurements) = 0) then     // report results only if it exists
     Begin
       S.Add('No results available.');
       Exit(S);
@@ -507,7 +528,7 @@ Begin
   S.Add('\begin{itemize}');
   For NS := 0 to Length(FComparison.FProcedure.FSets)-1 do
     Begin
-      S.Add('  \item'{['+IntToStr(NS)+'.]}+' Set \#'+IntToStr(NS)+' of Ranges up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal));
+      S.Add('  \item'{['+IntToStr(NS)+'.]}+' Set \#'+IntToStr(NS)+' of Ranges up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxRange)+' with values up to '+FloatToStr(FComparison.FProcedure.FSets[NS].FMaxVal));
       // TODO: actually FMaxVal is the highest testpoint, not the highest range!
       if Length(FComparison.FProcedure.FSets[NS].FMeasurements) <> Length(FComparison.FInstruments) then
         Begin
