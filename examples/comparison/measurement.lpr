@@ -149,6 +149,7 @@ Begin
       For NP := 0 to Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)-1 do
         Begin
           FSource.SetSource(FComparison.FProcedure.FSets[NS].FTestPoints.FValues[NP]);
+          Sleep(100);
           For NI := 0 to Length(FComparison.FInstruments)-1 do
             if not FDisabledIdx[NI] then
               if FComparison.FInstruments[NI].FFunction = ifMeasure then
