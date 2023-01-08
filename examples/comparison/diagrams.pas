@@ -31,7 +31,8 @@ Type
     FTestPointPenColor    : TFPColor;
     FTestPointPenWidth    : Double;
     FTestPointLenDrw      : Double;
-    FTestPointRefPenColor : TFPColor;
+    FTestPointPassPenColor: TFPColor;
+    FTestPointFailPenColor: TFPColor;
     FResultPenColor       : TFPColor;
     FResultPenWidth       : Double;
     FResultLenDrw         : Double;
@@ -102,7 +103,8 @@ Begin
   FResultPenColor       := colBlack;
   FResultPenWidth       := 1.0;
   FResultLenDrw         := 4.0;
-  FTestPointRefPenColor := colDkGreen;
+  FTestPointPassPenColor:= colGreen;
+  FTestPointFailPenColor:= colRed;
   FOvlpPassPenColor     := colGreen;
   FOvlpPassPenWidth     := 1.0;
   FOvlpPassBrushColor   := colLtGreen;
@@ -249,8 +251,6 @@ Var NS,NI,NP  : Integer;
     Y         : Double;
     AllRanges : TInstrumentRanges;
     St        : String;
-    TPMins,
-    TPMaxs    : TDynDoubleArray;
     A         : TValueAccuracyMinMax;
     T         : TvText;
 Begin
@@ -266,18 +266,6 @@ Begin
       Begin
         // determine all active ranges
         AllRanges := FComparison.FProcedure.FSets[NS].GetAllRanges;
-        // compare measurement values
-        SetLength(TPMins, Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues));  // determine highest lower limit of accuracy ranges, separately for each set
-        SetLength(TPMaxs, Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues));  // determine lowest  upper limit of accuracy ranges, separately for each set
-        For NP := 0 to Length(TPMins)-1 do  TPMins[NP] := -MaxDouble;
-        For NP := 0 to Length(TPMaxs)-1 do  TPMaxs[NP] := +MaxDouble;
-        For NI := 0 to Length(FComparison.FInstruments)-1 do
-          For NP := 0 to Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)-1 do
-            Begin
-              A := FComparison.FProcedure.FSets[NS].FMeasurements[NI][NP].FValue as TValueAccuracyMinMax;
-              TPMins[NP] := max(TPMins[NP], A.FMin);
-              TPMaxs[NP] := min(TPMaxs[NP], A.FMax);
-            End;
         // per instrument: range bar
         For NI := 0 to Length(FComparison.FInstruments)-1 do
           Begin
@@ -288,14 +276,15 @@ Begin
         Y := Y - Length(FComparison.FInstruments)*1.0;
         // draw overlap region
         For NP := 0 to Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)-1 do
-          Begin
-            if TPMins[NP] < TPMaxs[NP] then
-              FDiagram.DrawRect(TPMins[NP], TPMaxs[NP], Y-0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
-                FOvlpPassPenColor, psSolid, Round(FOvlpPassPenWidth), FOvlpPassBrushColor, bsSolid)
-            else
-              FDiagram.DrawRect(TPMaxs[NP], TPMins[NP], Y-0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
-                FOvlpFailPenColor, psSolid, Round(FOvlpFailPenWidth), FOvlpFailBrushColor, bsSolid);
-          End;
+          With FComparison.FProcedure.FSets[NS].FAnalyses[NP] do
+            Begin
+              if FPass then
+                FDiagram.DrawRect(FMaxMin, FMinMax, Y-0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
+                  FOvlpPassPenColor, psSolid, Round(FOvlpPassPenWidth), FOvlpPassBrushColor, bsSolid)
+              else
+                FDiagram.DrawRect(FMinMax, FMaxMin, Y-0.35, Y + Length(FComparison.FInstruments)*1.0 - 0.65,
+                  FOvlpFailPenColor, psSolid, Round(FOvlpFailPenWidth), FOvlpFailBrushColor, bsSolid);
+            End;
         // draw measurement results
         For NI := 0 to Length(FComparison.FInstruments)-1 do
           Begin
@@ -310,10 +299,13 @@ Begin
               End;
             Y := Y + 1.0;
           End;
-        // draw testpoints in green as reference
+        // draw testpoints in green or red as reference
         For NP := 0 to Length(FComparison.FProcedure.FSets[NS].FTestPoints.FValues)-1 do
           Begin
-            FDiagram.DrawSymPlus(FComparison.FProcedure.FSets[NS].FTestPoints.FValues[NP], Y, FTestPointLenDrw, FTestPointRefPenColor, psSolid, Round(FTestPointPenWidth));
+            if FComparison.FProcedure.FSets[NS].FAnalyses[NP].FPass then
+              FDiagram.DrawSymPlus(FComparison.FProcedure.FSets[NS].FTestPoints.FValues[NP], Y, FTestPointLenDrw, FTestPointPassPenColor, psSolid, Round(FTestPointPenWidth))
+            else
+              FDiagram.DrawSymPlus(FComparison.FProcedure.FSets[NS].FTestPoints.FValues[NP], Y, FTestPointLenDrw, FTestPointFailPenColor, psSolid, Round(FTestPointPenWidth));
           End;
         Y := Y - Length(FComparison.FInstruments)*1.0;
         // per instrument: text (on top)
@@ -398,8 +390,11 @@ Begin
       FDiagram.FVecPage.AddEntity(T);
       Y := Y + 1.0;
     End;
-  // draw testpoints in green as reference in the top row
-  FDiagram.DrawSymPlus(FComparison.FProcedure.FSets[ASetIdx].FTestPoints.FValues[ATestPointIdx], Y - 1.0, FTestPointLenDrw, FTestPointRefPenColor, psSolid, Round(FTestPointPenWidth));
+  // draw testpoints in green or red as reference in the top row
+  if Analysis.FPass then
+    FDiagram.DrawSymPlus(FComparison.FProcedure.FSets[ASetIdx].FTestPoints.FValues[ATestPointIdx], Y - 1.0, FTestPointLenDrw, FTestPointPassPenColor, psSolid, Round(FTestPointPenWidth))
+  else
+    FDiagram.DrawSymPlus(FComparison.FProcedure.FSets[ASetIdx].FTestPoints.FValues[ATestPointIdx], Y - 1.0, FTestPointLenDrw, FTestPointFailPenColor, psSolid, Round(FTestPointPenWidth))
 End;
 
 End.
