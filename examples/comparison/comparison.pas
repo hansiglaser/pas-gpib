@@ -4,6 +4,7 @@ Unit Comparison;
 
 { $ D EFINE CreateMeasureDefinitionFirstAttempt}
 { $ D EFINE TestJSONStreamer}
+{ $ D EFIEN DEBUG_DMM6500_SERIES}
 
 Interface
 
@@ -13,6 +14,9 @@ Uses
   fpjson, TypInfo, fpjsonrtti,
 {$ENDIF}
   DevCom, DevComVisa, DevComRS232, Serial, PasGpibUtils,
+{$IFDEF DEBUG_DMM6500_SERIES}
+  AsciiDiagram,
+{$ENDIF}
   Agilent34410A, KeysightU125xB, KeithleyDMM6500, KeithleyTSP, KeysightE3631xA, AgilentMSOX3000A,
   Instrument, RemoteInstrument;
 
@@ -446,6 +450,7 @@ Type
     FPrev         : TComparisonSet;
     FRanges       : TInstrumentRanges;   // same array index and length as TComparisonBase.FInstruments, only the places with a change of the range are populated
     FMaxVal       : Double;              // maximum value of all current active ranges, as well as max. value in FTestPoints
+    FMaxRange     : Double;              // maximum active range
     FTestPoints   : TTestPoints;
     FMeasurements : TMeasurementResults; // FMeasurements[InstrumentIdx][TestPointIdx]
     FAnalyses     : TMeasurementAnalyses;// FAnalyses[TestPointIdx]
@@ -1282,8 +1287,6 @@ Begin
 End;
 
 Class Function TInstrumentWrapperAgilent34410A.CreateFromParams(AComparisonBase : TComparisonBase; AWrapperName, AName : String; AParams : TInstrumentWrapperParams) : TInstrumentWrapperBase;
-Var St : String;
-    I  : Integer;
 Begin
   Result := TInstrumentWrapperAgilent34410A.Create(AComparisonBase, AWrapperName, AName, AParams, ifMeasure);
   With TInstrumentWrapperAgilent34410A(Result) do
@@ -1428,7 +1431,7 @@ Begin
     Begin
       FComm       := DevComOpen(FVISA, FCommObj);
       FInstrument := TKeithleyDMM6500.Create(FComm);
-      FComm.SetTimeout(2000000{us});
+      FComm.SetTimeout(10000000{us});
       //if FCommObj is TUSBTMCCommunicator then
       //  (FCommObj as TUSBTMCCommunicator).ErrorHandler := @USBTMCErrorHandler;
     End
@@ -1462,7 +1465,11 @@ Begin
     raise Exception.Create('TODO: Implement Quantity '+CQuantityStr[FComparisonBase.FQuantity]);
   FInstrument.SetNPLC(1.0);
   FInstrument.AutoZero;
+{$IFDEF DEBUG_DMM6500_SERIES}
+  FInstrument.SetMeasureCount(20);
+{$ELSE}
   FInstrument.SetMeasureCount(1);
+{$ENDIF DEBUG_DMM6500_SERIES}
 End;
 
 Procedure TInstrumentWrapperKeithleyDMM6500.Disconnect;
@@ -1482,16 +1489,35 @@ End;
 Procedure TInstrumentWrapperKeithleyDMM6500.StartMeasurement;
 Begin
   WriteLn(FName+'.StartMeasurement');
+  FInstrument.ClearBuffer;
 End;
 
 Function TInstrumentWrapperKeithleyDMM6500.GetResults : TMeasurementResultBase;
-Var D : Double;
+Var D       : Double;
+{$IFDEF DEBUG_DMM6500_SERIES}
+    XArr    : TDynDoubleArray;
+    MeasArr : TDynDoubleArray;
+    I       : Integer;
+    AD      : TAsciiDiagram;
+{$ENDIF DEBUG_DMM6500_SERIES}
 Begin
   WriteLn(FName+'.GetResults');
   D := FInstrument.Measure;
   WriteLn('  V = ',FloatToStr(D));
   Result := TMeasurementResultBase.Create(FRange.FAccuracy[0].Apply(D));
   WriteLn('  ',Result.ToString);
+{$IFDEF DEBUG_DMM6500_SERIES}
+  MeasArr := FInstrument.PrintBuffer;
+  For I := 0 to Length(MeasArr)-1 do
+    WriteLn('    ',MeasArr[I]:1:9);
+  SetLength(XArr, Length(MeasArr));
+  For I := 0 to Length(MeasArr)-1 do
+    XArr[I] := I * 1.0;
+  D := MaxValue(MeasArr)-MinValue(MeasArr);
+  WriteLn('  Mean = ',Mean(MeasArr):1:9,', Range = ',D:1:9);
+  AD := TAsciiDiagram.Create(180, 20, 20, 2, XArr, MeasArr, 5.0, D * 0.2 );
+  AD.Print;
+{$ENDIF DEBUG_DMM6500_SERIES}
 End;
 
 { TInstrumentWrapperKeithley2450 }
@@ -2139,6 +2165,12 @@ Var NP, NI : Integer;
 Begin
   if Length(FAnalyses) <> 0 then
     raise Exception.Create('Analyze can only be called once.');
+  FMaxRange := 0.0;
+  For NI := 0 to Length(FRanges)-1 do
+    Begin
+      if not assigned(FRanges[NI]) then continue;
+      FMaxRange := max(FMaxRange, FRanges[NI].FMaxValue);
+    End;
   if Length(FMeasurements) = 0 then
     Exit;   // no measurements --> nothing to analyze
   FPass := True;
@@ -2183,7 +2215,7 @@ Var I : Integer;
 Begin
   For I := 0 to Length(FSets)-1 do
     Begin
-      WriteLn('--- Set #',I,' of Ranges up to ',FloatToStr(FSets[I].FMaxVal),' ---');
+      WriteLn('--- Set #',I,' of Ranges up to ',FloatToStr(FSets[I].FMaxRange),' with values up to ',FloatToStr(FSets[I].FMaxVal),' ---');
       FSets[I].PrintRanges(False{True});
       WriteLn('  Testpoints: ', FSets[I].FTestPoints.ToString);
     End;
@@ -2194,7 +2226,7 @@ Var I : Integer;
 Begin
   For I := 0 to Length(FSets)-1 do
     Begin
-      WriteLn('--- Set #',I,' of Ranges up to ',FloatToStr(FSets[I].FMaxVal),' ---');
+      WriteLn('--- Set #',I,' of Ranges up to ',FloatToStr(FSets[I].FMaxRange),' with values up to ',FloatToStr(FSets[I].FMaxVal),' ---');
       FSets[I].PrintMeasurementsByInstrument;
     End;
 End;
@@ -2204,7 +2236,7 @@ Var I : Integer;
 Begin
   For I := 0 to Length(FSets)-1 do
     Begin
-      WriteLn('--- Set #',I,' of Ranges up to ',FloatToStr(FSets[I].FMaxVal),' ---');
+      WriteLn('--- Set #',I,' of Ranges up to ',FloatToStr(FSets[I].FMaxRange),' with values up to ',FloatToStr(FSets[I].FMaxVal),' ---');
       FSets[I].PrintMeasurementsByTestPoint;
     End;
 End;
@@ -2340,9 +2372,9 @@ Begin
   if Length(FInstruments) = 0 then Exit;
   // first entry
   SetLength(Result, 1);
-  Result[0].FInstrumentType := TInstrumentWrapperClass(FInstruments[NI].ClassType);
+  Result[0].FInstrumentType := TInstrumentWrapperClass(FInstruments[0].ClassType);
   SetLength(Result[0].FInstruments, 1);
-  Result[0].FInstruments[0] := FInstruments[NI];
+  Result[0].FInstruments[0] := FInstruments[0];
   For NI := 1 to Length(FInstruments)-1 do
     Begin
       Same := False;
@@ -2660,7 +2692,7 @@ Begin
       S.Add('[Procedure]');
       For NS := 0 to Length(FProcedure.FSets)-1 do
         Begin
-          S.Add('(Set '+IntToStr(NS)+')    # Ranges up to '+FloatToStr(FProcedure.FSets[NS].FMaxVal));
+          S.Add('(Set '+IntToStr(NS)+')    # Ranges up to '+FloatToStr(FProcedure.FSets[NS].FMaxRange)+' with values up to '+FloatToStr(FProcedure.FSets[NS].FMaxVal));
           For NR := 0 to Length(FProcedure.FSets[NS].FRanges)-1 do
             Begin
               if not assigned(FProcedure.FSets[NS].FRanges[NR]) then continue;
@@ -2701,7 +2733,7 @@ Begin
                   AllRanges[NI] := Prev.FRanges[NI];       // this might (again) set it to Nil
               Prev := Prev.FPrev;
             End;
-          S.Add('(Set '+IntToStr(NS)+')    # Ranges up to '+FloatToStr(FProcedure.FSets[NS].FMaxVal));
+          S.Add('(Set '+IntToStr(NS)+')    # Ranges up to '+FloatToStr(FProcedure.FSets[NS].FMaxRange)+' with values up to '+FloatToStr(FProcedure.FSets[NS].FMaxVal));
           For NI := 0 to Length(FProcedure.FSets[NS].FRanges)-1 do
             Begin
               if not assigned(AllRanges[NI]) then continue;
