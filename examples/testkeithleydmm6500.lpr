@@ -40,6 +40,9 @@ Uses
 {$IFDEF TCP}
   DevComTCP,
 {$ENDIF TCP}
+{$IFDEF TEST_TSP_LINK}
+  KeithleyTSP,
+{$ENDIF TEST_TSP_LINK}
   KeithleyDMM6500;
 
 Const
@@ -112,6 +115,9 @@ Var
   MeasArr       : TDynDoubleArray;
   I             : Integer;
   St            : String;
+{$IFDEF TEST_TSP_LINK}
+  Nodes         : TNodeInfoArray;
+{$ENDIF TEST_TSP_LINK}
 
 {$IFDEF USBTMC}
 Procedure USBTMCErrorHandler;
@@ -245,11 +251,21 @@ Begin
 {$IFDEF TEST_TSP_LINK}
   WriteLn;
   WriteLn('Testing TSP-Link');
-  DMM6500.TSPLinkInitialize;
+  I := DMM6500.TSPLinkInitialize;
+  WriteLn('TSP-Link initialize found ',I,' nodes.');
   St := DMM6500.GetTSPLinkState;
   WriteLn('TSP-Link State is ',St);
   if St = 'online' then
     Begin
+      // TSP-Link status
+      WriteLn('Local node is ',  DMM6500.GetTSPLinkLocalNode);
+      WriteLn('Master node is ', DMM6500.GetTSPLinkMasterNode);
+      Nodes := DMM6500.GetTSPLinkNodes;
+      WriteLn('The following nodes are in the TSP-Link system:');
+      For I := 0 to Length(Nodes)-1 do
+        With Nodes[I] do
+          WriteLn('  ',Node:2,' ',Model,' ',SerialNo,' ',Version);
+
       // device
       DMM6500_Slave := TKeithleyDMM6500.Create(DMM6500, TSPNodeID);
 

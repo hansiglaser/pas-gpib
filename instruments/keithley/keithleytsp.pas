@@ -7,6 +7,14 @@ Uses
 
 Type
 
+  TNodeInfo = record
+    Node     : Integer;
+    Model    : String;
+    SerialNo : String;
+    Version  : String;
+  End;
+  TNodeInfoArray = Array of TNodeInfo;
+
   { TKeithleyTSPNode }
 
   (**
@@ -29,9 +37,12 @@ Type
     Constructor Create(ATSPMaster:TKeithleyTSPNode; ANodeID:Integer);
     Destructor  Destroy; override;
     { device function }
-    Function Identify : String; override;
-    Procedure TSPLinkInitialize;
-    Function  GetTSPLinkState : String;
+    Function  Identify : String; override;
+    Function  TSPLinkInitialize    : Integer;
+    Function  GetTSPLinkState      : String;
+    Function  GetTSPLinkLocalNode  : Integer;
+    Function  GetTSPLinkMasterNode : Integer;
+    Function  GetTSPLinkNodes      : TNodeInfoArray;
     Procedure ResetAll;
     Procedure Reset;
   End;
@@ -74,14 +85,62 @@ Begin
     End;
 End;
 
-Procedure TKeithleyTSPNode.TSPLinkInitialize;
+(**
+ * Initialize all instruments and enclosures in the TSP-Link system
+ *
+ * @returns  the number of nodes found on the system, including the node on
+ *           which the command is running
+ *
+ * [DMM6500RM] p. 14-419
+ *)
+
+Function TKeithleyTSPNode.TSPLinkInitialize : Integer;
 Begin
-  FDeviceCommunicator.Send('tsplink.initialize()');
+  Result := StrToInt(FDeviceCommunicator.Query('print(tsplink.initialize())'));
 End;
 
 Function TKeithleyTSPNode.GetTSPLinkState : String;
 Begin
   Result := FDeviceCommunicator.Query('print(tsplink.state)');
+End;
+
+Function TKeithleyTSPNode.GetTSPLinkLocalNode : Integer;
+Begin
+  Result := StrToInt(FDeviceCommunicator.Query('print(tsplink.node)'));
+End;
+
+Function TKeithleyTSPNode.GetTSPLinkMasterNode : Integer;
+Begin
+  Result := StrToInt(FDeviceCommunicator.Query('print(tsplink.master)'));
+End;
+
+Function TKeithleyTSPNode.GetTSPLinkNodes : TNodeInfoArray;
+Var St : String;
+    SA : TDynStringArray;
+    I  : Integer;
+Begin
+  SetLength(Result, 0);
+  FDeviceCommunicator.Send('for i = 0, 63 do if node[i] != nil then print(i .. "," .. node[i].model..","..node[i].serialno..","..node[i].version) end end print("end")');
+  repeat
+    St := Trim(FDeviceCommunicator.Receive);
+    //WriteLn(I,': ',St);
+    // Unfortunately the current implementatoni of IDeviceCommunicator doesn't
+    // support to receive multiple lines, with an undefined end. Therefore we
+    // print("end") so that in this loop we know when to stop calling Receive.
+    // Otherwise a timeout exception would occur.
+    if St = 'end' then break;
+    SA := SplitStr(',', St);
+    if Length(SA) <> 4 then
+      raise Exception.Create('Invalid return string '''+St+'''');
+    SetLength(Result, Length(Result)+1);
+    with Result[Length(Result)-1] do
+      Begin
+        Node     := StrToInt(SA[0]);
+        Model    := SA[1];
+        SerialNo := SA[2];
+        Version  := SA[3];
+      End;
+  Until False;
 End;
 
 Procedure TKeithleyTSPNode.ResetAll;
