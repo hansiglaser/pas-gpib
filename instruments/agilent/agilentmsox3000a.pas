@@ -46,6 +46,7 @@ Type
   TStatisticsType= (stAll,stCurrent,stMinimum,stMaximum,stMean,stStdDev,stCount);
   TAcquireMode        = (amRealtime, amSegmented);
   TAcquireType        = (atNormal, atPeak, atAverage, atHighRes);
+  TSerialMode         = (smNone, smA429,smFlexRay,smCAN,smI2S,smI2C,smLIN,smM1553,smSPI,smUART);
   TWaveformSource     = (wsCH1,wsCH2,wsCH3,wsCH4,
                          wsPOD1,wsPOD2,wsBus1,wsBus2,
                          wsFunction,wsMath,wsWMemory1,wsWMemory2,wsSBus1,wsSBus2);
@@ -125,6 +126,7 @@ Const
   COpStatOverload      = 1 shl 11;
   CAcquireMode        : Array[TAcquireMode]        of String = ('RTIM', 'SEGM');
   CAcquireType        : Array[TAcquireType]        of String = ('NORM', 'PEAK', 'AVER','HRES');
+  CSerialMode         : Array[TSerialMode]         of String = ('NONE', 'A429', 'FLEX', 'CAN', 'I2S', 'IIC', 'LIN', 'M1553', 'SPI', 'UART');
   CWaveformSource     : Array[TWaveformSource]     of String = ('CHAN1','CHAN2','CHAN3','CHAN4',
                                                                 'POD1','POD2','BUS1','BUS2',
                                                                 'FUNC','MATH','WMEM1','WMEM2','SBUS1','SBUS2');
@@ -187,6 +189,7 @@ Type
     Procedure ConvToReal;
     Function  GetTime(Index:Integer) : Double;
     Procedure ConvTimes;
+    Procedure Merge(AWaveform:TWaveform);
     Procedure PrintAsciiArt(Width, Height : Integer; XDiv, YDiv : Double);
     Procedure PrintSerialData;
     Procedure SaveSerialData(Filename:String);
@@ -233,6 +236,9 @@ Type
     // Status
     Function  GetOperationStatusCondition : Word;
     // Cursor
+    // Serial Decode
+    Class Function  WaveformSource2SerialBusNum(ASource : TWaveformSource) : Integer;
+    Function  GetSerialMode(ABusNum:Integer) : TSerialMode;
     // Hard Copy
     Procedure SetHardcopyOptions(AInkSaver : Boolean);
     Function  GetHardcopyOptions : String;
@@ -660,7 +666,8 @@ Begin
           // convert serial decode bus data
           // the returned string is '<time0>,<data0>,<time1>,<data1>,...', and it has many spaces
           // split
-          SA := SplitStr(',', St);
+          //SA := SplitStr(',', St);
+          SA := St.Split([',']);;
           if Length(SA) <> AWaveform.FPoints*2 then
             Begin
               WriteLn('Length(SA) = ',Length(SA),' <> AWaveform.Points*2 = ',AWaveform.FPoints*2);
@@ -892,6 +899,34 @@ End;
 Function TAgilentMSOX3000A.GetOperationStatusCondition : Word;
 Begin
   Result := StrToInt(FDeviceCommunicator.Query(':OPEREGISTER:CONDITION?'));
+End;
+
+(**
+ * Convert a TWaveformSource to a serial bus number
+ *)
+Class Function TAgilentMSOX3000A.WaveformSource2SerialBusNum(ASource : TWaveformSource) : Integer;
+Begin
+  if      ASource = wsSBus1 then Result := 1
+  else if ASource = wsSBus2 then Result := 2
+  else
+    raise Exception.Create('Waveform source '+CWaveformSource[ASource]+' is not a serial waveform.');
+End;
+
+(**
+ * Query decode mode of a serial bus
+ *
+ * ABusNum is 1 or 2
+ *
+ * [PG] p. 633
+ *)
+Function TAgilentMSOX3000A.GetSerialMode(ABusNum : Integer) : TSerialMode;
+Var St : String;
+Begin
+  St := FDeviceCommunicator.Query(':SBUS'+IntToStr(ABusNum)+':MODE?');
+  For Result := Low(TSerialMode) to High(TSerialMode) do
+    if St = CSerialMode[Result] then
+      Exit;
+  raise Exception.Create('Unknown serial decode mode  '''+St+'''');
 End;
 
 (**
@@ -1476,6 +1511,22 @@ Begin
       For I := 0 to Length(FRealData)-1 do
         FTimes[I] := ((I - FXReference) * 2 * FXIncrement) + FXOrigin;
     End;
+End;
+
+Procedure TWaveform.Merge(AWaveform : TWaveform);
+Var I : Integer;
+Begin
+  if (Length(FSerialData) = 0) or (Length(AWaveform.FSerialData) = 0) then
+    raise Exception.Create('Merge only works for serial decode data in both datasets.');
+  if Length(FSerialData) <> Length(AWaveform.FSerialData) then
+    raise Exception.Create('Merge only works with same length datasets.');
+  For I := 0 to Length(FSerialData)-1 do
+    With FSerialData[I] do
+      Begin
+        if not SameValue(Timestamp, AWaveform.FSerialData[I].Timestamp) then
+          raise Exception.Create('Data points number '+IntToStr(I)+' have differing timestamps '+FloatToStr(Timestamp*1e6)+' vs. '+FloatToStr(AWaveform.FSerialData[I].Timestamp*1e6));
+        Event := Event + ',' + AWaveform.FSerialData[I].Event;
+      End;
 End;
 
 Procedure TWaveform.PrintAsciiArt(Width, Height : Integer; XDiv,YDiv:Double);

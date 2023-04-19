@@ -67,7 +67,9 @@ Var
   I        : Integer;
   Source   : TWaveformSource;
   Filename : String;
-  Waveform : TWaveform;
+  SerialMode : TSerialMode;
+  Waveform   : TWaveform;
+  Waveform2  : TWaveform;
 
 {$IFDEF USBTMC}
 Procedure USBTMCErrorHandler;
@@ -178,15 +180,31 @@ Begin
   { remote instrument }
   MSOX := TAgilentMSOX3000A.Create(Comm);
 
-  WriteLn('Download serial decode data from ',MSOX.Identify,' to ',Filename);
+  SerialMode := MSOX.GetSerialMode(MSOX.WaveformSource2SerialBusNum(Source));
+
+  WriteLn('Download '+CSerialMode[SerialMode]+' serial decode data from ',MSOX.Identify,' to ',Filename);
 
   MSOX.SetWaveformSource(Source);
+  MSOX.SetWaveformSubSource(wsSub0);     // all serial modes have Sub0, only SPI and UART have in addition Sub1
   MSOX.SetWaveformFormat(wfAscii);
   MSOX.SetWaveformPointsMode(wpmRaw);
 //  MSOX.SetWaveformPointsCount(0);   // ignored for serial decode bus
   Waveform := MSOX.GetWaveformPreamble;
   Waveform.PrintPreamble;
   MSOX.GetWaveformData(Waveform);
+  //Waveform.PrintSerialData;
+  if SerialMode in [smSPI, smUART] then
+    Begin
+      // Above, for SPI, only MOSI but not MISO was retrieved, and for UART,
+      // only RX but not TX was retrieved.
+      // Retrieve second set of data.
+      MSOX.SetWaveformSubSource(wsSub1);
+      Waveform2 := MSOX.GetWaveformPreamble;
+      //Waveform2.PrintPreamble;
+      MSOX.GetWaveformData(Waveform2);
+      // merge the second set of data into the main waveform
+      Waveform.Merge(Waveform2);
+    End;
   Waveform.PrintSerialData;
   Waveform.SaveSerialData(Filename);
 
