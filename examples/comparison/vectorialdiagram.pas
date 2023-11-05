@@ -365,6 +365,7 @@ Var ValWidth : Double;
     TickIdx  : Double;
     TickVal  : Double;
     TickDrw  : Double;
+    TickDec  : Integer;
 Begin
   Coord := FCoord as TLinearCoord;
   ValWidth := Coord.FValXMax - Coord.FValXMin;
@@ -377,12 +378,15 @@ Begin
   else TickMag := 10.0;
   TickDist := TickMag * Power(10.0, TickExp);
   TickIdx := Ceil(Coord.FValXMin / TickDist);
+  TickDec := Round(-TickExp);
+  if TickMag > 9.9 then Dec(TickDec);
+  if TickDec < 0 then TickDec := 0;
   repeat
     TickVal := TickIdx*TickDist;
     if TickVal > Coord.FValXMax then break;
     TickDrw := Coord.ValX2Drw(TickVal);
     DrawXTick(TickDrw);
-    DrawXValue(TickDrw, FloatToStr(TickVal));
+    DrawXValue(TickDrw, FloatToStrF(TickVal, ffFixed, 0, TickDec));
     TickIdx := TickIdx + 1.0;
   until false;
 End;
