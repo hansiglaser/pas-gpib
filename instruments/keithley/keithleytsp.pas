@@ -117,14 +117,15 @@ End;
 Function TKeithleyTSPNode.GetTSPLinkNodes : TNodeInfoArray;
 Var St : String;
     SA : TDynStringArray;
-    I  : Integer;
 Begin
   SetLength(Result, 0);
   FDeviceCommunicator.Send('for i = 0, 63 do if node[i] != nil then print(i .. "," .. node[i].model..","..node[i].serialno..","..node[i].version) end end print("end")');
+  // I couldn't find an iterator, which skips the empty places.
+  //FDeviceCommunicator.Send('for n in pairs(node) do print(n.node..","..n.model..","..n.serialno..","..n.version) end print("end")');
   repeat
     St := Trim(FDeviceCommunicator.Receive);
-    //WriteLn(I,': ',St);
-    // Unfortunately the current implementatoni of IDeviceCommunicator doesn't
+    //WriteLn(St);
+    // Unfortunately the current implementation of IDeviceCommunicator doesn't
     // support to receive multiple lines, with an undefined end. Therefore we
     // print("end") so that in this loop we know when to stop calling Receive.
     // Otherwise a timeout exception would occur.
