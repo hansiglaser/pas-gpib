@@ -129,6 +129,8 @@ End;
 {$ENDIF USBTMC}
 
 Begin
+  WriteLn('Contacting Keithley DMM6500 ', Visa);
+
   Comm := DevComOpen(Visa, CommObj);
   Comm.SetTimeout(10000000);
 
