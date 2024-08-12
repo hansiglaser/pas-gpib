@@ -7,15 +7,14 @@
         <MainUnitHasCreateFormStatements Value="False"/>
         <MainUnitHasTitleStatement Value="False"/>
         <MainUnitHasScaledStatement Value="False"/>
-        <CompatibilityMode Value="True"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <Title Value="serialparse"/>
+      <Title Value="agilentmsox3000awaveform"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
     </General>
-    <BuildModes Count="1">
-      <Item1 Name="Default" Default="True"/>
+    <BuildModes>
+      <Item Name="Default" Default="True"/>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
@@ -24,40 +23,36 @@
     <RunParams>
       <FormatVersion Value="2"/>
     </RunParams>
-    <Units Count="2">
-      <Unit0>
-        <Filename Value="serialparse.lpr"/>
+    <Units>
+      <Unit>
+        <Filename Value="agilentmsox3000awaveform.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="SerialParse"/>
-      </Unit0>
-      <Unit1>
-        <Filename Value="serialparsei2c.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="SerialParseI2C"/>
-      </Unit1>
+        <UnitName Value="AgilentMSOX3000AWaveform"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
     <Target>
-      <Filename Value="serialparse"/>
+      <Filename Value="agilentmsox3000awaveform"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="../base;../devcom;../usb;../pas-libusb/src;../gpib;../instruments;../instruments/keithley;../instruments/lecroy;../instruments/rohdeschwarz;../instruments/agilent"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
   </CompilerOptions>
   <Debugging>
-    <Exceptions Count="3">
-      <Item1>
+    <Exceptions>
+      <Item>
         <Name Value="EAbort"/>
-      </Item1>
-      <Item2>
+      </Item>
+      <Item>
         <Name Value="ECodetoolError"/>
-      </Item2>
-      <Item3>
+      </Item>
+      <Item>
         <Name Value="EFOpenError"/>
-      </Item3>
+      </Item>
     </Exceptions>
   </Debugging>
 </CONFIG>

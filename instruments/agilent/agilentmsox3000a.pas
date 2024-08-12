@@ -185,6 +185,7 @@ Type
     FRealData   : TDynDoubleArray;
     FSerialData : TDynEventArray;
     FTimes      : TDynDoubleArray;
+    Constructor CreateFromCSV(AFilename:String);
     Procedure PrintPreamble;
     Procedure ConvToReal;
     Function  GetTime(Index:Integer) : Double;
@@ -193,7 +194,8 @@ Type
     Procedure PrintAsciiArt(Width, Height : Integer; XDiv, YDiv : Double);
     Procedure PrintSerialData;
     Procedure SaveSerialData(Filename:String);
-    Procedure SaveCSV(Filename:String);
+    Procedure SaveCSV(AFilename:String);
+    Procedure LoadCSV(AFilename:String);
   End;
 
 Type
@@ -1433,6 +1435,12 @@ End;
 
 { TWaveform }
 
+Constructor TWaveform.CreateFromCSV(AFilename : String);
+Begin
+  inherited Create;
+  LoadCSV(AFilename);
+End;
+
 Procedure TWaveform.PrintPreamble;
 Begin
   WriteLn('Source    : ', CWaveformSource    [FSource    ]);               // TWaveformSource;
@@ -1567,13 +1575,13 @@ Begin
   Close(T);
 End;
 
-Procedure TWaveform.SaveCSV(Filename : String);
+Procedure TWaveform.SaveCSV(AFilename : String);
 Var I : Integer;
     T : Text;
 Begin
   if (Length(FRealData) = 0) or (Length(FTimes) = 0) then
     raise Exception.Create('No real and/or time data available, don''t forget ConvToReal and ConvTimes.');
-  Assign(T, Filename);
+  Assign(T, AFilename);
   Rewrite(T);
   if (FFormat = wfWord) and (Length(FWordData) > 0) then
     Begin
@@ -1597,6 +1605,85 @@ Begin
   else
     raise Exception.Create('Unknown waveform format or no word/byte data available.');
   Close(T);
+End;
+
+Procedure TWaveform.LoadCSV(AFilename : String);
+Var T     : Text;
+    St    : String;
+    StArr : TDynStringArray;
+    I     : Integer;
+    Len   : Integer;
+    Time  : Double;
+Begin
+  SetLength(FTimes,    0);
+  SetLength(FByteData, 0);
+  SetLength(FWordData, 0);
+  SetLength(FRealData, 0);
+  Assign(T, AFilename);
+  Reset(T);
+  try
+    // determine file format
+    ReadLn(T, St);
+    if St = 'Index,Time[s],Word,Real[V]' then
+      Begin
+        FFormat := wfWord;
+      End
+    else if St = 'Index,Time[s],Byte,Real[V]' then
+      Begin
+        FFormat := wfByte;
+      End
+    else if St = 'Index,Time[s],Real[V]' then
+      Begin
+        FFormat := wfAscii;
+      End
+    else
+      Begin
+        raise Exception.Create('Unknown file format with first line '''+St+'''');
+      End;
+    I   := 0;
+    Len := 0;
+    While not EOF(T) do
+      Begin
+        ReadLn(T, St);
+        StArr := SplitStr(',', St);
+        if StrToInt(StArr[0]) <> I then
+          raise Exception.Create('Error in line '+IntToStr(I+1+1)+': Invalid index');
+        // allocate storage
+        if Len < I+1 then
+          Begin
+            Len := Len + 1024;
+            SetLength(FTimes,    Len);
+            SetLength(FRealData, Len);
+            if FFormat = wfByte then SetLength(FByteData, Len);
+            if FFormat = wfWord then SetLength(FWordData, Len);
+          End;
+        // store data
+        FTimes[I] := StrToFloat(StArr[1]);
+        if FFormat = wfByte then
+          Begin
+            FByteData[I] := StrToInt  (StArr[2]);
+            FRealData[I] := StrToFloat(StArr[3]);
+          End
+        else if FFormat = wfWord then
+          Begin
+            FWordData[I] := StrToInt  (StArr[2]);
+            FRealData[I] := StrToFloat(StArr[3]);
+          End
+        else if FFormat = wfAscii then
+          Begin
+            FRealData[I] := StrToFloat(StArr[2]);
+          End
+        else
+          raise Exception.Create('Unknown FFormat');
+        Inc(I);
+      End;
+    SetLength(FTimes,    I);    // utilizing that I was incremented one last time
+    SetLength(FRealData, I);
+    if FFormat = wfByte then SetLength(FByteData, I);
+    if FFormat = wfWord then SetLength(FWordData, I);
+  finally
+    Close(T);
+  End;
 End;
 
 End.

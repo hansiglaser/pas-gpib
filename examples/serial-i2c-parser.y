@@ -33,6 +33,7 @@ End;
 %token <TI2CEvent>TOK_FINAL_IN
 %token <TI2CEvent>TOK_FINAL_OUT
 %token <TI2CEvent>TOK_UNKNOWN
+%token <TI2CEvent>TOK_ALIASED
 %token <TI2CEvent>TOK_START
 %token <TI2CEvent>TOK_STOP
 %token <TI2CEvent>TOK_ADDR_WR_ACK
@@ -52,7 +53,7 @@ input:
 
 init:
        TOK_INIT_OUT {DbgWr('init-a INIT_OUT');} |
-       TOK_INIT_IN  {DbgWr('init-b INIT_IN');} tail {DbgWr('init-b tail');};
+       TOK_INIT_IN  {DbgWr('init-b INIT_IN');} tail {DbgWr('init-b tail');} TOK_STOP {DbgWr('init-b STOP');};
 
 final:
        head          {DbgWr('final-a head');} TOK_FINAL_IN {DbgWr('final-a FINAL_IN');} |
@@ -64,13 +65,14 @@ head:
        rd_ack_head i2cdata ;
 
 tail:
-       wr_ack_tail | rd_ack_tail;
+       wr_ack | wr_ack_tail | rd_ack | rd_ack_tail;
 
 i2cxfers:
        i2cxfers {DbgWr('i2cxfers i2cxfers');} i2cxfer {DbgWr('i2cxfers i2cxfer');} | /* empty */ ;
 
 i2cxfer:
        TOK_UNKNOWN {DbgWr('i2cxfer-a UNKNOWN');} |
+       TOK_ALIASED {DbgWr('i2cxfer-a ALIASED');} |
 /*       TOK_START   {DbgWr('i2cxfer-b START');} |
        TOK_START   {DbgWr('i2cxfer-c START');} i2ccomms {DbgWr('i2cxfer-c i2ccomms');} |*/
        TOK_START   {DbgWr('i2cxfer-d START');} i2ccomms {DbgWr('i2cxfer-d i2ccomms');} TOK_STOP {DbgWr('i2cxfer-d STOP');};

@@ -44,6 +44,7 @@ End;
 [0-9.eE+-]+,FINAL\ IN\n              Begin DbgWr('TOK_FINAL_IN    : '+yytext); ParseTimestamp(yytext, yylval.yyTI2CEvent); return(TOK_FINAL_IN);     End;
 [0-9.eE+-]+,FINAL\ OUT\n             Begin DbgWr('TOK_FINAL_OUT   : '+yytext); ParseTimestamp(yytext, yylval.yyTI2CEvent); return(TOK_FINAL_OUT);    End;
 [0-9.eE+-]+,UNKNOWN\n                Begin DbgWr('TOK_UNKNOWN     : '+yytext); ParseTimestamp(yytext, yylval.yyTI2CEvent); return(TOK_UNKNOWN);      End;
+[0-9.eE+-]+,ALIASED\n                Begin DbgWr('TOK_ALIASED     : '+yytext); ParseTimestamp(yytext, yylval.yyTI2CEvent); return(TOK_ALIASED);      End;
 [0-9.eE+-]+,START\n                  Begin DbgWr('TOK_START       : '+yytext); ParseTimestamp(yytext, yylval.yyTI2CEvent); return(TOK_START);        End;
 [0-9.eE+-]+,STOP\n                   Begin DbgWr('TOK_STOP        : '+yytext); ParseTimestamp(yytext, yylval.yyTI2CEvent); return(TOK_STOP);         End;
 [0-9.eE+-]+,[0-9A-F][0-9A-F]Wa\n     Begin DbgWr('TOK_ADDR_WR_ACK : '+yytext); ParseAll      (yytext, yylval.yyTI2CEvent); return(TOK_ADDR_WR_ACK);  End;

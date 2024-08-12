@@ -41,11 +41,15 @@ Function SelectRead(AHandle:Integer;ATimeout:Integer { in us }) : Integer;
 
 Function WaitTimeout(Initial,Period,Max:Integer;Checker:TWaitCheckerFunc;Data:Pointer) : Integer;
 
+Function GetFileSize(AFilename : String) : Int64;
 Procedure WriteData(Filename:String;Data:TDynByteArray);
+Function ReadData(Filename : String; MaxSize : Int64 = 10*1024*1024) : TDynByteArray;
 
 Procedure Dump(Const Buf;Size:LongInt);
 Function  EncodeDataHex(Const Buf;Size:LongInt) : String;
 Procedure DecodeDataHex(St:String; Const Buf;Size:LongInt);
+
+Procedure SwapVars(Var A,B:Double);
 
 Type
   TSIPrefix = (
@@ -234,6 +238,21 @@ Begin
 End;
 {$ENDIF}
 
+(**
+ * Get file size without opening or -1 if not found
+ *
+ * taken from https://tips.delphidabbler.com/tips/166
+ *)
+Function GetFileSize(AFilename : String) : Int64;
+Var SR : TSearchRec;
+begin
+  if FindFirst(AFilename, faAnyFile, SR) = 0 then
+    Result := SR.Size
+  else
+    Result := -1;
+  FindClose(SR);
+End;
+
 Procedure WriteData(Filename : String; Data : TDynByteArray);
 Var F : File;
 Begin
@@ -241,7 +260,23 @@ Begin
   Rewrite(F,1);
   BlockWrite(F,Data[0],Length(Data));
   Close(F);
-end;
+End;
+
+Function ReadData(Filename : String; MaxSize : Int64 = 10*1024*1024) : TDynByteArray;
+Var S : Int64;
+    F : File;
+Begin
+  S := GetFileSize(Filename);
+  if S < 1 then
+    raise Exception.Create('Can''t find the file '+Filename);
+  if S > MaxSize then
+    raise Exception.Create('Too large file '+Filename);
+  SetLength(Result, S);
+  Assign(F,Filename);
+  Reset(F,1);
+  BlockRead(F,Result[0],S);
+  Close(F);
+End;
 
 Function WaitTimeout(Initial,Period,Max:Integer;Checker:TWaitCheckerFunc;Data:Pointer) : Integer;
 Var DT : TDateTime;
@@ -319,6 +354,14 @@ Begin
       B := (HexChar2Byte(St[I*2+1]) shl 4) or HexChar2Byte(St[I*2+2]);
       PByte(PtrUInt(@Buf)+I)^ := B;
     End;
+End;
+
+Procedure SwapVars(Var A, B : Double);
+Var C : Double;
+Begin
+  C := A;
+  A := B;
+  B := C;
 End;
 
 Function GetSIPrefix(Value : Double) : TSIPrefix;
