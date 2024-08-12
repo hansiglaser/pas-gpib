@@ -81,7 +81,7 @@ Begin
     End
   else
     Begin
-      Result := FDeviceCommunicator.Query('print("KEITHLEY INSTRUMENTS,MODEL "..localnode.model..","..localnode.serialno..","..localnode.version)');
+      Result := FDeviceCommunicator.Query('print("KEITHLEY INSTRUMENTS,MODEL "..'+FNodePrefix+'model..","..'+FNodePrefix+'serialno..","..'+FNodePrefix+'version)');
     End;
 End;
 
