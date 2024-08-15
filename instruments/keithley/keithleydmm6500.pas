@@ -33,13 +33,13 @@ Type
    * SCPI instruments (e.g. the Agilent 34410A), you might want to program your
    * own scripts instead of Pascal.
    *
-   * [RM] Model DMM6500 6½-Digit Multimeter with Scanning Reference Manual,
-   *      DMM6500-901-01 Rev. B / September 2019
+   * [RM-6500] Model DMM6500 6½-Digit Multimeter with Scanning Reference Manual,
+   *           DMM6500-901-01 Rev. B / September 2019
    *)
 
   { TKeithleyDMM6500 }
 
-  TKeithleyDMM6500 = class(TKeithleyTSPNode)
+  TKeithleyDMM6500 = class(TKeithleyTSPNodeTouch)
   private
     FIdentity : String;
   public
@@ -54,10 +54,6 @@ Type
     Procedure ClearBuffer(ABuffer:String='');
     Function  GetNumReadings(ABuffer:String='') : Integer;
     Function  PrintBuffer(ABuffer:String='';AEndIndex:Integer=0;AStartIndex:Integer=1) : TDynDoubleArray;
-    { display functions }
-    Procedure ChangeScreen(ADisplayScreen : String);
-    Procedure ClearDisplay;
-    Procedure SetText(ARow : Integer; AText : String);
     { measure functions }
     Procedure SetAperture(AAperture:Double);
     Function  GetAperture : Double;
@@ -74,10 +70,6 @@ Type
     Function  GetRange : Double;
     Function  Measure(ABuffer:String = '') : Double;
     Function  GetTerminals : TInputTerminalsSetting;
-    { event log functions }
-    Procedure ClearEvents;
-    Function  GetEventCount : Integer;
-    Procedure GetNextEvent(Out AEventNumber : Integer; Out AMessage : String; Out ASeverity, ANodeID : Integer; Out ATime : Double);
     class Function GetRanges(AInstrument:String) : TRangesQuantity; override;
   End;
 
@@ -120,7 +112,7 @@ End;
 (**
  * Clear all readings and statistics from the specified buffer
  *
- * [RM] p. 14-35f
+ * [RM-6500] p. 14-35f
  *)
 Procedure TKeithleyDMM6500.ClearBuffer(ABuffer : String);
 Begin
@@ -132,7 +124,7 @@ End;
 (**
  * Get the number of readings in the specified reading buffer.
  *
- * [RM] p. 14-46f
+ * [RM-6500] p. 14-46f
  *)
 Function TKeithleyDMM6500.GetNumReadings(ABuffer : String) : Integer;
 Begin
@@ -144,7 +136,7 @@ End;
 (**
  * Get the readings in the specified reading buffer.
  *
- * [RM] p. 14-47
+ * [RM-6500] p. 14-47
  *)
 Function TKeithleyDMM6500.PrintBuffer(ABuffer : String; AEndIndex : Integer; AStartIndex : Integer) : TDynDoubleArray;
 Var EndIndex : String;
@@ -163,46 +155,9 @@ Begin
 End;
 
 (**
- * Change which front-panel screen is displayed.
- *
- * ADisplayScreen must be one of the documented constants like 'SCREEN_HOME',
- * 'SCREEN_USER_SWIPE', ...
- *
- * TODO: make Pascal enum and a string array
- *
- * [RM] p. 14-87f
- *)
-Procedure TKeithleyDMM6500.ChangeScreen(ADisplayScreen:String);
-Begin
-  FDeviceCommunicator.Send(FNodePrefix+'display.changescreen(display.'+ADisplayScreen+')');
-End;
-
-(**
- * Clear the text from the front-panel USER swipe screen.
- *
- * [RM] p. 14-89
- *)
-Procedure TKeithleyDMM6500.ClearDisplay;
-Begin
-  FDeviceCommunicator.Send(FNodePrefix+'display.clear()');
-End;
-
-(**
- * Display text on the user screen
- *
- * Allowed ARow: 1, 2
- *
- * [RM] p. 14-99f
- *)
-Procedure TKeithleyDMM6500.SetText(ARow:Integer;AText : String);
-Begin
-  FDeviceCommunicator.Send(FNodePrefix+'display.settext(display.TEXT'+IntToStr(ARow)+', "'+AText+'")');
-End;
-
-(**
  * Set aperture (integration time) for the selected measurement function.
  *
- * [RM] p. 14-154ff
+ * [RM-6500] p. 14-154ff
  *)
 Procedure TKeithleyDMM6500.SetAperture(AAperture : Double);
 Begin
@@ -212,7 +167,7 @@ End;
 (**
  * Get aperture (integration time) for the selected measurement function.
  *
- * [RM] p. 14-154ff
+ * [RM-6500] p. 14-154ff
  *)
 Function TKeithleyDMM6500.GetAperture : Double;
 Begin
@@ -222,7 +177,7 @@ End;
 (**
  * Enable/disable auto range
  *
- * [RM] p. 14-157f
+ * [RM-6500] p. 14-157f
  *)
 Procedure TKeithleyDMM6500.EnableAutoRange(AEnable : Boolean);
 Begin
@@ -232,7 +187,7 @@ End;
 (**
  * Enable/disable automatic updates to the internal reference measurements (autozero).
  *
- * [RM] p. 14-159f
+ * [RM-6500] p. 14-159f
  *)
 Procedure TKeithleyDMM6500.EnableAutoZero(AEnable : Boolean);
 Begin
@@ -242,7 +197,7 @@ End;
 (**
  * Refresh the reference and zero measurements once.
  *
- * [RM] p. 14-160
+ * [RM-6500] p. 14-160
  *)
 Procedure TKeithleyDMM6500.AutoZero;
 Begin
@@ -256,7 +211,7 @@ End;
  * trigger-model template instead of using the count command.
  * TODO: implement
  *
- * [RM] p. 14-169f
+ * [RM-6500] p. 14-169f
  *)
 Procedure TKeithleyDMM6500.SetMeasureCount(ACount : Integer);
 Begin
@@ -272,7 +227,7 @@ End;
  * returned in a remote command reading. It also does not affect the accuracy
  * or speed of measurements.
  *
- * [RM] p. 14-174f
+ * [RM-6500] p. 14-174f
  *)
 Procedure TKeithleyDMM6500.SetDisplayDigits(ADigits : TDigits);
 Begin
@@ -282,7 +237,7 @@ End;
 (**
  * Enable or disable the averaging filter for measurements of the selected function
  *
- * [RM] p. 14-176f
+ * [RM-6500] p. 14-176f
  *)
 Procedure TKeithleyDMM6500.EnableFilter(AEnable : Boolean);
 Begin
@@ -294,7 +249,7 @@ End;
  *
  * TODO: make Pascal enum and a string array
  *
- * [RM] p. 14-181ff
+ * [RM-6500] p. 14-181ff
  *)
 Procedure TKeithleyDMM6500.SetMeasureFunction(AFunction : String);
 Begin
@@ -304,7 +259,7 @@ End;
 (**
  * Set integration time in multiples of power line cycles.
  *
- * [RM] p. 14-204f
+ * [RM-6500] p. 14-204f
  *)
 Procedure TKeithleyDMM6500.SetNPLC(ANPLC : Double);
 Begin
@@ -314,7 +269,7 @@ End;
 (**
  * Query the integration time in multiples of power line cycles.
  *
- * [RM] p. 14-204f
+ * [RM-6500] p. 14-204f
  *)
 Function TKeithleyDMM6500.GetNPLC : Double;
 Begin
@@ -324,7 +279,7 @@ End;
 (**
  * Set the positive full-scale measure range.
  *
- * [RM] p. 14-297ff
+ * [RM-6500] p. 14-297ff
  *)
 Procedure TKeithleyDMM6500.SetRange(ARange : Double);
 Begin
@@ -334,7 +289,7 @@ End;
 (**
  * Query the positive full-scale measure range.
  *
- * [RM] p. 14-297ff
+ * [RM-6500] p. 14-297ff
  *)
 Function TKeithleyDMM6500.GetRange : Double;
 Begin
@@ -344,7 +299,7 @@ End;
 (**
  * Perform measurements, place them in a reading buffer, and return the last reading.
  *
- * [RM] p. 14-210f
+ * [RM-6500] p. 14-210f
  *)
 Function TKeithleyDMM6500.Measure(ABuffer : String) : Double;
 Begin
@@ -354,7 +309,7 @@ End;
 (**
  * Get which set of input and output terminals the instrument is using.
  *
- * [RM] p. 14-248
+ * [RM-6500] p. 14-248
  *)
 Function TKeithleyDMM6500.GetTerminals : TInputTerminalsSetting;
 Var Terminals : String;
@@ -364,44 +319,6 @@ Begin
   else if Terminals = 'dmm.TERMINALS_REAR'  then Exit(itRear)
   else
     raise Exception.Create('Unknown terminal location '''+Terminals+''' returned from device.');
-End;
-
-(**
- * Clear the event log
- *
- * [RM] p. 14-248
- *)
-Procedure TKeithleyDMM6500.ClearEvents;
-Begin
-  FDeviceCommunicator.Send(FNodePrefix+'eventlog.clear()');
-End;
-
-(**
- * Get number of unread events in the event log
- *
- * [RM] p. 14-249
- *)
-Function TKeithleyDMM6500.GetEventCount : Integer;
-Begin
-  Result := StrToInt(FDeviceCommunicator.Query('print('+FNodePrefix+'eventlog.getcount())'));
-End;
-
-(**
- * Get oldest unread event message from the event log
- *
- * [RM] p. 14-250f
- *)
-Procedure TKeithleyDMM6500.GetNextEvent(Out AEventNumber : Integer; Out AMessage : String; Out ASeverity, ANodeID : Integer; Out ATime : Double);
-Var TimeSeconds, TimeNanoSec : Integer;
-Begin
-  FDeviceCommunicator.Send('eventNumber, message, severity, nodeID, timeSeconds, timeNanoSeconds = eventlog.next()');
-  AEventNumber := StrToInt(FDeviceCommunicator.Query('print(eventNumber)'));
-  AMessage     :=          FDeviceCommunicator.Query('print(message)');
-  ASeverity    := StrToInt(FDeviceCommunicator.Query('print(severity)'));
-  ANodeID      := StrToInt(FDeviceCommunicator.Query('print(nodeID)'));
-  TimeSeconds  := StrToInt(FDeviceCommunicator.Query('print(timeSeconds)'));
-  TimeNanoSec  := StrToInt(FDeviceCommunicator.Query('print(timeNanoSeconds)'));
-  ATime := 1.0*TimeSeconds + 1E-9*TimeNanoSec;
 End;
 
 

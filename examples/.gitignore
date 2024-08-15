@@ -25,5 +25,7 @@ serial-i2c-lex.pas
 serial-i2c-parser.pas
 y.tab.c
 agilentmsox3000a-screenshot
+agilentmsox3000awaveform
 screenshot-*.png
 testkeithleydmm6500
+testkeithley2450

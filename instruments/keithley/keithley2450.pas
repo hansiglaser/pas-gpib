@@ -1,4 +1,4 @@
-Unit Keithley2600;
+Unit Keithley2450;
 
 {$mode objfpc}{$H+}
 
@@ -6,156 +6,124 @@ Interface
 
 Uses
   Classes, SysUtils,
-  PasGpibUtils, DevCom, RemoteInstrument;
+  PasGpibUtils, DevCom, RemoteInstrument, KeithleyTSP;
 
 Type
-  TModel          = (mdUnknown,md2602A);
-  TDigits         = (dg4_5,dg5_5,dg6_5);
-  TMeasureFunc    = (mfDCAmps,mfDCVolts,mfOhms,mfWatts);
-  TFilterType     = (ftMovingAvg,ftRepeatAvg,ftMedian);
-  TAutoZero       = (azOff,azOnce,azAuto);
-  TSenseMode      = (smLocal,smRemote);
-  TOutputFunction = (ofDCVolts,ofDCAmps);
-  TDisplayScreen  = (dsSMUA,dsSMUB,dsBoth,dsUser);
+  TModel          = (mdUnknown,md2450);
+  TDigits         = (dg3_5,dg4_5,dg5_5,dg6_5);
+  TMeasureFunc    = (mfDCVolts,mfDCAmps,mfOhms);
+  TFilterType     = (ftMovingAvg,ftRepeatAvg);
+  TSenseMode      = (sm2Wire,sm4Wire);
+  TSourceFunction = (sfDCVolts,sfDCAmps);
 
 Const
-  CModelChannels  : Array[TModel]          of Integer = ({unknown:} 0, {2602A:} 2);
-  CDigits         : Array[TDigits]         of String = ('DIGITS_4_5','DIGITS_5_5','DIGITS_6_5');
-  CMeasureFunc    : Array[TMeasureFunc]    of String = ('MEASURE_DCAMPS','MEASURE_DCVOLTS','MEASURE_OHMS','MEASURE_WATTS');
-  CFilterType     : Array[TFilterType]     of String = ('FILTER_MOVING_AVG','FILTER_REPEAT_AVG','FILTER_MEDIAN');
-  CAutoZero       : Array[TAutoZero]       of String = ('AUTOZERO_OFF','AUTOZERO_ONCE','AUTOZERO_AUTO');
-  CSenseMode      : Array[TSenseMode]      of String = ('SENSE_LOCAL','SENSE_REMOTE');
-  COutputFunction : Array[TOutputFunction] of String = ('OUTPUT_DCVOLTS','OUTPUT_DCAMPS');
-  CDisplayScreen  : Array[TDisplayScreen]  of String = ('SMUA','SMUB','SMUA_SMUB','USER');
+  CDigits         : Array[TDigits]         of String = ('DIGITS_3_5','DIGITS_4_5','DIGITS_5_5','DIGITS_6_5');
+  CMeasureFunc    : Array[TMeasureFunc]    of String = ('FUNC_DC_VOLTAGE','FUNC_DC_CURRENT','FUNC_RESISTANCE');
+  CFilterType     : Array[TFilterType]     of String = ('FILTER_MOVING_AVG','FILTER_REPEAT_AVG');
+  CSenseMode      : Array[TSenseMode]      of String = ('SENSE_2WIRE','SENSE_4WIRE');
+  CSourceFunction : Array[TSourceFunction] of String = ('FUNC_DC_VOLTAGE','FUNC_DC_CURRENT');
 
 Type
-  TKeithley2600Channel = class;
 
-  { TKeithley2600 }
+  { TKeithley2450 }
 
   (**
-   * Keithley 2600 SourceMeter SMU Instruments
+   * Keithley 2450 Interactive SourceMeter SMU Instruments
    *
-   * The communication with the instrument (via GPIB, ...) uses the Test Script
-   * Language (TSL) which basically is Lua. Many predefined variables and
-   * functions, in an object-oriented manner, are used to control the device,
-   * e.g.
-   *   smua.source.func = smua.OUTPUT_DCVOLTS
-   *   reading = smua.measure.i()
+   * The communication with the instrument (via GPIB, ...) uses Test Script
+   * Processor (TSL) commands which basically is Lua. Many predefined variables
+   * and functions, in an object-oriented manner, are used to control the
+   * device, e.g.
+   *   smu.source.func = smu.FUNC_DC_VOLTAGE
+   *   reading = smu.measure.read()
    *   print(reading)
    * All commands and variable names are case sensitive (contrary to normal
    * GPIB!).
    *
-   * Since TSL is a full programming language (including if, functions, ...),
+   * Since TSP is a full programming language (including if, functions, ...),
    * compared to the pure command style syntax of typical GPIB instruments
    * (e.g. the Agilent 34410A), you might want to program your own scripts
-   * in TSL instead of Pascal.
+   * in TSP instead of Pascal.
    *
-   * The control of the device is split into two classes. TKeithley2600
-   * implements all functions which are global for the whole device, like
-   * screen functions, errors, ... Since each device can have one or two
-   * channels, the individual channel functionality is implemented in
-   * TKeithley2600Channel. When creating an object of TKeithley2600 the
-   * appropriate number of TKeithley2600 channel objects are created and can
-   * be accessed through the Channel[] property.
+   * [RM-2450] p. 2.96f:
+   * Using the Model 2450, you can perform the following operations:
+   *  - Source voltage and measure current, voltage, resistance, or power
+   *  - Source current and measure voltage, current, resistance, or power
+   *  - Measure voltage, current, resistance, or power
+   * When you are using a remote interface, you should set the measure function
+   * first, then set the source function, because setting the measure function
+   * may change the source function.
+   *
+   * [RM-2450] Model 2450 Interactive SourceMeter Instrument, Reference Manual,
+   *      2450-901-01 Rev. D / May 2015, 2450-901-01_D_May_2015_Ref.pdf
    *)
-  TKeithley2600 = class(TRemoteInstrument)
+  TKeithley2450 = class(TKeithleyTSPNodeTouch)
   protected
     FModel : TModel;
     Procedure CheckModel(IdnArr : TDynStringArray);
   protected
-    FChannels : Array of TKeithley2600Channel;
-    Procedure CheckChannel(AChannel:Integer);
-    Function GetChannel(Index : Integer) : TKeithley2600Channel;
   public
     Constructor Create(ADeviceCommunicator:IDeviceCommunicator);
     Destructor  Destroy; override;
     { device function }
     Procedure Reset;
-    Procedure SetBeeper(Enable:Boolean);
-    Procedure SetCursor(ARow,ACol:Integer);
-    Procedure SetText(AText:String);
-    Procedure Print(ARow,ACol:Integer;AText:String);
-    Procedure ClearDisplay;
-    Procedure SelectDisplay(ADisplayScreen:TDisplayScreen);
-    Function  ErrorCount : Integer;
-    Procedure GetNextError(Out ACode:Integer;Out AMessage:String;Out ASeverity,ANode : Integer);
-    property Channel[Index:Integer] : TKeithley2600Channel read GetChannel;
-  End;
-
-  { TKeithley2600Channel }
-
-  TKeithley2600Channel = class
-  private
-    FInstrument         : TKeithley2600;
-    FDeviceCommunicator : IDeviceCommunicator;
-    FChannel            : Integer;
-  protected
-    FName               : String;
-  private
-    Constructor Create(AInstrument:TKeithley2600;ADeviceCommunicator:IDeviceCommunicator;AChannel:Integer);
-  public
     // measure functions
-    Procedure SetDisplayDigits(ADigits:TDigits);
-    Procedure SetDisplayFunction(AMeasureFunc:TMeasureFunc);
-    Procedure SetFilterType(AFilterType:TFilterType);
-    Procedure SetFilterCount(AFilterCount:Integer);
+    Procedure SetMeasureDisplayDigits(ADigits:TDigits);
+    Procedure SetMeasureFunction(AMeasureFunc:TMeasureFunc);
+    Procedure SetMeasureFilterType(AFilterType:TFilterType);
+    Procedure SetMeasureFilterCount(AFilterCount:Integer);
     Procedure EnableMeasureFilter(AEnable:Boolean);
-    Procedure SetMeasureDelay(ADelay:Double);
-    Function  GetMeasureDelay:Double;
-    Procedure SetMeasureVoltageAutoRange(AEnable:Boolean);
-    Procedure SetMeasureCurrentAutoRange(AEnable:Boolean);
-    Procedure SetMeasureVoltageRange(ARange:Double);
-    Function  GetMeasureVoltageRange:Double;
-    Procedure SetMeasureCurrentRange(ARange:Double);
-    Function  GetMeasureCurrentRange:Double;
+    Procedure EnableMeasureAutoRange(AEnable : Boolean);
+    Procedure SetMeasureAutoRangeHigh(ARange:Double);
+    Procedure SetMeasureAutoRangeLow(ARange:Double);
+    Procedure SetMeasureRange(ARange:Double);
+    Function  GetMeasureRange:Double;
     Procedure SetNPLC(AIntegrationTime:Double);
     Function  GetNPLC:Double;
-    Procedure SetAutoZero(AAutoZero:TAutoZero);
-    Procedure Measure(ACount,AIBuf,AVBuf:Integer);
-    Function  GetBuffer(ACount,ABuffer:Integer) : TDynDoubleArray;
-    Procedure ClearBuffer(ABuffer:Integer);
-    Function  Measuring : Boolean;
+    Procedure EnableMeasureAutoZero(AEnable : Boolean);
+    Procedure MeasureAutoZeroOnce;
+    Procedure SetMeasureCount(ACount : Integer);
+    Function  Measure(ABuffer : String) : Double;
+    Function  GetBuffer(AStartIdx, AEndIdx : Integer; ABuffer : String) : TDynDoubleArray;
+    Procedure ClearBuffer(ABuffer : String);
+    //Function  Measuring : Boolean;
     // source functions
     Procedure SetSenseMode(ASenseMode:TSenseMode);
-    Procedure SetOutputFunction(AFunction:TOutputFunction);
-    Procedure SetOutputVoltageLimit(ALimit:Double);
-    Function  GetOutputVoltageLimit:Double;
-    Procedure SetOutputCurrentLimit(ALimit:Double);
-    Function  GetOutputCurrentLimit:Double;
-    Procedure SetOutputVoltageAutoRange(AEnable:Boolean);
-    Procedure SetOutputCurrentAutoRange(AEnable:Boolean);
-    Procedure SetOutputVoltageRange(ARange:Double);
-    Function  GetOutputVoltageRange:Double;
-    Procedure SetOutputCurrentRange(ARange:Double);
-    Function  GetOutputCurrentRange:Double;
+    Procedure SetSourceFunction(AFunction:TSourceFunction);
+    Procedure SetSourceVoltageLimit(ALimit:Double);
+    Function  GetSourceVoltageLimit:Double;
+    Procedure SetSourceCurrentLimit(ALimit:Double);
+    Function  GetSourceCurrentLimit:Double;
+    Function  GetSourceVoltageLimitTripped : Boolean;
+    Function  GetSourceCurrentLimitTripped : Boolean;
+    Procedure EnableSourceAutoRange(AEnable:Boolean);
+    Procedure SetSourceRange(ARange:Double);
+    Function  GetSourceRange:Double;
     Procedure SetHighCapacitanceMode(AEnable:Boolean);
     Procedure EnableOutput(AEnable:Boolean);
-    Procedure SetOutputVoltage(AVoltage:Double);
-    Function  GetOutputVoltage:Double;
-    Procedure SetOutputCurrent(ACurrent:Double);
-    Function  GetOutputCurrent:Double;
-    Function  GetCompliance : Boolean;
+    Procedure SetSourceLevel(ALevel : Double);
+    Function  GetSouceLevel:Double;
+    Procedure EnableSourceAutoDelay(AEnable:Boolean);
+    Procedure SetSourceDelay(ADelay:Double);
+    Function  GetSourceDelay:Double;
+    property DevCom : IDeviceCommunicator read FDeviceCommunicator;
   End;
 
 
 Implementation
 
-{ TKeithley2600 }
+{ TKeithley2450 }
 
 (**
- * Connect to a Keithley 2600 series Source Meter
+ * Connect to a Keithley 2450 series Source Meter
  *
- * Currently only the 2602A model is supported. Please add further models if you
+ * Currently only the 2450 model is supported. Please add further models if you
  * have access to them.
- *
- * This constructor automatically creates the appropriate number of
- * TKeithley2600Channel objects for the SourceMeter channels.
  *)
-Constructor TKeithley2600.Create(ADeviceCommunicator : IDeviceCommunicator);
+Constructor TKeithley2450.Create(ADeviceCommunicator : IDeviceCommunicator);
 Var Identity : String;
     IdnArr   : TDynStringArray;
-    I        : Integer;
+//    I        : Integer;
 Begin
   inherited Create(ADeviceCommunicator);
   { check device }
@@ -165,219 +133,435 @@ Begin
 //    WriteLn(I,': ',IdnArr[I]);
   CheckModel(IdnArr);
   if FModel = mdUnknown then
-    raise Exception.Create('Device '''+Identity+''' is not a Keithley 2600 SourceMeter SMU Instrument');
-  // setup channels
-  SetLength(FChannels,CModelChannels[FModel]);
-  For I := 0 to CModelChannels[FModel]-1 do
-    FChannels[I] := TKeithley2600Channel.Create(Self,FDeviceCommunicator,I);
+    raise Exception.Create('Device '''+Identity+''' is not a Keithley 2450 SourceMeter SMU Instrument');
 End;
 
-Destructor TKeithley2600.Destroy;
-Var I : Integer;
+Destructor TKeithley2450.Destroy;
 Begin
-  For I := 0 to Length(FChannels)-1 do
-    FChannels[I].Free;
   Inherited Destroy;
 End;
 
 (**
  * Reset to default settings
  *
- * [RM] p. 3-22, 19-96
+ * [RM-2450] p. B-8
  *)
-Procedure TKeithley2600.Reset;
+Procedure TKeithley2450.Reset;
 Begin
   FDeviceCommunicator.Send('*RST');
 End;
 
 (**
- * Enable/disable the beeper
- *
- * [RM] p. 1-15f, p. 19-23
- *)
-Procedure TKeithley2600.SetBeeper(Enable : Boolean);
-Begin
-  FDeviceCommunicator.Send('beeper.enable=' + Select(Enable,'1','0'));
-End;
-
-(**
- * Position cursor at display
- *
- * Allowed ARow: 0, 1
- * Allowed ACol: 0 .. 32
- *
- * [RM] p. 11-4f, 19-49
- *)
-Procedure TKeithley2600.SetCursor(ARow, ACol : Integer);
-Begin
-  FDeviceCommunicator.Send('display.setcursor('+IntToStr(ARow)+','+IntToStr(ACol)+')');
-End;
-
-(**
- * Display text on the user screen
- *
- * [RM] p. 19-49f
- *)
-Procedure TKeithley2600.SetText(AText : String);
-Begin
-  FDeviceCommunicator.Send('display.settext("'+AText+'")');
-End;
-
-(**
- * Display text on a given position o the user screen
- *)
-Procedure TKeithley2600.Print(ARow, ACol : Integer; AText : String);
-Begin
-  SetCursor(ARow,ACol);
-  SetText(AText);
-End;
-
-(**
- * Ckear all lines of the display
- *
- * [RM] p. 19-38
- *)
-Procedure TKeithley2600.ClearDisplay;
-Begin
-  FDeviceCommunicator.Send('display.clear()');
-End;
-
-(**
- * Select the display screen
- *
- * Use the enum values of TDisplayScreen. These select either the
- * source-measure and compliance of SMUA or SMUB or both, or the user screen.
- *
- * [RM] p. 19-47
- *)
-Procedure TKeithley2600.SelectDisplay(ADisplayScreen:TDisplayScreen);
-Begin
-  FDeviceCommunicator.Send('display.screen = display.'+CDisplayScreen[ADisplayScreen]);
-End;
-
-(**
- * Get number of errors in error queue
- *
- * [RM] p. 19-54
- *)
-Function TKeithley2600.ErrorCount:Integer;
-Begin
-  Result := StrToInt(FDeviceCommunicator.Query('print(tostring(errorqueue.count))'));
-End;
-
-(**
- * Get number of errors in error queue
- *
- * [RM] p. 19-54f
- *)
-Procedure TKeithley2600.GetNextError(Out ACode:Integer;Out AMessage:String;Out ASeverity,ANode:Integer);
-  Function MyStrToInt(St:String):Integer;
-  Begin
-    if St = 'nil' then Exit(0);
-    Result := StrToInt(St);
-  End;
-Begin
-  FDeviceCommunicator.Send('errorcode, message, severity, node = errorqueue.next()');
-  ACode     := MyStrToInt(FDeviceCommunicator.Query('print(tostring(errorcode))'));
-  AMessage  :=            FDeviceCommunicator.Query('print(message)');
-  ASeverity := MyStrToInt(FDeviceCommunicator.Query('print(tostring(severity))'));
-  ANode     := MyStrToInt(FDeviceCommunicator.Query('print(tostring(node))'));
-End;
-
-(**
  * Private method to determine device model
  *)
-Procedure TKeithley2600.CheckModel(IdnArr:TDynStringArray);
+Procedure TKeithley2450.CheckModel(IdnArr:TDynStringArray);
 Begin
   FModel := mdUnknown;
   if Length(IdnArr) <> 4 then Exit;
-  if UpperCase(Trim(IdnArr[0])) <> 'KEITHLEY INSTRUMENTS INC.' then Exit;
+  if UpperCase(Trim(IdnArr[0])) <> 'KEITHLEY INSTRUMENTS' then Exit;
   Case UpperCase(Trim(IdnArr[1])) of
-    'MODEL 2602A': FModel := md2602A;
+    'MODEL 2450': FModel := md2450;
   End;
-End;
-
-(**
- * Private getter for the channel objects
- *)
-Function TKeithley2600.GetChannel(Index : Integer) : TKeithley2600Channel;
-Begin
-  CheckChannel(Index);
-  Result := FChannels[Index];
-End;
-
-(**
- * Private function to check a channel number
- *)
-Procedure TKeithley2600.CheckChannel(AChannel : Integer);
-Begin
-  if (AChannel < 0) or (AChannel >= Length(FChannels)) then
-    raise Exception.CreateFmt('Invalid channel %d',[AChannel]);
-End;
-
-{ TKeithley2600Channel }
-
-(**
- * Private constructor, only used by TKeithley2600.Creae()
- *)
-Constructor TKeithley2600Channel.Create(AInstrument : TKeithley2600;
-  ADeviceCommunicator : IDeviceCommunicator; AChannel : Integer);
-Begin
-  inherited Create;
-  FInstrument         := AInstrument;
-  FDeviceCommunicator := ADeviceCommunicator;
-  FChannel            := AChannel;
-  FName               := 'smu'+Select(FChannel,['a','b']);
 End;
 
 (**
  * Select measurement display resolution
  *
- * [RM] p. 6-6, 11-3, 19-50
+ * [RM-2450] p. 8-117
  *)
-Procedure TKeithley2600Channel.SetDisplayDigits(ADigits : TDigits);
+Procedure TKeithley2450.SetMeasureDisplayDigits(ADigits : TDigits);
 Begin
-  FDeviceCommunicator.Send('display.'+FName+'.digits = display.'+CDigits[ADigits]);
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.displaydigits = smu.'+CDigits[ADigits]);
 End;
 
 (**
  * Select measurement display function
  *
- * [RM] p. 6-6, 11-3, 19-50
+ * [RM-2450] p. 6-6, 11-3, 19-50
  *)
-Procedure TKeithley2600Channel.SetDisplayFunction(AMeasureFunc : TMeasureFunc);
+Procedure TKeithley2450.SetMeasureFunction(AMeasureFunc : TMeasureFunc);
 Begin
-  FDeviceCommunicator.Send('display.'+FName+'.measure.func= display.'+CMeasureFunc[AMeasureFunc]);
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.func = smu.'+CMeasureFunc[AMeasureFunc]);
 End;
 
 (**
  * Set measurement filter type
  *
- * [RM] p. 6-12, 19-117
+ * [RM-2450] p. 8-119f
  *)
-Procedure TKeithley2600Channel.SetFilterType(AFilterType : TFilterType);
+Procedure TKeithley2450.SetMeasureFilterType(AFilterType : TFilterType);
 Begin
-  FDeviceCommunicator.Send(FName+'.measure.filter.type = '+CFilterType[AFilterType]);
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.filter.type = '+CFilterType[AFilterType]);
 End;
 
 (**
  * Set number of measured readings to yield one filtered measurement
  *
- * [RM] p. 6-12, 19-116
+ * @param AFilterCount  The number of readings required for each filtered measurement (1 to 100)
+ *
+ * [RM-2450] p. 8-118
  *)
-Procedure TKeithley2600Channel.SetFilterCount(AFilterCount : Integer);
+Procedure TKeithley2450.SetMeasureFilterCount(AFilterCount : Integer);
 Begin
-  FDeviceCommunicator.Send(FName+'.measure.filter.count = '+IntToStr(AFilterCount));
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.filter.count = '+IntToStr(AFilterCount));
 End;
 
 (**
  * Enable/disable filtered measurements
  *
- * [RM] p. 6-12, 19-116
+ * [RM-2450] p. 8-118f
  *)
-Procedure TKeithley2600Channel.EnableMeasureFilter(AEnable : Boolean);
+Procedure TKeithley2450.EnableMeasureFilter(AEnable : Boolean);
 Begin
-  FDeviceCommunicator.Send(FName+'.measure.filter.enable = '+Select(AEnable,'1','0'));
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.filter.enable = smu.'+Select(AEnable,'ON','OFF'));
+End;
+
+(**
+ * Enable/disable auto-range for measurement for the selected measure function
+ *
+ * [RM-2450] p. 8-103f
+ *)
+Procedure TKeithley2450.EnableMeasureAutoRange(AEnable : Boolean);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.autorange = smu.'+Select(AEnable,'ON','OFF'));
+End;
+
+(**
+ * Set the highest measurement range that is used when the instrument selects
+ * the measurement range automatically
+ *
+ * The highest voltage or resistance measurement range that is used when the
+ * range is set automatically:
+ *  - Current:    1e-8 to 1 A
+ *  - Resistance: 2 to 200e6 Ω
+ *  - Voltage:    0.02 to 200 V
+ *
+ * [RM-2450] p. 8-104f
+ *)
+Procedure TKeithley2450.SetMeasureAutoRangeHigh(ARange : Double);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.autorangehigh = '+FloatToStrF(ARange,ffExponent,8,2));
+End;
+
+(**
+ * Set the lowest measurement range that is used when the instrument selects
+ * the measurement range automatically
+ *
+ * The highest voltage or resistance measurement range that is used when the
+ * range is set automatically:
+ *  - Current:    1e-8 to 1 A
+ *  - Resistance: 2 to 200e6 Ω
+ *  - Voltage:    0.02 to 200 V
+ *
+ * [RM-2450] p. 8-105f
+ *)
+Procedure TKeithley2450.SetMeasureAutoRangeLow(ARange : Double);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.autorangerangelow = '+FloatToStrF(ARange,ffExponent,8,2));
+
+End;
+
+(**
+ * Set the measurement range for measurements for the selected measure function
+ *
+ * You can assign any real number using this command. The instrument selects the
+ * closest fixed range that is large enough to measure the entered number.
+ *  - Current: 1 nA to 1 A
+ *  - Resistance: 20 to 200 MΩ
+ *  - Voltage: 0.02 to 200 V
+ *
+ * [RM-2450] p. 8-136f
+ *)
+Procedure TKeithley2450.SetMeasureRange(ARange : Double);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.range = '+FloatToStrF(ARange,ffExponent,8,2));
+End;
+
+Function TKeithley2450.GetMeasureRange : Double;
+Begin
+    Result := StrToFloat(FDeviceCommunicator.Query('print('+FNodePrefix+'smu.measure.range)'));
+End;
+
+(**
+ * Set Integration aperture for measurements as multiple of power line cycles
+ *
+ * Range: 0.01 to 10
+ *
+ * [RM-2450] p. 8-124
+ *)
+Procedure TKeithley2450.SetNPLC(AIntegrationTime : Double);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.nplc = '+FloatToStrF(AIntegrationTime,ffExponent,8,2));
+End;
+
+Function TKeithley2450.GetNPLC : Double;
+Begin
+    Result := StrToFloat(FDeviceCommunicator.Query('print('+FNodePrefix+'smu.measure.nplc)'));
+End;
+
+(**
+ * Enable/disable automatic reference measurements
+ *
+ * [RM-2450] p. 8-106
+ *)
+Procedure TKeithley2450.EnableMeasureAutoZero(AEnable : Boolean);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.autozero = '+FNodePrefix+'smu.'+Select(AEnable,'ON','OFF'));
+End;
+
+(**
+ * Refresh the reference and zero measurements once.
+ *
+ * [RM-2450] p. 8-107
+ *)
+Procedure TKeithley2450.MeasureAutoZeroOnce;
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.autozero.once()');
+End;
+
+(**
+ * Set number of measurements to make when a measurement is requested.
+ *
+ * To get better performance from the instrument, use the SimpleLoop
+ * trigger-model template instead of using the count command.
+ * TODO: implement
+ *
+ * [RM-2450] p. 8-114ff
+ *)
+Procedure TKeithley2450.SetMeasureCount(ACount : Integer);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.count = '+IntToStr(ACount));
+End;
+(**
+ * Perform measurements, place them in a reading buffer, and return the last reading.
+ *
+ * [RM-6500] p. 14-210f
+ * [RM-2450] p. 8-136
+ *)
+Function TKeithley2450.Measure(ABuffer : String) : Double;
+Begin
+  Result := StrToFloat(FDeviceCommunicator.Query('print('+FNodePrefix+'smu.measure.read('+ABuffer+'))'));
+End;
+
+(**
+ * Retrieve measurement results from buffer
+ *
+ * As ABuffer use e.g. 'defbuffer1.readings', 'myTestBuf.times', ...
+ *
+ * TODO: use format.data = format.REAL64, format.byteorder = format.LITTLEENDIAN
+ * TODO: is the datatype really always a double?
+ * TODO: offer a way to retrieve multiple bufferVars
+ *
+ *
+ * [RM-2450] p. 8-94
+ *)
+Function TKeithley2450.GetBuffer(AStartIdx, AEndIdx : Integer; ABuffer : String) : TDynDoubleArray;
+Var St : String;
+Begin
+  St := FDeviceCommunicator.Query(FNodePrefix+'printbuffer('+IntToStr(AStartIdx)+', '+IntToStr(AEndIdx)+', '+{FNodePrefix+'smu.'+}ABuffer+')');
+  Result := SplitDouble(',',St);
+End;
+
+(**
+ * Clear a buffer
+ *
+ * [RM-2450] p. 8-17
+ *)
+Procedure TKeithley2450.ClearBuffer(ABuffer:String);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+ABuffer+'.clear()');
+End;
+
+{$IFDEF TODO_UPDATE}
+(**
+ * Determine if an "overlapped" measurement is currently in progress
+ *
+ * [RM-2450] p. 19-174
+ *)
+Function TKeithley2450.Measuring:Boolean;
+Begin
+  Result := (StrToInt(FDeviceCommunicator.Query('print(tostring(status.operation.instrument.'+FNodePrefix+'smu.condition))')) and $10 <> 0);
+End;
+{$ENDIF}  // TODO_UPDATE
+
+(**
+ * Set sense mode to local (2-wire) or remote (4-wire)
+ *
+ * [RM-2450] p. 8-142
+ *)
+Procedure TKeithley2450.SetSenseMode(ASenseMode : TSenseMode);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.sense = '+FNodePrefix+'smu.'+CSenseMode[ASenseMode]);
+End;
+
+(**
+ * Set source function to voltage or current
+ *
+ * [RM-2450] p. 8-155
+ *)
+Procedure TKeithley2450.SetSourceFunction(AFunction : TSourceFunction);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.func = '+FNodePrefix+'smu.'+CSourceFunction[AFunction]);
+End;
+
+(**
+ * Set maximum source voltage for operation in current source mode
+ *
+ * [RM] p. 8-173
+ *)
+Procedure TKeithley2450.SetSourceVoltageLimit(ALimit : Double);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.vlimit.level = '+FloatToStrF(ALimit,ffExponent,8,2));
+End;
+
+Function TKeithley2450.GetSourceVoltageLimit : Double;
+Begin
+  Result := StrToFloat(FDeviceCommunicator.Query('print('+FNodePrefix+'smu.source.vlimit.level)'));
+End;
+
+(**
+ * Set maximum source current for operation in voltage source mode
+ *
+ * [RM] p. 8-173
+ *)
+Procedure TKeithley2450.SetSourceCurrentLimit(ALimit : Double);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.ilimit.level = '+FloatToStrF(ALimit,ffExponent,8,2));
+End;
+
+Function TKeithley2450.GetSourceCurrentLimit : Double;
+Begin
+  Result := StrToFloat(FDeviceCommunicator.Query('print('+FNodePrefix+'smu.source.ilimit.level)'));
+End;
+
+(**
+ * Determine if the voltage limit in current mode is reached.
+ *
+ * If the limits were exceeded, the instrument clamps the source to keep the
+ * source within the set limits.
+ *
+ * If you check the limit for the source that is not presently selected, nil is
+ * returned.
+ *
+ * [RM-2450] p. 8-174
+ *)
+Function TKeithley2450.GetSourceVoltageLimitTripped : Boolean;
+Var St : String;
+Begin
+  St := FDeviceCommunicator.Query('print('+FNodePrefix+'smu.source.vlimit.tripped)');
+  if      St = 'smu.OFF' then Exit(False)
+  else if St = 'smu.ON'  then Exit(True)
+  else raise Exception.Create('Unexpected reply '''+St+'''');
+End;
+
+(**
+ * Determine if the current limit in voltage mode is reached.
+ *
+ * [RM-2450] p. 8-174
+ *)
+Function TKeithley2450.GetSourceCurrentLimitTripped : Boolean;
+Var St : String;
+Begin
+  St := FDeviceCommunicator.Query('print('+FNodePrefix+'smu.source.ilimit.tripped)');
+  if      St = 'smu.OFF' then Exit(False)
+  else if St = 'smu.ON'  then Exit(True)
+  else raise Exception.Create('Unexpected reply '''+St+'''');
+End;
+
+
+(**
+ * Enable/disable auto-range for source
+ *
+ * [RM-2450] p. 8-146f
+ *)
+Procedure TKeithley2450.EnableSourceAutoRange(AEnable : Boolean);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.autorange = smu.'+Select(AEnable,'ON','OFF'));
+End;
+
+(**
+ * Set the source range for the selected source function.
+ *
+ * The fixed current source ranges are 10 nA, 100 nA, 1 µA, 10 µA, 100 µA, 1 mA, 10 mA, 100 mA, and 1 A.
+ * The fixed voltage source ranges are 20 mV, 200 mV, 2 V, 20 V, and 200 V.
+ *
+ * To select the range, you can specify the approximate source value that you
+ * will use. The instrument selects the lowest range that can accommodate that
+ * level. For example, if you expect to source levels around 50 mV, send 0.05
+ * (or 50e-3) to select the 200 mV range.
+ *
+ * [RM-2450] p. 2-114, 8-161f
+ *)
+Procedure TKeithley2450.SetSourceRange(ARange : Double);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.range = '+FloatToStrF(ARange,ffExponent,8,2));
+End;
+
+(**
+ * Get the source range for the selected source function.
+ *
+ * The instrument returns the positive full-scale value that the instrument is
+ * presently using.
+ *
+ * [RM-2450] p. 2-114, 8-161f
+ *)
+Function TKeithley2450.GetSourceRange : Double;
+Begin
+  Result := StrToFloat(FDeviceCommunicator.Query('print('+FNodePrefix+'smu.source.range)'));
+End;
+
+(**
+ * Enable high capacitance mode
+ *
+ * Note: This also changes auto-range, limit and range settings!
+ *
+ * [RM-2450] p. 8-156
+ *)
+Procedure TKeithley2450.SetHighCapacitanceMode(AEnable : Boolean);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.highc = smu.'+Select(AEnable,'ON','OFF'));
+End;
+
+(**
+ * Switch on/off the source output
+ *
+ * See also smu.source.offmode p. 8-157
+ *
+ * [RM-2450] p. 8-159
+ *)
+Procedure TKeithley2450.EnableOutput(AEnable : Boolean);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.output = smu.'+Select(AEnable,'ON','OFF'));
+End;
+
+(**
+ * Set source output voltage or current
+ *
+ * [RM-2450] p. 8-156
+ *)
+Procedure TKeithley2450.SetSourceLevel(ALevel : Double);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.level = '+FloatToStrF(ALevel,ffExponent,8,2));
+End;
+
+Function TKeithley2450.GetSouceLevel : Double;
+Begin
+  Result := StrToFloat(FDeviceCommunicator.Query('print('+FNodePrefix+'smu.source.level)'));
+End;
+
+(**
+ * Enable/disable auto-delay for source
+ *
+ * When autodelay is turned on, the actual delay that is set depends on the
+ * range.
+ * When source autodelay is on, if you set a source delay, the autodelay is
+ * turned off.
+ *
+ * [RM-2450] p. 8-147
+ *)
+Procedure TKeithley2450.EnableSourceAutoDelay(AEnable : Boolean);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.autodelay = smu.'+Select(AEnable,'ON','OFF'));
 End;
 
 (**
@@ -385,338 +569,22 @@ End;
  *
  * ADelay is in Seconds.
  *
- * Set ADelay = -1.0 to use automatic delay values
+ * When either a source delay or autodelay is set, the delay is applied to the
+ * first source output and then only when the magnitude of the source changes.
  *
- * [RM] p. 4-12, 9-11, 19-115
+ * [RM-2450] p. 8-154, 2-19
  *)
-Procedure TKeithley2600Channel.SetMeasureDelay(ADelay : Double);
+Procedure TKeithley2450.SetSourceDelay(ADelay : Double);
 Begin
-  FDeviceCommunicator.Send(FName+'.measure.delay = '+FloatToStrF(ADelay,ffExponent,12,2));
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.delay = '+FloatToStrF(ADelay,ffExponent,8,2));
 End;
 
 (**
- * Query measurement delay
+ * Query source delay
  *)
-Function TKeithley2600Channel.GetMeasureDelay : Double;
+Function TKeithley2450.GetSourceDelay : Double;
 Begin
-  Result := StrToFloat(FDeviceCommunicator.Query('print('+FName+'.measure.delay)'));
-End;
-
-(**
- * Enable/disable auto-range for voltage measurements
- *
- * [RM] p. 3-10, 5-5, 6-5, 19-112
- *)
-Procedure TKeithley2600Channel.SetMeasureVoltageAutoRange(AEnable : Boolean);
-Begin
-  FDeviceCommunicator.Send(FName+'.measure.autorangev = '+Select(AEnable,'1','0'));
-End;
-
-(**
- * Enable/disable auto-range for current measurements
- *
- * [RM] p. 3-10, 5-5, 6-5, 19-112
- *)
-Procedure TKeithley2600Channel.SetMeasureCurrentAutoRange(AEnable : Boolean);
-Begin
-  FDeviceCommunicator.Send(FName+'.measure.autorangei = '+Select(AEnable,'1','0'));
-End;
-
-(**
- * Set the measurement range for voltage measurements.
- *
- * Allowed values for model 2601A/2602A:
- *    100mV, 1V, 6V, 40V
- *
- * Note: In voltage souce mode this range is locked to the source voltage range.
- *
- * [RM] p. 3-10, 6-2ff, 19-120
- *)
-Procedure TKeithley2600Channel.SetMeasureVoltageRange(ARange : Double);
-Begin
-  FDeviceCommunicator.Send(FName+'.measure.rangev = '+FloatToStrF(ARange,ffFixed,1,3));
-End;
-
-Function TKeithley2600Channel.GetMeasureVoltageRange : Double;
-Begin
-    Result := StrToFloat(FDeviceCommunicator.Query('print('+FName+'.measure.rangev)'));
-End;
-
-(**
- * Set the measurement range for current measurements.
- *
- * Allowed values for model 2601A/2602A:
- *    100nA, 1uA, 10uA, 100uA, 1mA, 10mA, 100mA, 1A, 3A
- *
- * Note: In current souce mode this range is locked to the source current range.
- *
- * [RM] p. 3-10, 6-2ff, 19-120
- *)
-Procedure TKeithley2600Channel.SetMeasureCurrentRange(ARange : Double);
-Begin
-  FDeviceCommunicator.Send(FName+'.measure.rangei = '+FloatToStrF(ARange,ffExponent,2,2));
-End;
-
-Function TKeithley2600Channel.GetMeasureCurrentRange : Double;
-Begin
-    Result := StrToFloat(FDeviceCommunicator.Query('print('+FName+'.measure.rangei)'));
-End;
-
-(**
- * Set Integration aperture for measurements as multiple of power line cycles
- *
- * Range: 0.001 to 25
- *
- * [RM] p. 6-6, 19-119
- *)
-Procedure TKeithley2600Channel.SetNPLC(AIntegrationTime : Double);
-Begin
-  FDeviceCommunicator.Send(FName+'.measure.nplc = '+FloatToStrF(AIntegrationTime,ffExponent,5,2));
-End;
-
-Function TKeithley2600Channel.GetNPLC : Double;
-Begin
-    Result := StrToFloat(FDeviceCommunicator.Query('print('+FName+'.measure.nplc)'));
-End;
-
-(**
- * Enable/disable automatic reference measurements and command an immediate
- * reference measurement
- *
- * [RM] p. 3-7f, 19-113
- *)
-Procedure TKeithley2600Channel.SetAutoZero(AAutoZero:TAutoZero);
-Begin
-  FDeviceCommunicator.Send(FName+'.measure.autozero = '+FName+'.'+CAutoZero[AAutoZero]);
-End;
-
-(**
- * Initiate a measurement
- *
- * This starts a "overlapped" measurements. That means that it is performed in
- * the background and the communication interface is still functional. This
- * allows to poll the status registers and see if the measurement already has
- * finished (see Measuring()).
- *
- * If using the non-"overlapped", synchronous measurement, there would be no
- * way to find out if it has finished, except with a very long timeout of
- * FDeviceCommunicator.
- *
- * [RM] p. 7-6f, 19-114, 19-119
- *)
-Procedure TKeithley2600Channel.Measure(ACount, AIBuf, AVBuf : Integer);
-Begin
-  FDeviceCommunicator.Send(FName+'.measure.count = '+IntToStr(ACount));
-  FDeviceCommunicator.Send(FName+'.measure.overlappediv('+FName+'.nvbuffer'+IntToStr(AIBuf)+', '+FName+'.nvbuffer'+IntToStr(AVBuf)+')');
-End;
-
-(**
- * Retrieve measurement results from buffer
- *
- * TODO: use format.data = format.REAL64, format.byteorder = format.LITTLEENDIAN
- *
- * [RM] Sec. 7, p. 19-95
- *)
-Function TKeithley2600Channel.GetBuffer(ACount, ABuffer : Integer) : TDynDoubleArray;
-Var St : String;
-Begin
-  St := FDeviceCommunicator.Query('printbuffer(1, '+IntToStr(ACount)+', '+FName+'.nvbuffer'+IntToStr(ABuffer)+'.readings)');
-  Result := SplitDouble(',',St);
-End;
-
-(**
- * Clear a buffer
- *
- * [RM] p. 7-6f, 19-127
- *)
-Procedure TKeithley2600Channel.ClearBuffer(ABuffer:Integer);
-Begin
-  FDeviceCommunicator.Send(FName+'.nvbuffer'+IntToStr(ABuffer)+'.clear()');
-End;
-
-(**
- * Determine if an "overlapped" measurement is currently in progress
- *
- * [RM] p. 19-174
- *)
-Function TKeithley2600Channel.Measuring:Boolean;
-Begin
-  Result := (StrToInt(FDeviceCommunicator.Query('print(tostring(status.operation.instrument.'+FName+'.condition))')) and $10 <> 0);
-End;
-
-(**
- * Set sense mode to local (2-wire) or remote (4-wire)
- *
- * [RM] p. 2-9, 3-10ff, 19-130
- *)
-Procedure TKeithley2600Channel.SetSenseMode(ASenseMode : TSenseMode);
-Begin
-  FDeviceCommunicator.Send(FName+'.sense = '+FName+'.'+CSenseMode[ASenseMode]);
-End;
-
-(**
- * Set source function to voltage or current
- *
- * [RM] p. 3-10, 19-133
- *)
-Procedure TKeithley2600Channel.SetOutputFunction(AFunction : TOutputFunction);
-Begin
-  FDeviceCommunicator.Send(FName+'.source.func = '+FName+'.'+COutputFunction[AFunction]);
-End;
-
-(**
- * Set maximum source voltage for operation in current source mode
- *
- * [RM] p. 3-10f, 19-135
- *)
-Procedure TKeithley2600Channel.SetOutputVoltageLimit(ALimit : Double);
-Begin
-  FDeviceCommunicator.Send(FName+'.source.limitv= '+FloatToStrF(ALimit,ffExponent,8,2));
-End;
-
-Function TKeithley2600Channel.GetOutputVoltageLimit : Double;
-Begin
-  Result := StrToFloat(FDeviceCommunicator.Query('print('+FName+'.source.limitv)'));
-End;
-
-(**
- * Set maximum source current for operation in voltage source mode
- *
- * [RM] p. 3-10f, 19-135
- *)
-Procedure TKeithley2600Channel.SetOutputCurrentLimit(ALimit : Double);
-Begin
-  FDeviceCommunicator.Send(FName+'.source.limiti= '+FloatToStrF(ALimit,ffExponent,8,2));
-End;
-
-Function TKeithley2600Channel.GetOutputCurrentLimit : Double;
-Begin
-  Result := StrToFloat(FDeviceCommunicator.Query('print('+FName+'.source.limiti)'));
-End;
-
-(**
- * Enable/disable auto-range for voltage source
- *
- * [RM] p. 3-10, 5-5, 6-5, 19-130
- *)
-Procedure TKeithley2600Channel.SetOutputVoltageAutoRange(AEnable : Boolean);
-Begin
-  FDeviceCommunicator.Send(FName+'.source.autorangev = '+Select(AEnable,'1','0'));
-End;
-
-(**
- * Enable/disable auto-range for current source
- *
- * [RM] p. 3-10, 5-5, 6-5, 19-130
- *)
-Procedure TKeithley2600Channel.SetOutputCurrentAutoRange(AEnable : Boolean);
-Begin
-  FDeviceCommunicator.Send(FName+'.source.autorangei = '+Select(AEnable,'1','0'));
-End;
-
-(**
- * Set the source range for voltage source.
- *
- * Allowed values for model 2601A/2602A:
- *    100mV, 1V, 6V, 40V
- *
- * Note: In voltage souce mode this range is locked to the source voltage range.
- *
- * [RM] p. 3-10, 6-2ff, 19-139
- *)
-Procedure TKeithley2600Channel.SetOutputVoltageRange(ARange : Double);
-Begin
-  FDeviceCommunicator.Send(FName+'.source.rangev = '+FloatToStrF(ARange,ffFixed,1,3));
-End;
-
-Function TKeithley2600Channel.GetOutputVoltageRange : Double;
-Begin
-  Result := StrToFloat(FDeviceCommunicator.Query('print('+FName+'.source.rangev)'));
-End;
-
-(**
- * Set the source range for current source.
- *
- * Allowed values for model 2601A/2602A:
- *    100nA, 1uA, 10uA, 100uA, 1mA, 10mA, 100mA, 1A, 3A
- *
- * Note: In current souce mode this range is locked to the source current range.
- *
- * [RM] p. 3-10, 6-2ff, 19-139
- *)
-Procedure TKeithley2600Channel.SetOutputCurrentRange(ARange : Double);
-Begin
-  FDeviceCommunicator.Send(FName+'.source.rangei = '+FloatToStrF(ARange,ffExponent,2,2));
-End;
-
-Function TKeithley2600Channel.GetOutputCurrentRange : Double;
-Begin
-  Result := StrToFloat(FDeviceCommunicator.Query('print('+FName+'.source.rangei)'));
-End;
-
-(**
- * Enable high capacitance mode
- *
- * Note: This also changes auto-range, limit and rage settings!
- *
- * [RM] Sec. 5, p. 19-133
- *)
-Procedure TKeithley2600Channel.SetHighCapacitanceMode(AEnable : Boolean);
-Begin
-  FDeviceCommunicator.Send(FName+'.source.highc = '+Select(AEnable,'1','0'));
-End;
-
-(**
- * Switch on/off the source output
- *
- * [RM] p. 3-10f, 19-137
- *)
-Procedure TKeithley2600Channel.EnableOutput(AEnable : Boolean);
-Begin
-  FDeviceCommunicator.Send(FName+'.source.output = '+Select(AEnable,'1','0'));
-End;
-
-(**
- * Set source output voltage
- *
- * [RM] p. 3-10f, 19-134
- *)
-Procedure TKeithley2600Channel.SetOutputVoltage(AVoltage : Double);
-Begin
-  FDeviceCommunicator.Send(FName+'.source.levelv = '+FloatToStrF(AVoltage,ffExponent,8,2));
-End;
-
-Function TKeithley2600Channel.GetOutputVoltage : Double;
-Begin
-  Result := StrToFloat(FDeviceCommunicator.Query('print('+FName+'.source.levelv)'));
-End;
-
-(**
- * Set source output current
- *
- * [RM] p. 3-10f, 19-134
- *)
-Procedure TKeithley2600Channel.SetOutputCurrent(ACurrent : Double);
-Begin
-  FDeviceCommunicator.Send(FName+'.source.leveli = '+FloatToStrF(ACurrent,ffExponent,8,2));
-End;
-
-Function TKeithley2600Channel.GetOutputCurrent : Double;
-Begin
-  Result := StrToFloat(FDeviceCommunicator.Query('print('+FName+'.source.leveli)'));
-End;
-
-(**
- * Determine if the current limit in voltage mode or the voltage limit in
- * current mode are reached.
- *
- * [RM] p. 3-5f, 4-2f, 19-132
- *)
-Function TKeithley2600Channel.GetCompliance : Boolean;
-Var St : String;
-Begin
-  St := FDeviceCommunicator.Query('print('+FName+'.source.compliance)');
-  Result := Trim(St) = 'true';
+  Result := StrToFloat(FDeviceCommunicator.Query('print('+FNodePrefix+'smu.source.delay)'));
 End;
 
 End.

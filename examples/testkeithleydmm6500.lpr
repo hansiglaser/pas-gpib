@@ -33,7 +33,6 @@ Program TestKeithleyDMM6500;
 Uses
   Classes, SysUtils, Math, PasGpibUtils, DevCom,
   DevComVisa,
-  Keithley2600,
 {$IFDEF USBTMC}
   UsbTmc, DevComUSBTMC,
 {$ENDIF USBTMC}

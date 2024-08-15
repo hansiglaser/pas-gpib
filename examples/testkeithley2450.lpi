@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="12"/>
+    <General>
+      <Flags>
+        <LRSInOutputDirectory Value="False"/>
+        <CompatibilityMode Value="True"/>
+      </Flags>
+      <SessionStorage Value="InProjectDir"/>
+      <Title Value="testkeithley2450"/>
+    </General>
+    <VersionInfo>
+      <Language Value=""/>
+      <CharSet Value=""/>
+    </VersionInfo>
+    <BuildModes Count="1">
+      <Item1 Name="default" Default="True"/>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T &apos;Lazarus Run Output&apos; -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+      </local>
+      <FormatVersion Value="2"/>
+      <Modes Count="1">
+        <Mode0 Name="default">
+          <local>
+            <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T &apos;Lazarus Run Output&apos; -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+          </local>
+        </Mode0>
+      </Modes>
+    </RunParams>
+    <Units Count="4">
+      <Unit0>
+        <Filename Value="testkeithley2450.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="TestKeithley2450"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="usbtmc.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UsbTmc"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="../instruments/agilent/agilent34410a.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Agilent34410A"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="../instruments/keithley/keithley2450.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Keithley2450"/>
+      </Unit3>
+    </Units>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <SearchPaths>
+      <OtherUnitFiles Value="../base;../devcom;../usb;../pas-libusb/src;../gpib;../instruments;../instruments/keithley;../instruments/lecroy;../instruments/rohdeschwarz;../instruments/agilent"/>
+    </SearchPaths>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="2">
+      <Item1>
+        <Name Value="ECodetoolError"/>
+      </Item1>
+      <Item2>
+        <Name Value="EFOpenError"/>
+      </Item2>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

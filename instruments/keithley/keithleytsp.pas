@@ -47,6 +47,25 @@ Type
     Procedure Reset;
   End;
 
+  (**
+   * Base class for Keithley instruments with a touch screen, e.g., DMM6500, 2450
+   *
+   *)
+  TKeithleyTSPNodeTouch = class(TKeithleyTSPNode)
+  public
+    { device functions }
+    Procedure Beep(ADuration, AFrequency : Double);
+    { display functions }
+    Procedure ChangeScreen(ADisplayScreen : String);
+    Procedure ClearDisplay;
+    Procedure SetText(ARow : Integer; AText : String);
+    { event log functions }
+    Procedure ClearEvents;
+    Function  GetEventCount : Integer;
+    Procedure GetNextEvent(Out AEventNumber : Integer; Out AMessage : String; Out ASeverity, ANodeID : Integer; Out ATime : Double);
+
+  End;
+
 Implementation
 
 { TKeithleyTSPNode }
@@ -152,6 +171,103 @@ End;
 Procedure TKeithleyTSPNode.Reset;
 Begin
   FDeviceCommunicator.Send(FNodePrefix+'reset()');
+End;
+
+{ TKeithleyTSPNodeTouch }
+
+(**
+ * This function generates an audible tone.
+ *
+ * @param  ADuration   The amount of time to play the tone (0.001 to 100 s)
+ * @param  AFrequency  The frequency of the beep (20 to 8000 Hz)
+ *
+ * [RM-6500] p. 14-8f
+ * [RM-2450] p. 8-7
+ *)
+Procedure TKeithleyTSPNodeTouch.Beep(ADuration, AFrequency : Double);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'beeper.beep(' + FloatToStrF(ADuration,ffFixed,1,3) + ',' + FloatToStrF(AFrequency,ffFixed,1,3));
+End;
+
+(**
+ * Change which front-panel screen is displayed.
+ *
+ * ADisplayScreen must be one of the documented constants like 'SCREEN_HOME',
+ * 'SCREEN_USER_SWIPE', ...
+ *
+ * TODO: make Pascal enum and a string array
+ *
+ * [RM-6500] p. 14-87f
+ * [RM-2450] p. 8-54
+ *)
+Procedure TKeithleyTSPNodeTouch.ChangeScreen(ADisplayScreen:String);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'display.changescreen(display.'+ADisplayScreen+')');
+End;
+
+(**
+ * Clear the text from the front-panel USER swipe screen.
+ *
+ * [RM-6500] p. 14-89
+ * [RM-2450] p. 8-55
+ *)
+Procedure TKeithleyTSPNodeTouch.ClearDisplay;
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'display.clear()');
+End;
+
+(**
+ * Display text on the user screen
+ *
+ * Allowed ARow: 1, 2
+ *
+ * [RM-6500] p. 14-99f
+ * [RM-2450] p. 8-66
+ *)
+Procedure TKeithleyTSPNodeTouch.SetText(ARow:Integer;AText : String);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'display.settext(display.TEXT'+IntToStr(ARow)+', "'+AText+'")');
+End;
+
+(**
+ * Clear the event log
+ *
+ * [RM-6500] p. 14-248
+ * [RM-2450] p. 8-68
+ *)
+Procedure TKeithleyTSPNodeTouch.ClearEvents;
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'eventlog.clear()');
+End;
+
+(**
+ * Get number of unread events in the event log
+ *
+ * [RM-6500] p. 14-249
+ * [RM-2450] p. 8-68f
+ *)
+Function TKeithleyTSPNodeTouch.GetEventCount : Integer;
+Begin
+  Result := StrToInt(FDeviceCommunicator.Query('print('+FNodePrefix+'eventlog.getcount())'));
+End;
+
+(**
+ * Get oldest unread event message from the event log
+ *
+ * [RM-6500] p. 14-250f
+ * [RM-2450] p. 8-69f
+ *)
+Procedure TKeithleyTSPNodeTouch.GetNextEvent(Out AEventNumber : Integer; Out AMessage : String; Out ASeverity, ANodeID : Integer; Out ATime : Double);
+Var TimeSeconds, TimeNanoSec : Integer;
+Begin
+  FDeviceCommunicator.Send('eventNumber, message, severity, nodeID, timeSeconds, timeNanoSeconds = eventlog.next()');
+  AEventNumber := StrToInt(FDeviceCommunicator.Query('print(eventNumber)'));
+  AMessage     :=          FDeviceCommunicator.Query('print(message)');
+  ASeverity    := StrToInt(FDeviceCommunicator.Query('print(severity)'));
+  ANodeID      := StrToInt(FDeviceCommunicator.Query('print(nodeID)'));
+  TimeSeconds  := StrToInt(FDeviceCommunicator.Query('print(timeSeconds)'));
+  TimeNanoSec  := StrToInt(FDeviceCommunicator.Query('print(timeNanoSeconds)'));
+  ATime := 1.0*TimeSeconds + 1E-9*TimeNanoSec;
 End;
 
 End.
