@@ -370,7 +370,7 @@ Begin
   Result := spNone;
   if Value = 0 then Exit;
   Value := Abs(Value);
-  LogValue := Floor(Log10(Value)/3.0)*3;
+  LogValue := Floor(Log10(Value)/3.001)*3;
 
   While (LogValue > CSIPrefixPower[Result]) and (Result < High(TSIPrefix)) do
     Result := Succ(Result);
