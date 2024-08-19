@@ -85,7 +85,7 @@ End;
 
 Constructor TKeithleyDMM6500.Create(ATSPMaster : TKeithleyTSPNode; ANodeID : Integer);
 Begin
-  inherited Create(ATSPMaster, ANodeID);
+  inherited Create(ATSPMaster, ANodeID);    // calls Create(ADeviceCommunicator : IDeviceCommunicator)
 End;
 
 Destructor TKeithleyDMM6500.Destroy;

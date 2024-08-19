@@ -15,6 +15,8 @@ Type
   TFilterType     = (ftMovingAvg,ftRepeatAvg);
   TSenseMode      = (sm2Wire,sm4Wire);
   TSourceFunction = (sfDCVolts,sfDCAmps);
+  TOffMode        = (omNormal, omZero, omHighZ, omGuard);
+  TReadingUnit    = (ruDCVolts,rzDCAmps,ruOhms,ruDCWatt,ruPercent,ruLinear,ruReciprocal);
 
 Const
   CDigits         : Array[TDigits]         of String = ('DIGITS_3_5','DIGITS_4_5','DIGITS_5_5','DIGITS_6_5');
@@ -22,8 +24,48 @@ Const
   CFilterType     : Array[TFilterType]     of String = ('FILTER_MOVING_AVG','FILTER_REPEAT_AVG');
   CSenseMode      : Array[TSenseMode]      of String = ('SENSE_2WIRE','SENSE_4WIRE');
   CSourceFunction : Array[TSourceFunction] of String = ('FUNC_DC_VOLTAGE','FUNC_DC_CURRENT');
+  COffMode        : Array[TOffMode]        of String = ('OFFMODE_NORMAL','OFFMODE_ZERO','OFFMODE_HIGHZ','OFFMODE_GUARD');
+
+  // bitfields of TBufferEntry.ReadingStatus
+  BufRdgStatQuestionable   =   1;
+  BufRdgStatOrigin         =   6;
+  BufRdgStatFrontTerminal  =   8;
+  BufRdgStatLimit2Low      =  16;
+  BufRdgStatLimit2High     =  32;
+  BufRdgStatLimit1Low      =  64;
+  BufRdgStatLimit1High     = 128;
+  BufRdgStatStartGroup     = 256;
+  // bitfields of TBufferEntry.SourceStatus
+  BufSrcStatOverVoltage    =   4;
+  BufSrcStatSourceReadback =   8;
+  BufSrcStatOverTemp       =  16;
+  BufSrcStatSourceLimit    =  32;
+  BufSrcStatSense4Wire     =  64;
+  BufSrcStatOutputOn       = 128;
+
+  CBufReadingUnit : Array[TReadingUnit]    of String = ('Volt DC','Amp DC','Ohm','Watt DC','%','mX-b','Reciprocal');
+  CBufSourceUnit  : Array[TSourceFunction] of String = ('Volt DC','Amp DC');
 
 Type
+
+  // record for a buffer entry
+  TBufferEntry = record
+    Timestamp     : Double;              // UTC with fractional seconds
+    Reading       : Double;
+    ReadingUnit   : TReadingUnit;
+    ReadingStatus : Cardinal;            // use constants BufRdgStat*
+    SourceValue   : Double;
+    SourceUnit    : TSourceFunction;     // use constants BufSrcStat*
+    SourceStatus  : Cardinal;
+  //Date          : ShortString[10];     // e.g., '03/01/2013'
+  //Time          : String;              // e.g., '23:09:43'
+  //Timestamp     : String;              // e.g., '03/01/2013 14:46:07.714614838'
+  //Seconds       : Double;
+  //FracSeconds   : Double;
+  // .endindex vs. .n <-- better use .n
+  End;
+  // dynamic array of TBufferEntry
+  TDynBufferEntryArray = Array of TBufferEntry;
 
   { TKeithley2450 }
 
@@ -64,6 +106,7 @@ Type
   protected
   public
     Constructor Create(ADeviceCommunicator:IDeviceCommunicator);
+    Constructor Create(ATSPMaster:TKeithleyTSPNode; ANodeID:Integer);
     Destructor  Destroy; override;
     { device function }
     Procedure Reset;
@@ -85,6 +128,8 @@ Type
     Procedure SetMeasureCount(ACount : Integer);
     Function  Measure(ABuffer : String) : Double;
     Function  GetBuffer(AStartIdx, AEndIdx : Integer; ABuffer : String) : TDynDoubleArray;
+    Function  GetBufferAll(AStartIdx, AEndIdx : Integer; ABuffer : String) : TDynBufferEntryArray;
+    Function  GetBufferLast(ABuffer : String) : TBufferEntry;
     Procedure ClearBuffer(ABuffer : String);
     //Function  Measuring : Boolean;
     // source functions
@@ -101,6 +146,7 @@ Type
     Function  GetSourceRange:Double;
     Procedure SetHighCapacitanceMode(AEnable:Boolean);
     Procedure EnableOutput(AEnable:Boolean);
+    Procedure SetSourceOffMode(AOffMode:TOffMode);
     Procedure SetSourceLevel(ALevel : Double);
     Function  GetSouceLevel:Double;
     Procedure EnableSourceAutoDelay(AEnable:Boolean);
@@ -136,6 +182,11 @@ Begin
     raise Exception.Create('Device '''+Identity+''' is not a Keithley 2450 SourceMeter SMU Instrument');
 End;
 
+Constructor TKeithley2450.Create(ATSPMaster : TKeithleyTSPNode; ANodeID : Integer);
+Begin
+  inherited Create(ATSPMaster, ANodeID);    // calls Create(ADeviceCommunicator : IDeviceCommunicator)
+End;
+
 Destructor TKeithley2450.Destroy;
 Begin
   Inherited Destroy;
@@ -148,7 +199,11 @@ End;
  *)
 Procedure TKeithley2450.Reset;
 Begin
-  FDeviceCommunicator.Send('*RST');
+  // reset only the one instrument, not the entire TSP-Link system including the master and slaves
+  if FNodeID < 0 then
+    FDeviceCommunicator.Send('localnode.reset()')
+  else
+    FDeviceCommunicator.Send(FNodePrefix+'reset()');
 End;
 
 (**
@@ -171,7 +226,7 @@ End;
  *)
 Procedure TKeithley2450.SetMeasureDisplayDigits(ADigits : TDigits);
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.displaydigits = smu.'+CDigits[ADigits]);
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.displaydigits = '+FNodePrefix+'smu.'+CDigits[ADigits]);
 End;
 
 (**
@@ -181,7 +236,7 @@ End;
  *)
 Procedure TKeithley2450.SetMeasureFunction(AMeasureFunc : TMeasureFunc);
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.func = smu.'+CMeasureFunc[AMeasureFunc]);
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.func = '+FNodePrefix+'smu.'+CMeasureFunc[AMeasureFunc]);
 End;
 
 (**
@@ -213,7 +268,7 @@ End;
  *)
 Procedure TKeithley2450.EnableMeasureFilter(AEnable : Boolean);
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.filter.enable = smu.'+Select(AEnable,'ON','OFF'));
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.filter.enable = '+FNodePrefix+'smu.'+Select(AEnable,'ON','OFF'));
 End;
 
 (**
@@ -223,7 +278,7 @@ End;
  *)
 Procedure TKeithley2450.EnableMeasureAutoRange(AEnable : Boolean);
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.autorange = smu.'+Select(AEnable,'ON','OFF'));
+  FDeviceCommunicator.Send(FNodePrefix+'smu.measure.autorange = '+FNodePrefix+'smu.'+Select(AEnable,'ON','OFF'));
 End;
 
 (**
@@ -258,7 +313,6 @@ End;
 Procedure TKeithley2450.SetMeasureAutoRangeLow(ARange : Double);
 Begin
   FDeviceCommunicator.Send(FNodePrefix+'smu.measure.autorangerangelow = '+FloatToStrF(ARange,ffExponent,8,2));
-
 End;
 
 (**
@@ -279,7 +333,7 @@ End;
 
 Function TKeithley2450.GetMeasureRange : Double;
 Begin
-    Result := StrToFloat(FDeviceCommunicator.Query('print('+FNodePrefix+'smu.measure.range)'));
+  Result := StrToFloat(FDeviceCommunicator.Query('print('+FNodePrefix+'smu.measure.range)'));
 End;
 
 (**
@@ -360,6 +414,60 @@ Var St : String;
 Begin
   St := FDeviceCommunicator.Query(FNodePrefix+'printbuffer('+IntToStr(AStartIdx)+', '+IntToStr(AEndIdx)+', '+{FNodePrefix+'smu.'+}ABuffer+')');
   Result := SplitDouble(',',St);
+End;
+
+(**
+ * Retrieve buffer entries with all information per entry
+ *
+ * Although the buffer has more fields (see the commented fields in
+ * TBufferEntry), these do not hold additional information, just a different
+ * format of existing information. Therefore these are not requested.
+ *
+ * If AStartIdx and AEndIdx are -1, then the last entry in the buffer is
+ * retrieved. See also GetBufferLast.
+ *
+ *)
+Function TKeithley2450.GetBufferAll(AStartIdx, AEndIdx : Integer; ABuffer : String) : TDynBufferEntryArray;
+Var Q, St : String;
+    A     : TDynStringArray;
+    I     : Integer;
+Begin
+  // construct the command (query)
+  Q := 'printbuffer(';
+  ABuffer := FNodePrefix+ABuffer;
+  if (AStartIdx = -1) and (AEndIdx = -1) then
+    Q := Q + ABuffer+'.n, '+ABuffer+'.n, '
+  else
+    Q := Q + IntToStr(AStartIdx)+', '+IntToStr(AEndIdx)+', ';
+  Q := Q + ABuffer+'.seconds, '+ABuffer+'.fractionalseconds, ';
+  Q := Q + ABuffer+'.readings, '+ABuffer+'.units, '+ABuffer+'.statuses, ';
+  Q := Q + ABuffer+'.sourcevalues, '+ABuffer+'.sourceunits, '+ABuffer+'.sourcestatuses)';
+  // execute
+  St := FDeviceCommunicator.Query(Q);
+  // disseminate the reply
+  A := SplitStr(',', St);
+  if Length(A) mod 8 <> 0 then
+    raise Exception.Create('Return string of '''+Q+''' has '+IntToStr(Length(A))+' words, which is not divisible by 8');
+  SetLength(Result, Length(A) div 8);
+  For I := 0 to (Length(A) div 8)-1 do
+    Begin
+      Result[I].Timestamp     := StrToFloat(A[I*8+0]) + StrToFloat(A[I*8+1]);
+      Result[I].Reading       := StrToFloat(A[I*8+2]);
+      Result[I].ReadingUnit   := TReadingUnit(Find(A[I*8+3], CBufReadingUnit));
+      Result[I].ReadingStatus := StrToInt(A[I*8+4]);
+      Result[I].SourceValue   := StrToFloat(A[I*8+5]);
+      Result[I].SourceUnit    := TSourceFunction(Find(A[I*8+6], CBufSourceUnit));
+      Result[I].SourceStatus  := StrToInt(A[I*8+7]);
+    End;
+End;
+
+(**
+ * Retrieve all information for the last buffer entry
+ *
+ *)
+Function TKeithley2450.GetBufferLast(ABuffer : String) : TBufferEntry;
+Begin
+  Result := GetBufferAll(-1, -1, ABuffer)[0];
 End;
 
 (**
@@ -519,7 +627,7 @@ End;
  *)
 Procedure TKeithley2450.SetHighCapacitanceMode(AEnable : Boolean);
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'smu.source.highc = smu.'+Select(AEnable,'ON','OFF'));
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.highc = '+FNodePrefix+'smu.'+Select(AEnable,'ON','OFF'));
 End;
 
 (**
@@ -531,7 +639,19 @@ End;
  *)
 Procedure TKeithley2450.EnableOutput(AEnable : Boolean);
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'smu.source.output = smu.'+Select(AEnable,'ON','OFF'));
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.output = '+FNodePrefix+'smu.'+Select(AEnable,'ON','OFF'));
+End;
+
+(**
+ * Define the state of the source when the output is turned off.
+ *
+ * Before setting the output-off state, set the source function.
+ *
+ * [RM-2450] p. 8-157, p. 2-94ff
+ *)
+Procedure TKeithley2450.SetSourceOffMode(AOffMode : TOffMode);
+Begin
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.offmode = '+FNodePrefix+'smu.'+COffMode[AOffMode]);
 End;
 
 (**
@@ -561,7 +681,7 @@ End;
  *)
 Procedure TKeithley2450.EnableSourceAutoDelay(AEnable : Boolean);
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'smu.source.autodelay = smu.'+Select(AEnable,'ON','OFF'));
+  FDeviceCommunicator.Send(FNodePrefix+'smu.source.autodelay = '+FNodePrefix+'smu.'+Select(AEnable,'ON','OFF'));
 End;
 
 (**

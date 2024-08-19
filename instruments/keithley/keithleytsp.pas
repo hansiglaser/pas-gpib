@@ -63,7 +63,6 @@ Type
     Procedure ClearEvents;
     Function  GetEventCount : Integer;
     Procedure GetNextEvent(Out AEventNumber : Integer; Out AMessage : String; Out ASeverity, ANodeID : Integer; Out ATime : Double);
-
   End;
 
 Implementation
