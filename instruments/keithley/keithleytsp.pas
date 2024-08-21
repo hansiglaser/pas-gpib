@@ -167,9 +167,18 @@ Begin
   FDeviceCommunicator.Send('reset()');
 End;
 
+(**
+ * Reset to default settings
+ *
+ * [RM-2450] p. B-8
+ *)
 Procedure TKeithleyTSPNode.Reset;
 Begin
-  FDeviceCommunicator.Send(FNodePrefix+'reset()');
+  // reset only the one instrument, not the entire TSP-Link system including the master and slaves
+  if FNodeID < 0 then
+    FDeviceCommunicator.Send('localnode.reset()')
+  else
+    FDeviceCommunicator.Send(FNodePrefix+'reset()');
 End;
 
 { TKeithleyTSPNodeTouch }

@@ -108,8 +108,6 @@ Type
     Constructor Create(ADeviceCommunicator:IDeviceCommunicator);
     Constructor Create(ATSPMaster:TKeithleyTSPNode; ANodeID:Integer);
     Destructor  Destroy; override;
-    { device function }
-    Procedure Reset;
     // measure functions
     Procedure SetMeasureDisplayDigits(ADigits:TDigits);
     Procedure SetMeasureFunction(AMeasureFunc:TMeasureFunc);
@@ -190,20 +188,6 @@ End;
 Destructor TKeithley2450.Destroy;
 Begin
   Inherited Destroy;
-End;
-
-(**
- * Reset to default settings
- *
- * [RM-2450] p. B-8
- *)
-Procedure TKeithley2450.Reset;
-Begin
-  // reset only the one instrument, not the entire TSP-Link system including the master and slaves
-  if FNodeID < 0 then
-    FDeviceCommunicator.Send('localnode.reset()')
-  else
-    FDeviceCommunicator.Send(FNodePrefix+'reset()');
 End;
 
 (**
