@@ -479,6 +479,8 @@ End;
 (**
  * Set sense mode to local (2-wire) or remote (4-wire)
  *
+ * Warning: This is reset to 2-wire mode if the measure function is changed.
+ *
  * [RM-2450] p. 8-142
  *)
 Procedure TKeithley2450.SetSenseMode(ASenseMode : TSenseMode);
