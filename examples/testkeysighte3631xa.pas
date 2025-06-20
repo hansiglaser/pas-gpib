@@ -1,5 +1,5 @@
 (**
- * Test program for Keysight E3631xA Programmable DC Power Supplies
+ * Test program for Keysight E36300 and E36200 Series Programmable DC Power Supplies
  *
  * This test program can either communicate via USB or ethernet. Define either
  * USBTMC or TCP.
@@ -16,16 +16,27 @@ Program TestKeysightE3631xA;
 {$mode objfpc}{$H+}
 
 // select device type, define one of these:
-{$DEFINE KeysightE3631x}
+{ $ DEFINE KeysightE36314A}
+{$DEFINE KeysightE36234A}
 
 // either communicate via USB or TCP, define one of these two:
-{$DEFINE USBTMC}
-{ $ DEFINE TCP}
+{ $ DEFINE USBTMC}
+{$DEFINE TCP}
 
 {$DEFINE TEST_SOURCE}
 {$DEFINE TEST_MEASURE}
 {$DEFINE TEST_SENSE}
 {$DEFINE TEST_PAIR}
+
+{$MACRO ON}
+{$IF DEFINED(KeysightE36313A)}
+  {$DEFINE NUM_CHANNELS := 3}
+{$ELSEIF DEFINED(KeysightE36234A)}
+  {$DEFINE NUM_CHANNELS := 2}
+{$ELSE}
+  {$ERROR Unknown device in this IF-ELSEIF}
+{$ENDIF}
+
 
 Uses
   Classes, SysUtils, DevCom,
@@ -39,13 +50,18 @@ Uses
 
 Const
 {$IFDEF USBTMC}
-  {$IFDEF KeysightE3631x}
+  {$IF DEFINED(KeysightE36313A)}
   idVendor  = $2A8D;
   idProduct = $1202;
+  {$ELSEIF DEFINED(KeysightE36234A)}
+  idVendor  = $2A8D;
+  idProduct = $3402;
+  {$ELSE}
+    {$ERROR Unknown device in this IF-ELSEIF}
   {$ENDIF}
 {$ENDIF USBTMC}
 {$IFDEF TCP}
-  Host = '192.168.0.2';
+  Host = '10.0.0.38';
   Port = 5025;
 {$ENDIF TCP}
 
@@ -62,6 +78,7 @@ Var
   Comm    : TTCPCommunicator;
 {$ENDIF TCP}
   E3631xA : TKeysightE3631xA;
+  Channels: TChannelSet;
 
 {$IFDEF USBTMC}
 Procedure USBTMCErrorHandler;
@@ -135,13 +152,14 @@ Begin
   WriteLn('Disable the beeper');
   E3631xA.SetBeeper(false);
 
+  Channels := [1,2{$IF NUM_CHANNELS = 3},3{$ENDIF}];
 {$IFDEF TEST_SOURCE}
   WriteLn('Set output voltage and enable the output');
-  E3631xA.SetVoltage([1,2,3],5.12345);
-  E3631xA.EnableOutput([1,2,3],True);
+  E3631xA.SetVoltage(Channels,5.12345);
+  E3631xA.EnableOutput(Channels,True);
   Sleep(500);
   WriteLn('Set current limit');
-  E3631xA.SetCurrentLimit([1,2,3],0.4321);
+  E3631xA.SetCurrentLimit(Channels,0.4321);
   Sleep(500);
 {$ENDIF TEST_SOURCE}
 
@@ -149,10 +167,14 @@ Begin
   WriteLn('Measure all voltages and currents');
   // note: measureing is very slow, especially when using the multi-channel function, where even a timeout of 1s is too small
   WriteLn('  Ch1: V = ',E3631xA.MeasureVoltage(1):1:5,'V, I = ',E3631xA.MeasureCurrent(1):1:5,'A');
+{$IF NUM_CHANNELS >= 2}
   WriteLn('  Ch2: V = ',E3631xA.MeasureVoltage(2):1:5,'V, I = ',E3631xA.MeasureCurrent(2):1:5,'A');
+{$ENDIF}
+{$IF NUM_CHANNELS >= 3}
   WriteLn('  Ch3: V = ',E3631xA.MeasureVoltage(3):1:5,'V, I = ',E3631xA.MeasureCurrent(3):1:5,'A');
-//  Voltages := E3631xA.MeasureVoltage([1,2,3]);
-//  Currents := E3631xA.MeasureCurrent([1,2,3]);
+{$ENDIF}
+//  Voltages := E3631xA.MeasureVoltage(Channels);
+//  Currents := E3631xA.MeasureCurrent(Channels);
 {$ENDIF TEST_MEASURE}
 
 {$IFDEF TEST_SENSE}
@@ -164,7 +186,13 @@ Begin
 {$ENDIF TEST_SENSE}
 
 {$IFDEF TEST_PAIR}
+{$IF DEFINED(KeysightE36313A)}
   WriteLn('Test pairing of Ch2&Ch3');
+{$ELSEIF DEFINED(KeysightE36234A)}
+  WriteLn('Test pairing of Ch1&Ch2');
+{$ELSE}
+  {$ERROR Unknown device in this IF-ELSEIF}
+{$ENDIF}
   E3631xA.SetPairMode(pmOff);
   Sleep(500);
   E3631xA.SetPairMode(pmParallel);
@@ -174,7 +202,13 @@ Begin
   E3631xA.SetPairMode(pmOff);
   Sleep(500);
 
+{$IF DEFINED(KeysightE36313A)}
   WriteLn('Test tracking of Ch2&Ch3');
+{$ELSEIF DEFINED(KeysightE36234A)}
+  WriteLn('Test tracking of Ch1&Ch2');
+{$ELSE}
+  {$ERROR Unknown device in this IF-ELSEIF}
+{$ENDIF}
   E3631xA.SetTrackMode(True);
   Sleep(500);
   E3631xA.SetTrackMode(False);

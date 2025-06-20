@@ -1,3 +1,47 @@
+(**
+ * Driver for Keysight E36300 and E36200 Series Programmable DC Power Supplies
+ *
+ * This driver supports the devices
+ *   E36311A  80 W Economy Model
+ *   E36312A  80 W Full-Featured Model
+ *   E36313A 160 W High Current Model
+ *   E36231A 200W Autoranging power supply 30V, 20A
+ *   E36232A 200W Autoranging power supply 60V, 10A
+ *   E36233A 400W Dual Output Autoranging power supply 30V, 20A
+ *   E36234A 400W Dual Output Autoranging power supply 60V, 10A
+ *
+ * It was originally implemented for the E36300 series and later updated for
+ * the newer E36200 Series.
+ *
+ * The driver does not do any sanitizing of the parameters, e.g., allowed
+ * channels, allowed voltage/current ranges, ...
+ *
+ * The SCPI commands for the E36200 Series are near identical to the E36300
+ * Series, with only a few small changes:
+ *  - Channel Names: P6V, P25V, N25V = CH1, CH2, CH3 → CH1 and CH2
+ *  - a few more errors -200..-215, -250..-258, -270..-363
+ *  - new commands CURRent:STEP, VOLTage:STEP
+ *  - removed DIAGnostic Subsystem (enables or disables the current low range)
+ *  - slight differences for APPLy Subsystem
+ *  - new value "UP" and "DOWN" for CURRent, new command CURRent:STEP
+ *  - new value "RELay" for DIGital:PIN<1-3>:FUNCtion
+ *  - "DISPlay:VIEW" changed from "METER1 or METER3" to "METER1 or METER2"
+ *  - "INITiate:DLOG" has different requirements on the filename
+ *  - removed "INSTrument:COUPle[:TRIGger]", which is only supported in E3631A persona mode.
+ *  - "INSTrument:NSELect 1 | 2 | 3" → "1 | 2"
+ *  - LIST:COUNt maximum increased from 256 to 9999
+ *  - new command OUTPut:PMODe: on or output off transitions, optimized for either constant voltage or constant current operation, overshoots are minimized
+ *  - new command OUTPut:RELay (for an external relais)
+ *  - for "SENSe:DLOG:TIME", the maximum reduced from 30000 hours and 7MB to 21,845 hours and 20 minutes and 5MB
+ *  - new commads "STATus:OPERation:CONDition?", "STATus:OPERation[:EVENt]?", and "STATus:OPERation:ENABle"
+ *  - new command "STATus:QUEStionable:CONDition?"
+ *  - removed command "SYSTem:COMMunicate:TCPip:CONTrol?"
+ *  - changed settings for "SYSTem:PERSona:MODel"
+ *  - new value "UP" and "DOWN" for VOLTage, new command VOLTage:STEP
+ *  - new commands "VOLTage:PROTection:STATe"
+ *  - different values for "VOLTage:RANGe", but "only applicable during persona mode."
+ *  - new commands "VOLTage:SLEW:FALLing", "VOLTage:SLEW:FALLing:MAXimum",
+ *)
 Unit KeysightE3631xA;
 
 {$mode objfpc}{$H+}
@@ -89,7 +133,11 @@ Begin
   Result := (Length(IdnArr) = 4) and
             ((IdnArr[0] = 'Keysight Technologies') and (IdnArr[1] = 'E36311A')) or
             ((IdnArr[0] = 'Keysight Technologies') and (IdnArr[1] = 'E36312A')) or
-            ((IdnArr[0] = 'Keysight Technologies') and (IdnArr[1] = 'E36313A'));
+            ((IdnArr[0] = 'Keysight Technologies') and (IdnArr[1] = 'E36313A')) or
+            ((IdnArr[0] = 'Keysight Technologies') and (IdnArr[1] = 'E36231A')) or
+            ((IdnArr[0] = 'Keysight Technologies') and (IdnArr[1] = 'E36232A')) or
+            ((IdnArr[0] = 'Keysight Technologies') and (IdnArr[1] = 'E36233A')) or
+            ((IdnArr[0] = 'Keysight Technologies') and (IdnArr[1] = 'E36234A'));
 End;
 
 Function  TKeysightE3631xA.GetChannelList(Ch:TChannel) : String;
