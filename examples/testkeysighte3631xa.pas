@@ -16,18 +16,19 @@ Program TestKeysightE3631xA;
 {$mode objfpc}{$H+}
 
 // select device type, define one of these:
-{ $ DEFINE KeysightE36314A}
-{$DEFINE KeysightE36234A}
+{$DEFINE KeysightE36313A}
+{ $ DEFINE KeysightE36234A}
 
 // either communicate via USB or TCP, define one of these two:
-{ $ DEFINE USBTMC}
-{$DEFINE TCP}
+{$DEFINE USBTMC}
+{ $ DEFINE TCP}
 
 {$DEFINE TEST_SOURCE}
 {$DEFINE TEST_MEASURE}
 {$DEFINE TEST_SENSE}
 {$DEFINE TEST_PAIR}
 
+// define more generic values depending on the selected device
 {$MACRO ON}
 {$IF DEFINED(KeysightE36313A)}
   {$DEFINE NUM_CHANNELS := 3}
@@ -36,7 +37,6 @@ Program TestKeysightE3631xA;
 {$ELSE}
   {$ERROR Unknown device in this IF-ELSEIF}
 {$ENDIF}
-
 
 Uses
   Classes, SysUtils, DevCom,
@@ -61,7 +61,7 @@ Const
   {$ENDIF}
 {$ENDIF USBTMC}
 {$IFDEF TCP}
-  Host = '10.0.0.38';
+  Host = '192.168.0.2';
   Port = 5025;
 {$ENDIF TCP}
 
