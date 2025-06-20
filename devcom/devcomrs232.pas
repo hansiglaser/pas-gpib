@@ -27,6 +27,7 @@ Type
   private
     FHandle  : TSerialHandle;
     FTimeout : LongInt;
+    FNewline : ShortString;
   public
     (**
      * Instanciate, open serial device and setup communication parameters
@@ -41,6 +42,7 @@ Type
     Function  Query(St:String):String;
     Procedure SetTimeout(ATimeout:LongInt);   // in us
     Function  GetTimeout : Longint;
+    property  Newline : ShortString read FNewline write FNewline;
   End;
 
 
@@ -56,6 +58,7 @@ Begin
     raise Exception.Create('Cannot open serial device '+ADevice+': '+StrError(FpGetErrno));
   SerSetParams(FHandle,BitsPerSec,ByteSize,Parity,StopBits,Flags);
   FTimeout := 100000; // default to 100ms
+  FNewline := ^J;
 End;
 
 Destructor TRS232Communicator.Destroy;
@@ -69,8 +72,8 @@ Var Ch : Char;
 Begin
   SerWrite(FHandle,St[1],Length(St));
   { send newline }
-  Ch := ^J;
-  SerWrite(FHandle,Ch,1);
+  if FNewline > '' then
+    SerWrite(FHandle,FNewline[1],Length(FNewline));
 End;
 
 Function TRS232Communicator.Receive: String;
@@ -78,12 +81,12 @@ Var Pos,Len : Integer;
     Waiting : Integer;
 Begin
   Pos := 1;
-  Len := 0;
   SetLength(Result,0);
   repeat
+    Len := 0;
     Waiting := SelectRead(FHandle,FTimeout);
     if (FTimeout = 0) and (Waiting = 0) then
-      Exit   // empty result
+      Break   // empty result
     else if Waiting = 0 then
       raise Exception.Create('Communication timeout for serial device')  // no data -> timeout
     else if Waiting < 0 then

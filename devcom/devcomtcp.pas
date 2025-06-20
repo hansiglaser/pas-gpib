@@ -27,6 +27,8 @@ Type
   protected
     FSocket : TInetSocket;
     FTimeout : LongInt;
+    FSendNewline : Boolean;
+    FReceiveNewline : Boolean;
   public
     (**
      * Instanciate and open TCP/IP connection
@@ -42,6 +44,8 @@ Type
     Function  Query(St:String):String; virtual;
     Procedure SetTimeout(ATimeout:LongInt);   // in us
     Function  GetTimeout:LongInt;   // in us
+    property  SendNewline : Boolean read FSendNewline write FSendNewline;
+    property  ReceiveNewline : Boolean read FReceiveNewline write FReceiveNewline;
   End;
 
 Implementation
@@ -53,6 +57,8 @@ Constructor TTCPCommunicator.Create(AHost: String; APort: Word);
 Begin
   FSocket := TInetSocket.Create(AHost,APort);
   FTimeout := 1000000; // default to 1000ms, don't set to 100ms, this is not enough!
+  FSendNewline := True;
+  FReceiveNewline := True;
 End;
 
 Destructor TTCPCommunicator.Destroy;
@@ -65,7 +71,8 @@ Procedure TTCPCommunicator.Send(St: String);
 Begin
   //WriteLn('Send: ',St);
   //ReadLn;
-  St := St + ^J;
+  if FSendNewline then
+    St := St + ^J;
   FSocket.Write(St[1],Length(St));
 End;
 
@@ -74,21 +81,29 @@ Var Pos,Len : Integer;
     Waiting : Integer;
 Begin
   Pos := 1;
-  Len := 0;
   SetLength(Result,0);
   repeat
+    Len := 0;
     Waiting := SelectRead(FSocket.Handle,FTimeout);
-    if Waiting = 0 then
+    if (Waiting = 0) and (FTimeout = 0) then
+      // no problem if timeout = 0
+      break
+    else if (Waiting = 0) and (FTimeout <> 0) then
       raise Exception.Create('Communication timeout for TCP/IP stream')  // no data -> timeout
     else if Waiting < 0 then
       raise Exception.Create('Error while reading from TCP/IP stream: '+StrError(FpGetErrno));
     SetLength(Result,Pos-1+1024);
     Len := FSocket.Read(Result[Pos],1024);
-    if Result[Pos+Len-1] = ^J then Break;
+    if FReceiveNewline then
+      if Result[Pos+Len-1] = ^J then Break;
     Pos := Pos + Len;
   Until Len = 0;
   SetLength(Result,Pos+Len-1);
-  //WriteLn('Receive: ',Result);
+  //if Pos+Len-1 > 0 then
+  //  Begin
+  //    WriteLn('Receive: ',Result);
+  //    Dump(Result[1], Length(Result));
+  //  End;
 End;
 
 Function TTCPCommunicator.Query(St: String): String;
