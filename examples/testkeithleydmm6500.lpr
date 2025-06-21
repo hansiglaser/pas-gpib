@@ -46,7 +46,7 @@ Uses
 
 Const
 {$IFDEF USBTMC}
-  Visa = 'USB0::0x05e6::0x6500::04547924::INSTR';
+  Visa = 'USB0::0x05e6::0x6500::*::INSTR';
 {$ENDIF USBTMC}
 {$IFDEF TCP}
   Visa = 'TCPIP::10.0.0.212::5025::SOCKET';

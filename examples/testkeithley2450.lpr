@@ -45,7 +45,7 @@ Uses
   Keithley2450;
 
 Const
-//Visa = 'USB0::0x05e6::0x6500::04547924::INSTR';
+//Visa = 'USB0::0x05e6::0x6500::*::INSTR';
   Visa = 'TCPIP::10.0.0.57::5025::SOCKET';
 
 Procedure PrintAllEvents(K2450:TKeithley2450;LastCmd:String='');

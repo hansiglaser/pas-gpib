@@ -30,7 +30,7 @@ Procedure Usage;
 Begin
   WriteLn('Usage: ',ParamStr(0),': visa source [filename]');
   WriteLn;
-  WriteLn('  visa      instrument VISA string, e.g., ''USB0::0x0957::0x17a6::MY52491958::0::INSTR''');
+  WriteLn('  visa      instrument VISA string, e.g., ''USB0::0x0957::0x17a6::*::0::INSTR''');
   WriteLn('            or ''TCPIP::a-mx3024a-91958.home::5025::SOCKET''');
   WriteLn('  source    waveform source (channel), one of ``',JoinStr(''', ''', CWaveformSource), '''');
   WriteLn('  filename  (optional) filename to save the waveform data to');
