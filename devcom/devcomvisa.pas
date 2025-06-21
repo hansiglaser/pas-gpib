@@ -98,7 +98,7 @@ Begin
   For I := 0 to Length(IntfInfo)-1 do
     if (IntfInfo[I].DevDescr.idVendor  = idVendor) and
        (IntfInfo[I].DevDescr.idProduct = idProduct) and
-       (Context.GetSerialNumber(IntfInfo[I].Device) = sSerial) and
+       ((sSerial = '*') or (Context.GetSerialNumber(IntfInfo[I].Device) = sSerial)) and
        ((bInterface = -1) or (IntfInfo[I].IntfDescr.bInterfaceNumber = bInterface)) then
       Begin
         Tmc := TUSBTMCUSB488.Create(Context,IntfInfo[I]);
