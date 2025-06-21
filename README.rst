@@ -69,6 +69,12 @@ classes are implemented in units in ``usb/``.
 .. [E36300Prg] Keysight E36300 Series Programmable DC Power Supplies
    Programming Guide, Manual Part Number E36311-90008, Edition 5, May 2018
 
+.. [E36200Prg] Keysight E36200 Series Programming Guide, Manual Part Number
+   E36200-90008, Edition 2, June 2023
+
+.. [EL3000Prg] Keysight EL30000 Series Programming Guide, Manual Part Number
+   EL34243-90007, Edition 3, October 2023
+
 The ``TUSBLeCroyCommunicator`` provides communication with LeCroy scopes which
 do not adhere to the USB-TMC specification. These include the WaveAce and
 WaveJet devices. It uses a `` TUSBLeCroy``, which implements a driver for the
@@ -95,8 +101,11 @@ Currently, rudimentary support for three devices is available
  - ``TKeithley2010`` for Keithley 2010 multimeters
  - ``TRohdeSchwarzFSEB`` for Rohde&Schwarz FSEB spectrum analyzers
  - ``TAgilent34410A`` for Agilent 34410A and Keysight 34461A digital multimeters
- - ``TKeysightE3631xA`` for Keysight E36300A programmable DC power supplies
+ - ``TKeysightE3631xA`` for Keysight E36300A and E36200A programmable DC power supplies
+ - ``TKeysightEL30000`` for Keysight EL30000 Series DC Electronic Loads
  - ``TKeithley2600`` for Keithley 2602A SourceMeter SMU Instruments
+ - ``TKeithley2450`` for Keithley 2450 SourceMeter SMU Instruments
+ - ``TKeithleyDMM6500`` for Keithley DMM6500 Digital Multimeters
 
 
 Verified
