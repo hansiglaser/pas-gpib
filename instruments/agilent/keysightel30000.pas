@@ -13,7 +13,7 @@ Unit KeysightEL30000;
 Interface
 
 Uses
-  Classes, SysUtils,
+  Classes, SysUtils, Math,
   PasGpibUtils, DevCom, Instrument, RemoteInstrument;
 
 Type
@@ -286,14 +286,24 @@ End;
 (**
  * Set load current
  *
+ * Note that you can't set to exactly 0.0A. The minimum of the selected range
+ * will be set instead.
+ *
  * [SOURce:]CURRent[:LEVel][:IMMediate][:AMPLitude] <current> | MINimum | MAXimum | DEFault[,(@<chanlist>) ]
  *
  * see [EL30000Prg] p. 52
  *
  *)
 Procedure TKeysightEL30000.SetCurrent(Ch : TChannel; Current : Double);
+Var St : String;
 Begin
-  FDeviceCommunicator.Send('SOURCE:CURRENT '+FloatToStrF(Current,ffFixed,1,5)+', '+GetChannelList(Ch));
+  if IsZero(Current) then
+    St := 'MIN'
+  else if IsInfinite(Current) then
+    St := 'MAX'
+  else
+    St := FloatToStrF(Current,ffFixed,1,5);
+  FDeviceCommunicator.Send('SOURCE:CURRENT '+St+', '+GetChannelList(Ch));
 End;
 
 (**
